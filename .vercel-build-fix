@@ -1,0 +1,7 @@
+# Force rebuild - TypeScript fixes applied
+Fixed TypeScript errors in:
+- app/api/v1/pairs/[pairId]/track/route.ts (finalHl, finalGl)
+- app/api/v1/export/route.ts (buffer as any)
+
+Build should now succeed.
+
