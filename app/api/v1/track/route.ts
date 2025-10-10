@@ -69,9 +69,13 @@ export async function POST(request: NextRequest) {
       const settingsResult = await docClient.send(settingsCommand);
       const settings = settingsResult.Item || { hl: 'fr', gl: 'fr' };
 
-      hl = hl || settings.hl;
-      gl = gl || settings.gl;
+      hl = hl || settings.hl || 'fr';
+      gl = gl || settings.gl || 'fr';
     }
+
+    // Ensure hl and gl are strings
+    const finalHl: string = hl || 'fr';
+    const finalGl: string = gl || 'fr';
 
     // Get pairs to track
     let pairsToTrack: any[] = [];
@@ -112,14 +116,14 @@ export async function POST(request: NextRequest) {
         const checkedAt = new Date().toISOString();
         
         try {
-          const matchResult = await trackKeyword(pair.keyword, pair.url, hl, gl);
+          const matchResult = await trackKeyword(pair.keyword, pair.url, finalHl, finalGl);
 
           // Save history entry
           const historyItem = {
             ...KEYS.history(pair.pair_id, checkedAt),
             checked_at: checkedAt,
-            hl,
-            gl,
+            hl: finalHl,
+            gl: finalGl,
             position: matchResult.position,
             matched_url: matchResult.matchedUrl,
             match_type: matchResult.matchType,
@@ -161,8 +165,8 @@ export async function POST(request: NextRequest) {
           const historyItem = {
             ...KEYS.history(pair.pair_id, checkedAt),
             checked_at: checkedAt,
-            hl,
-            gl,
+            hl: finalHl,
+            gl: finalGl,
             position: null,
             matched_url: null,
             match_type: 'none',
