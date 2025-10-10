@@ -1,0 +1,13 @@
+🔧 DEBUG: Environment Variables
+===============================
+
+Problem: ResourceNotFoundException despite table existing
+Solution: Added detailed logging to see what Vercel is actually using
+
+This will show in Vercel logs:
+- AWS_REGION value
+- DYNAMODB_TABLE value  
+- Whether credentials are set
+- Final configuration used
+
+Timestamp: 2025-01-10 23:55
