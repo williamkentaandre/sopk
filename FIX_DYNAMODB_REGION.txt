@@ -1,0 +1,16 @@
+🔧 FIX: DynamoDB Region Configuration
+=====================================
+
+Problem: Code was using eu-west-3 by default, but table exists in eu-north-1
+Solution: Changed default region from eu-west-3 to eu-north-1
+
+Changes made:
+✅ lib/db.ts - Changed default region to eu-north-1
+
+This ensures the application connects to the correct DynamoDB table
+in eu-north-1 (Stockholm) region.
+
+Before: region: process.env.AWS_REGION || "eu-west-3"
+After:  region: process.env.AWS_REGION || "eu-north-1"
+
+Timestamp: 2025-01-10 23:35

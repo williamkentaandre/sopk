@@ -3,14 +3,14 @@ import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 
 // Debug environment variables
 console.log('DynamoDB Config:', {
-  region: process.env.AWS_REGION || "eu-west-3",
+  region: process.env.AWS_REGION || "eu-north-1",
   table: process.env.DYNAMODB_TABLE || "seo_ranker",
   hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
   hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
 });
 
 const client = new DynamoDBClient({
-  region: process.env.AWS_REGION || "eu-west-3",
+  region: process.env.AWS_REGION || "eu-north-1",
   credentials: process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
     ? {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
