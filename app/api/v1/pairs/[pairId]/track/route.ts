@@ -65,9 +65,13 @@ export async function POST(
       const settingsResult = await docClient.send(settingsCommand);
       const settings = settingsResult.Item || { hl: 'fr', gl: 'fr' };
 
-      hl = hl || settings.hl;
-      gl = gl || settings.gl;
+      hl = hl || settings.hl || 'fr';
+      gl = gl || settings.gl || 'fr';
     }
+
+    // Ensure hl and gl are strings
+    const finalHl: string = hl || 'fr';
+    const finalGl: string = gl || 'fr';
 
     // Track keyword
     const checkedAt = new Date().toISOString();
@@ -75,7 +79,7 @@ export async function POST(
     let error = null;
 
     try {
-      matchResult = await trackKeyword(pair.keyword, pair.url, hl, gl);
+      matchResult = await trackKeyword(pair.keyword, pair.url, finalHl, finalGl);
     } catch (err) {
       console.error('SerpAPI error:', err);
       error = String(err);
@@ -84,8 +88,8 @@ export async function POST(
       const historyItem = {
         ...KEYS.history(pairId, checkedAt),
         checked_at: checkedAt,
-        hl,
-        gl,
+        hl: finalHl,
+        gl: finalGl,
         position: null,
         matched_url: null,
         match_type: 'none',
@@ -114,8 +118,8 @@ export async function POST(
     const historyItem = {
       ...KEYS.history(pairId, checkedAt),
       checked_at: checkedAt,
-      hl,
-      gl,
+      hl: finalHl,
+      gl: finalGl,
       position: matchResult.position,
       matched_url: matchResult.matchedUrl,
       match_type: matchResult.matchType,
@@ -144,8 +148,8 @@ export async function POST(
     return NextResponse.json({
       pair_id: pairId,
       checked_at: checkedAt,
-      hl,
-      gl,
+      hl: finalHl,
+      gl: finalGl,
       position: matchResult.position,
       matched_url: matchResult.matchedUrl,
       match_type: matchResult.matchType,
