@@ -1,0 +1,38 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DynamoDBTableAccess",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:CreateTable",
+        "dynamodb:DescribeTable",
+        "dynamodb:ListTables",
+        "dynamodb:UpdateTable",
+        "dynamodb:DeleteTable"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:eu-west-3:951979285668:table/seo_ranker"
+      ]
+    },
+    {
+      "Sid": "DynamoDBDataAccess",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:PutItem",
+        "dynamodb:GetItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:BatchGetItem",
+        "dynamodb:BatchWriteItem"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:eu-west-3:951979285668:table/seo_ranker",
+        "arn:aws:dynamodb:eu-west-3:951979285668:table/seo_ranker/index/*"
+      ]
+    }
+  ]
+}
+
