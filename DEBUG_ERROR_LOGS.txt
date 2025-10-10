@@ -1,0 +1,13 @@
+🔧 DEBUG: Detailed Error Logging
+=================================
+
+Problem: ResourceNotFoundException despite correct config
+Solution: Added detailed error logging to see exact DynamoDB error
+
+This will show in Vercel logs:
+- Error type and message
+- Error code and name  
+- Full error object
+- Detailed DynamoDB error information
+
+Timestamp: 2025-01-10 23:58
