@@ -1,0 +1,20 @@
+🔧 FIX: Dynamic Server Usage Error
+=====================================
+
+Problem: Next.js trying to statically render API routes that use searchParams
+Solution: Added "export const dynamic = 'force-dynamic';" to all API routes
+
+Files fixed:
+✅ app/api/v1/export/route.ts
+✅ app/api/v1/pairs/route.ts  
+✅ app/api/v1/pairs/[pairId]/route.ts
+✅ app/api/v1/pairs/[pairId]/history/route.ts
+✅ app/api/v1/track/route.ts
+✅ app/api/v1/pairs/[pairId]/track/route.ts
+✅ app/api/v1/health/route.ts
+✅ app/api/v1/settings/route.ts
+
+This fixes the error:
+"Dynamic server usage: Route /api/v1/export couldn't be rendered statically because it used nextUrl.searchParams"
+
+Timestamp: 2025-01-10 23:30
