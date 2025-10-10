@@ -1,0 +1,14 @@
+🔧 GIT FORCE SYNC - Emergency Fix
+================================
+
+This file forces GitHub Desktop to detect ALL changes and push them.
+
+Problem: Vercel still sees old code even after multiple commits.
+Solution: Force complete resync of all modified files.
+
+Files that MUST be pushed:
+✅ app/api/v1/pairs/[pairId]/track/route.ts (finalHl, finalGl)
+✅ app/api/v1/track/route.ts (finalHl, finalGl)
+✅ app/api/v1/export/route.ts (buffer as any)
+
+Emergency sync timestamp: 2025-01-10 00:58
