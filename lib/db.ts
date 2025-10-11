@@ -16,13 +16,11 @@ console.log('Final config:', {
 console.log('=====================');
 
 const client = new DynamoDBClient({
-  region: process.env.AWS_REGION || "eu-north-1",
-  credentials: process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
-    ? {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      }
-    : undefined,
+  region: "eu-north-1", // Force region to eu-north-1
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
 });
 
 export const docClient = DynamoDBDocumentClient.from(client, {

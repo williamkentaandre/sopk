@@ -1,0 +1,15 @@
+🔧 FORCE REGION FIX
+===================
+
+Problem: ResourceNotFoundException despite correct config
+Solution: Force region to eu-north-1 in DynamoDB client
+
+Changes made:
+✅ lib/db.ts - Force region to "eu-north-1"
+✅ lib/db.ts - Force credentials (no undefined check)
+✅ lib/db.ts - Remove fallback region logic
+
+This ensures the DynamoDB client always connects to eu-north-1
+regardless of environment variables or caching issues.
+
+Timestamp: 2025-01-11 00:15
