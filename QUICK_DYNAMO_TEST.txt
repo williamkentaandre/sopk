@@ -1,0 +1,16 @@
+🔧 QUICK DYNAMODB TEST
+======================
+
+Added a quick DynamoDB connection test to the settings API.
+
+This will test:
+✅ DynamoDB connection before attempting operations
+✅ Show connection success/failure in logs
+✅ Display exact error if connection fails
+
+This should help identify if the problem is:
+- Connection issue
+- Table access issue  
+- Credentials issue
+
+Timestamp: 2025-01-11 00:08
