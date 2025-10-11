@@ -1,0 +1,16 @@
+🔧 DYNAMODB TEST API
+====================
+
+Created a dedicated test API to isolate DynamoDB issues:
+- /api/v1/test-dynamo
+
+This API will:
+✅ Show all environment variables
+✅ Test table describe
+✅ Test put item
+✅ Test get item
+✅ Show detailed error logs
+
+This will help identify exactly where the problem is.
+
+Timestamp: 2025-01-11 00:05
