@@ -1,0 +1,19 @@
+🚀 FORCE REDEPLOY - Emergency Fix
+=================================
+
+This file forces Vercel to perform a complete rebuild and redeploy.
+
+Problem: Vercel is using cached code with wrong DynamoDB region
+Solution: Force complete rebuild without cache
+
+Changes made:
+✅ lib/db.ts - Force region to eu-north-1
+✅ All API routes - Added force-dynamic
+✅ Fixed TypeScript errors
+
+This redeploy will:
+- Use the latest code with correct region
+- Clear all build cache
+- Apply all fixes
+
+Emergency timestamp: 2025-01-11 00:18

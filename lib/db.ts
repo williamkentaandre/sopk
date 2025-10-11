@@ -1,19 +1,7 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 
-// Debug environment variables
-console.log('=== DYNAMODB DEBUG ===');
-console.log('AWS_REGION:', process.env.AWS_REGION);
-console.log('DYNAMODB_TABLE:', process.env.DYNAMODB_TABLE);
-console.log('AWS_ACCESS_KEY_ID:', process.env.AWS_ACCESS_KEY_ID ? 'SET' : 'NOT SET');
-console.log('AWS_SECRET_ACCESS_KEY:', process.env.AWS_SECRET_ACCESS_KEY ? 'SET' : 'NOT SET');
-console.log('Final config:', {
-  region: process.env.AWS_REGION || "eu-north-1",
-  table: process.env.DYNAMODB_TABLE || "seo_ranker",
-  hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
-  hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
-});
-console.log('=====================');
+// DynamoDB Configuration - Region forced to eu-north-1
 
 const client = new DynamoDBClient({
   region: "eu-north-1", // Force region to eu-north-1
