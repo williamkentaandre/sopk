@@ -86,9 +86,9 @@ export async function PUT(request: NextRequest) {
     console.error('=== SETTINGS ERROR ===');
     console.error('Error updating settings:', error);
     console.error('Error type:', typeof error);
-    console.error('Error message:', error?.message);
-    console.error('Error code:', error?.code);
-    console.error('Error name:', error?.name);
+    console.error('Error message:', (error as any)?.message);
+    console.error('Error code:', (error as any)?.code);
+    console.error('Error name:', (error as any)?.name);
     console.error('Full error:', JSON.stringify(error, null, 2));
     console.error('======================');
     return NextResponse.json(
