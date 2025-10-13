@@ -77,7 +77,11 @@ export async function POST(
       );
       
       position = matchResult.position;
-      console.log('SerpAPI tracking successful:', { position });
+      console.log('SerpAPI tracking successful:', { 
+        position, 
+        matchedUrl: matchResult.matchedUrl,
+        matchType: matchResult.matchType 
+      });
       
     } catch (serpError) {
       console.error('SerpAPI error:', serpError);
@@ -85,18 +89,26 @@ export async function POST(
     }
 
     // Update the pair with new tracking data
+    const matchedUrl = matchResult?.matchedUrl || null;
+    console.log('💾 Saving to database:', {
+      last_position: position,
+      last_matched_url: matchedUrl,
+      matchedUrlType: typeof matchedUrl
+    });
+    
     const updateCommand = new PutCommand({
       TableName: TABLE_NAME,
       Item: {
         ...pair,
         last_position: position,
         last_checked_at: checkedAt,
-        last_matched_url: matchResult?.matchedUrl || null,
+        last_matched_url: matchedUrl,
         updated_at: checkedAt,
       },
     });
 
     await docClient.send(updateCommand);
+    console.log('✅ Saved to database successfully');
 
     // Save history entry if position was found
     if (position !== null && position !== undefined) {
