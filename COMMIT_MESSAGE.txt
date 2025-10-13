@@ -14,3 +14,4 @@ Files modified:
 - app/page.tsx (frontend validation improvements)
 
 This should resolve the validation errors users are experiencing.
+
