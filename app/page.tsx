@@ -173,6 +173,33 @@ export default function Home() {
     }
   };
 
+  const importCSV = async (file: File) => {
+    try {
+      setLoading(true);
+      const text = await file.text();
+      
+      const response = await fetch('/api/v1/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csvData: text })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        showToast(`${result.imported} couples importés${result.failed > 0 ? `, ${result.failed} échoués` : ''}`, 'success');
+        loadPairs(); // Reload pairs list
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      showToast('Erreur lors de l\'import', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const trackPair = async (pairId: string) => {
     setTracking(prev => new Set(prev).add(pairId));
     
@@ -344,6 +371,21 @@ export default function Home() {
         <div className="pairs-header">
           <h2>Couples Mot-clé / URL ({pairs.length})</h2>
           <div className="pairs-actions">
+            <label className="btn btn-primary" style={{ cursor: 'pointer', margin: 0 }}>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    importCSV(file);
+                    e.target.value = ''; // Reset input
+                  }
+                }}
+                style={{ display: 'none' }}
+              />
+              Import CSV
+            </label>
             <button className="btn btn-secondary" onClick={trackAll} disabled={saving || pairs.length === 0}>
               Mesurer tout
             </button>

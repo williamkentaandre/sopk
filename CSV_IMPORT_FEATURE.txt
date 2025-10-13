@@ -1,0 +1,181 @@
+📥 CSV IMPORT FEATURE - Bulk Import Keywords and URLs
+====================================================
+
+Added CSV import functionality to bulk add keyword/URL pairs:
+
+✅ FEATURE DESCRIPTION:
+Users can now import multiple keyword/URL pairs at once from a CSV file:
+- Prepare list in Excel or text editor
+- Import with one click
+- Maintains order from CSV
+- Ready to track immediately
+
+✅ COMPONENTS CREATED:
+
+1. Import API (app/api/v1/import/route.ts):
+   - POST /api/v1/import
+   - Accepts CSV data as JSON payload
+   - Parses CSV with flexible column detection
+   - Handles quoted values and commas in data
+   - Creates pairs in DynamoDB
+   - Returns success/failure statistics
+
+2. Frontend Integration (app/page.tsx):
+   - Import CSV button in pairs section
+   - File input with .csv filter
+   - Progress indication
+   - Success/error notifications
+   - Auto-reload pairs list after import
+
+3. Example CSV (public/exemple-import.csv):
+   - Template file for users
+   - Shows correct format
+   - Can be downloaded and modified
+
+✅ CSV FORMAT:
+
+Required Columns:
+- "Mot-clé" or "keyword" (case insensitive)
+- "URL" (case insensitive)
+
+Example CSV:
+```csv
+Mot-clé,URL
+outscale,https://fr.outscale.com/
+cloud computing,https://fr.outscale.com/solutions/
+sécurité cloud,https://fr.outscale.com/securite/
+```
+
+Flexible Column Names:
+- Keywords: "Mot-clé", "mot-clé", "keyword", "Keyword", etc.
+- URLs: "URL", "url", etc.
+
+✅ FEATURES:
+
+CSV Parsing:
+- Handles quoted values: "keyword with, comma","url"
+- Skips empty lines
+- Detects columns automatically
+- Validates data before import
+
+Error Handling:
+- Missing columns → Error message
+- Invalid data → Skips row, reports error
+- Partial success → Shows imported + failed count
+
+Import Process:
+1. User clicks "Import CSV" button
+2. Selects .csv file from computer
+3. File is parsed and validated
+4. Pairs are created in DynamoDB
+5. Results displayed: "X couples importés, Y échoués"
+6. Pairs list refreshes automatically
+
+✅ API RESPONSE FORMAT:
+
+Success:
+```json
+{
+  "success": true,
+  "imported": 10,
+  "failed": 0,
+  "results": [
+    {
+      "success": true,
+      "pair_id": "01...",
+      "keyword": "outscale",
+      "url": "https://fr.outscale.com/"
+    }
+  ]
+}
+```
+
+With Errors:
+```json
+{
+  "success": true,
+  "imported": 8,
+  "failed": 2,
+  "errors": [
+    {
+      "line": 5,
+      "error": "Missing keyword or URL",
+      "data": { "keyword": "", "url": "..." }
+    }
+  ],
+  "results": [...]
+}
+```
+
+✅ USER WORKFLOW:
+
+1. Prepare CSV File:
+   - Create in Excel or text editor
+   - Add "Mot-clé" and "URL" columns
+   - Fill in keyword/URL pairs
+   - Save as .csv
+
+2. Import:
+   - Go to SEO Ranker app
+   - Click "Import CSV" button
+   - Select CSV file
+   - Wait for confirmation
+
+3. Track:
+   - Imported pairs appear in list
+   - Click "Mesurer tout" to track all
+   - Or track individually
+
+✅ BENEFITS:
+- Save time with bulk imports
+- Prepare lists offline in Excel
+- Maintain specific order
+- Import 10, 50, 100+ pairs at once
+- Reduces manual data entry errors
+
+✅ VALIDATION:
+- File must be .csv format
+- Must have header row
+- Must have Mot-clé and URL columns
+- Each row must have both values
+- URLs are stored as provided (no validation)
+
+✅ EXAMPLE USE CASES:
+
+1. New Project Setup:
+   - Create comprehensive keyword list in Excel
+   - Import all at once
+   - Start tracking immediately
+
+2. Competitor Analysis:
+   - Export competitor keywords
+   - Add URLs to track
+   - Import and compare
+
+3. Bulk Updates:
+   - Modify keywords in Excel
+   - Re-import updated list
+   - Track changes
+
+✅ TECHNICAL DETAILS:
+
+CSV Parsing:
+- Simple state-based parser
+- Handles quoted fields
+- Splits on commas outside quotes
+- Trims whitespace
+- Removes quotes from values
+
+Column Detection:
+- Case-insensitive search
+- Supports multiple languages
+- Flexible naming conventions
+- Auto-detects column indices
+
+DynamoDB Storage:
+- Each pair gets unique ULID
+- Same structure as manual adds
+- Includes timestamps
+- GSI indexing for queries
+
+CSV import feature timestamp: 2025-01-11 03:35
