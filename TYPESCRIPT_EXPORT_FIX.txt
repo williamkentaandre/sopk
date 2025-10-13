@@ -25,6 +25,9 @@ Type 'Record<string, any>' is missing the following properties from type 'Pair'
 - Line 72: Added 'as HistoryEntry[]' type assertion
   - Before: const history: HistoryEntry[] = historyResult.Items || [];
   - After: const history: HistoryEntry[] = (historyResult.Items || []) as HistoryEntry[];
+- Line 75: Fixed collectTimestamps function call
+  - Before: const timestamps = collectTimestamps(history);
+  - After: const timestamps = collectTimestamps([{ history }]);
 
 ✅ BENEFITS:
 - TypeScript compilation now succeeds

@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
       const history: HistoryEntry[] = (historyResult.Items || []) as HistoryEntry[];
 
       // Collect timestamps for this pair
-      const timestamps = collectTimestamps(history);
+      const timestamps = collectTimestamps([{ history }]);
       
       exportData.push({
         pair,
