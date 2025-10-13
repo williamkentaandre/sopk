@@ -1,0 +1,148 @@
+🗑️ DELETE ALL FEATURE - Bulk Delete All Keyword/URL Pairs
+==========================================================
+
+Added functionality to delete all keyword/URL pairs at once:
+
+✅ FEATURE DESCRIPTION:
+Users can now delete all tracked pairs with one click:
+- Removes all pairs from database
+- Deletes associated history entries
+- Double confirmation to prevent accidents
+- Clean slate for new projects
+
+✅ COMPONENTS CREATED:
+
+1. Delete All API (app/api/v1/pairs/delete-all/route.ts):
+   - DELETE /api/v1/pairs/delete-all
+   - Queries all pairs from DynamoDB
+   - Deletes each pair and its history
+   - Returns deletion statistics
+
+2. Frontend Integration (app/page.tsx):
+   - "Supprimer tout" button (red/danger style)
+   - Double confirmation prompts
+   - Progress indication during deletion
+   - Success notification with count
+   - Disabled when no pairs or loading
+
+✅ SAFETY FEATURES:
+
+Double Confirmation:
+1. First prompt: Shows number of pairs to delete
+   "Êtes-vous sûr de vouloir supprimer TOUS les X couples ?"
+   "Cette action est irréversible !"
+
+2. Second prompt: Final confirmation
+   "Dernière confirmation : Supprimer tous les couples et leur historique ?"
+
+Both confirmations must be accepted to proceed.
+
+✅ DELETION PROCESS:
+
+1. Query all pairs from DynamoDB GSI
+2. For each pair:
+   - Delete pair metadata (PK/SK)
+   - Query all history entries (HISTO#*)
+   - Delete each history entry
+3. Return statistics:
+   - Total deleted
+   - Any errors encountered
+
+✅ API RESPONSE FORMAT:
+
+Success:
+```json
+{
+  "success": true,
+  "deleted": 25,
+  "errors": undefined
+}
+```
+
+With Errors:
+```json
+{
+  "success": true,
+  "deleted": 23,
+  "errors": [
+    {
+      "pair_id": "01...",
+      "error": "Error message"
+    }
+  ]
+}
+```
+
+✅ USER WORKFLOW:
+
+1. Click "Supprimer tout" button
+2. Read first confirmation (shows count)
+3. Confirm deletion
+4. Read second confirmation
+5. Confirm again
+6. Wait for deletion
+7. See success message: "X couples supprimés"
+8. Pairs list is now empty
+
+✅ BUTTON STATES:
+
+Enabled:
+- At least one pair exists
+- Not currently loading
+
+Disabled:
+- No pairs to delete (pairs.length === 0)
+- Currently loading/processing
+
+✅ BENEFITS:
+- Quick way to reset all data
+- Clean start for new projects
+- Removes all history data
+- Safe with double confirmation
+- Shows deletion progress
+
+✅ USE CASES:
+
+1. Project Reset:
+   - Finished with old keywords
+   - Start fresh tracking
+   - Clean database
+
+2. Testing:
+   - Clear test data
+   - Reset after experiments
+   - Fresh environment
+
+3. Bulk Management:
+   - Remove old campaigns
+   - Seasonal cleanup
+   - Archive and restart
+
+✅ TECHNICAL DETAILS:
+
+DynamoDB Operations:
+- Uses GSI1 to query all pairs
+- Batch deletion (one at a time)
+- Includes history cleanup
+- Error handling per pair
+
+Frontend State:
+- Sets loading during operation
+- Clears pairs array on success
+- Shows toast notification
+- Re-enables UI after completion
+
+Safety:
+- Two confirmation dialogs
+- Shows exact count
+- Warns about irreversibility
+- Prevents accidental deletion
+
+✅ BUTTON STYLING:
+
+Color: Red/Danger (btn-danger class)
+Position: After Export buttons
+Spacing: 10px margin-left
+State: Disabled when empty or loading
+
+Delete all feature timestamp: 2025-01-11 03:45

@@ -200,6 +200,37 @@ export default function Home() {
     }
   };
 
+  const deleteAllPairs = async () => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer TOUS les ${pairs.length} couples ?\n\nCette action est irréversible !`)) {
+      return;
+    }
+
+    if (!confirm('Dernière confirmation : Supprimer tous les couples et leur historique ?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch('/api/v1/pairs/delete-all', {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        showToast(`${result.deleted} couples supprimés`, 'success');
+        setPairs([]);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
+      }
+    } catch (error) {
+      console.error('Delete all error:', error);
+      showToast('Erreur lors de la suppression', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const trackPair = async (pairId: string) => {
     setTracking(prev => new Set(prev).add(pairId));
     
@@ -394,6 +425,9 @@ export default function Home() {
             </button>
             <button className="btn btn-success" onClick={() => exportData('xlsx')}>
               Export XLSX
+            </button>
+            <button className="btn btn-danger" onClick={deleteAllPairs} disabled={loading || pairs.length === 0} style={{ marginLeft: '10px' }}>
+              Supprimer tout
             </button>
           </div>
         </div>
