@@ -1,0 +1,202 @@
+📖 GUIDE : Comment utiliser le tracking de domaine
+===================================================
+
+⚠️ IMPORTANT : FORMAT D'ENTRÉE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Pour que le système TRACK UN DOMAINE ENTIER, vous DEVEZ entrer l'URL SANS protocole:
+
+✅ BON (tracking de domaine):
+- outscale.com
+- www.outscale.com  
+- outscale.com/
+- www.outscale.com/
+
+❌ MAUVAIS (tracking d'URL spécifique):
+- https://outscale.com
+- http://outscale.com
+- https://www.outscale.com
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 EXEMPLES CONCRETS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SCÉNARIO 1 : Je veux tracker N'IMPORTE QUELLE page d'Outscale
+----------------------------------------------------------------
+Mot-clé: "cloud"
+URL: outscale.com  ← SANS http/https
+
+Résultat :
+→ Cherche dans TOUTES les pages d'outscale.com
+→ Retourne la MEILLEURE position (la plus basse)
+
+Exemple de résultats Google:
+  Position 1: https://fr.outscale.com/
+  Position 5: https://outscale.com/solutions
+  Position 10: https://blog.outscale.com/cloud
+
+→ Retourne position 1 ✅
+
+
+SCÉNARIO 2 : Je veux tracker UNE PAGE SPÉCIFIQUE
+--------------------------------------------------
+Mot-clé: "cloud"
+URL: https://fr.outscale.com/solutions  ← AVEC http/https
+
+Résultat :
+→ Cherche cette page exacte
+→ Si pas trouvée, cherche dans le domaine
+
+Exemple de résultats Google:
+  Position 1: https://fr.outscale.com/
+  Position 5: https://fr.outscale.com/solutions  ← Match exact!
+  Position 10: https://blog.outscale.com/cloud
+
+→ Retourne position 5 ✅
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 COMMENT VÉRIFIER LE TYPE DE TRACKING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dans l'interface, regardez le badge :
+
+🌐 Domaine outscale.com
+→ C'est du DOMAIN TRACKING
+→ Cherche toutes les pages du domaine
+
+https://outscale.com/page
+→ PAS de badge
+→ C'est du URL TRACKING
+→ Cherche cette page spécifique
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🐛 SI ÇA NE FONCTIONNE PAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Étape 1 : Vérifier l'entrée dans l'interface
+----------------------------------------------
+1. Allez sur votre app Vercel
+2. Regardez la colonne "URL"
+3. Si vous voyez "🌐 Domaine" → C'est bon !
+4. Si vous voyez un lien normal → Vous avez mis http/https
+
+Solution: Supprimer le couple et le recréer SANS http/https
+
+
+Étape 2 : Vérifier les logs Vercel
+------------------------------------
+1. Allez sur Vercel → Deployments
+2. Cliquez sur votre dernier déploiement
+3. Allez dans "Functions" → Cliquez sur une fonction
+4. Regardez les "Runtime Logs"
+5. Cherchez cette section:
+
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   🔍 URL MATCHING DEBUG - START
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     📌 Target URL: outscale.com
+     📌 Trimmed URL: outscale.com
+     📌 Is Domain Only: true ✅ (DOMAIN TRACKING)
+     📌 Normalized Target: outscale.com
+     📌 Target Domain: outscale.com
+     📌 Total Results: 100
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+6. Vérifiez :
+   - "Is Domain Only: true ✅ (DOMAIN TRACKING)" 
+     → Si c'est ça, c'est bon !
+   - "Is Domain Only: false ❌ (URL TRACKING)"
+     → Vous avez mis http/https par erreur
+
+7. Plus bas, cherchez :
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ✅ MATCH FOUND!
+     Type: DOMAIN MATCH
+     Position: 1
+     Matched URL: https://fr.outscale.com/
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   Ou :
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ❌ NO MATCH FOUND!
+     Target was: DOMAIN
+     Target Domain: outscale.com
+     Checked: 100 results
+     Reason: No domain match found in results
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+Étape 3 : Si "NO MATCH FOUND"
+-------------------------------
+Raisons possibles :
+1. Le domaine n'apparaît vraiment pas dans les 100 premiers résultats Google
+2. Le domaine est mal écrit (faute de frappe)
+3. La langue/région ne correspond pas (vérifier hl/gl dans les paramètres)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 CHECKLIST DE DÉBOGAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Pour que le domain tracking fonctionne :
+
+□ L'URL ne commence PAS par http:// ou https://
+□ Le badge "🌐 Domaine" est visible dans l'interface
+□ Les logs Vercel montrent "Is Domain Only: true ✅"
+□ Les logs montrent des comparaisons de domaines
+□ Le domaine existe vraiment dans les résultats Google
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💡 ASTUCE : TEST RAPIDE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Pour tester rapidement si le matching fonctionne :
+
+1. Testez avec Google.com:
+   Mot-clé: "search"
+   URL: google.com  (SANS http)
+   → Google.com devrait être position 1 !
+
+2. Regardez les logs :
+   → "Is Domain Only: true ✅"
+   → "MATCH FOUND! Position: 1"
+
+Si ça marche pour google.com mais pas pour votre domaine :
+→ Votre domaine n'est probablement pas dans les résultats Google
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧 CORRECTION DES ENTRÉES EXISTANTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Si vous avez déjà des couples avec http/https :
+
+Méthode 1 : Modifier
+1. Cliquez sur le crayon (éditer)
+2. Enlevez le "https://" ou "http://"
+3. Gardez juste "outscale.com"
+4. Cliquez sur ✓ (valider)
+
+Méthode 2 : Supprimer et recréer
+1. Cliquez sur ✕ (supprimer)
+2. Ajoutez un nouveau couple
+3. Entrez SANS http/https
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ RÉSUMÉ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DOMAIN TRACKING (toutes les pages):
+→ Entrez: outscale.com
+→ Badge: 🌐 Domaine
+→ Cherche: Toutes les pages
+→ Retourne: Meilleure position
+
+URL TRACKING (page spécifique):
+→ Entrez: https://outscale.com/page
+→ Badge: Aucun
+→ Cherche: Cette page exacte
+→ Retourne: Position de cette page
+
+La différence EST UNIQUEMENT la présence du protocole (http/https) !
+
+Guide timestamp: 2025-01-11 04:50
+

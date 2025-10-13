@@ -78,13 +78,16 @@ export function matchUrlInResults(
   const isDomainOnly = !trimmedUrl.startsWith('http://') && 
                        !trimmedUrl.startsWith('https://');
 
-  console.log('🔍 URL Matching Debug:');
-  console.log('  Target URL:', targetUrl);
-  console.log('  Trimmed URL:', trimmedUrl);
-  console.log('  Is Domain Only:', isDomainOnly);
-  console.log('  Normalized Target:', normalizedTarget);
-  console.log('  Target Domain:', targetDomain);
-  console.log('  Total Results:', organicResults.length);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🔍 URL MATCHING DEBUG - START');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('  📌 Target URL:', targetUrl);
+  console.log('  📌 Trimmed URL:', trimmedUrl);
+  console.log('  📌 Is Domain Only:', isDomainOnly, isDomainOnly ? '✅ (DOMAIN TRACKING)' : '❌ (URL TRACKING)');
+  console.log('  📌 Normalized Target:', normalizedTarget);
+  console.log('  📌 Target Domain:', targetDomain);
+  console.log('  📌 Total Results:', organicResults.length);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
   let bestDomainMatch: { position: number; url: string } | null = null;
 
@@ -141,7 +144,12 @@ export function matchUrlInResults(
 
   // Return best domain match if found
   if (bestDomainMatch) {
-    console.log('  ✅ DOMAIN MATCH (best) at position', bestDomainMatch.position);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('✅ MATCH FOUND!');
+    console.log('  Type:', isDomainOnly ? 'DOMAIN MATCH' : 'DOMAIN FALLBACK');
+    console.log('  Position:', bestDomainMatch.position);
+    console.log('  Matched URL:', bestDomainMatch.url);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     return {
       position: bestDomainMatch.position,
       matchedUrl: bestDomainMatch.url,
@@ -150,8 +158,13 @@ export function matchUrlInResults(
   }
 
   // No match found
-  console.log('  ❌ NO MATCH FOUND');
-  console.log('  Checked', organicResults.length, 'results');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('❌ NO MATCH FOUND!');
+  console.log('  Target was:', isDomainOnly ? 'DOMAIN' : 'URL');
+  console.log('  Target Domain:', targetDomain);
+  console.log('  Checked:', organicResults.length, 'results');
+  console.log('  Reason: No domain match found in results');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   return {
     position: null,
     matchedUrl: null,
