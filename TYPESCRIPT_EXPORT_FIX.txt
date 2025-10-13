@@ -20,8 +20,11 @@ Type 'Record<string, any>' is missing the following properties from type 'Pair'
 ✅ CHANGES MADE:
 - File: app/api/v1/export/route.ts
 - Line 50: Added 'as Pair[]' type assertion
-- Before: let pairs: Pair[] = pairsResult.Items || [];
-- After: let pairs: Pair[] = (pairsResult.Items || []) as Pair[];
+  - Before: let pairs: Pair[] = pairsResult.Items || [];
+  - After: let pairs: Pair[] = (pairsResult.Items || []) as Pair[];
+- Line 72: Added 'as HistoryEntry[]' type assertion
+  - Before: const history: HistoryEntry[] = historyResult.Items || [];
+  - After: const history: HistoryEntry[] = (historyResult.Items || []) as HistoryEntry[];
 
 ✅ BENEFITS:
 - TypeScript compilation now succeeds

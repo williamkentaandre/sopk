@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       });
 
       const historyResult = await docClient.send(historyQuery);
-      const history: HistoryEntry[] = historyResult.Items || [];
+      const history: HistoryEntry[] = (historyResult.Items || []) as HistoryEntry[];
 
       // Collect timestamps for this pair
       const timestamps = collectTimestamps(history);
