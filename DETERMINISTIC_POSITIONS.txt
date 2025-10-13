@@ -1,0 +1,39 @@
+🎯 DETERMINISTIC POSITIONS - All Keywords & URLs
+===============================================
+
+Created deterministic position system for ALL keyword/URL combinations:
+
+✅ HOW IT WORKS:
+- Uses hash function on "keyword|url" combination
+- Same keyword/URL always gets same position
+- Realistic distribution across positions 1-50
+- No more random positions!
+
+✅ REALISTIC DISTRIBUTION:
+- 5% chance → positions 1-10 (top 10, very competitive)
+- 15% chance → positions 11-20 (page 2)
+- 20% chance → positions 21-30 (page 3)
+- 20% chance → positions 31-40 (page 4)
+- 40% chance → positions 41-50 (page 5+)
+
+✅ BENEFITS:
+- Consistent results for same keyword/URL
+- Realistic SEO distribution
+- Works for ANY keyword and ANY URL
+- No more random positions
+- Predictable for testing
+
+✅ EXAMPLES:
+- "outscale" + "https://fr.outscale.com" → always same position
+- "seo" + "https://example.com" → always same position
+- "marketing" + "https://test.com" → always same position
+
+✅ APPLIED TO:
+- Individual tracking (/api/v1/pairs-temp/[id]/track)
+- Batch tracking (/api/v1/track-temp)
+- Both APIs use same logic
+
+Now EVERY keyword/URL combination will have
+consistent, realistic positions!
+
+Deterministic positions timestamp: 2025-01-11 01:20

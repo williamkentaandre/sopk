@@ -67,16 +67,45 @@ export async function POST(
       console.log('SERPAPI_KEY configured:', serpApiKey ? 'YES' : 'NO');
       
       if (!serpApiKey) {
-        console.log('SERPAPI_KEY not configured, using fixed test data');
-        // Use fixed positions for known keywords for testing
-        if (pair.keyword.toLowerCase() === 'outscale') {
-          position = 1; // outscale should be position 1
-        } else if (pair.keyword.toLowerCase() === 'google') {
-          position = 1; // google should be position 1
-        } else {
-          position = Math.floor(Math.random() * 50) + 1;
+        console.log('SERPAPI_KEY not configured, using deterministic test data');
+        
+        // Create deterministic position based on keyword + URL combination
+        // This ensures the same keyword/URL always gets the same position
+        const combination = `${pair.keyword.toLowerCase()}|${pair.url.toLowerCase()}`;
+        
+        // Simple hash function to convert string to number
+        let hash = 0;
+        for (let i = 0; i < combination.length; i++) {
+          const char = combination.charCodeAt(i);
+          hash = ((hash << 5) - hash) + char;
+          hash = hash & hash; // Convert to 32-bit integer
         }
-        error = 'SERPAPI_KEY not configured - using test data';
+        
+        // Convert hash to position (1-50) with realistic distribution
+        const normalizedHash = Math.abs(hash) % 1000; // 0-999
+        
+        if (normalizedHash < 50) {
+          // 5% chance - Top 10 positions (very competitive)
+          position = Math.floor(normalizedHash / 5) + 1;
+        } else if (normalizedHash < 200) {
+          // 15% chance - Positions 11-20 (page 2)
+          position = Math.floor((normalizedHash - 50) / 10) + 11;
+        } else if (normalizedHash < 400) {
+          // 20% chance - Positions 21-30 (page 3)
+          position = Math.floor((normalizedHash - 200) / 10) + 21;
+        } else if (normalizedHash < 600) {
+          // 20% chance - Positions 31-40 (page 4)
+          position = Math.floor((normalizedHash - 400) / 10) + 31;
+        } else {
+          // 40% chance - Positions 41-50 (page 5+)
+          position = Math.floor((normalizedHash - 600) / 10) + 41;
+        }
+        
+        // Ensure position is within 1-50 range
+        position = Math.max(1, Math.min(50, position));
+        
+        console.log(`Deterministic position for "${pair.keyword}" + "${pair.url}": ${position}`);
+        error = 'SERPAPI_KEY not configured - using deterministic test data';
       } else {
         try {
           // Import SerpAPI tracking function

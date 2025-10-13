@@ -44,28 +44,84 @@ export async function POST(request: NextRequest) {
         let position = null;
         let error = null;
 
-        try {
-          // Import SerpAPI tracking function
-          const { trackKeyword } = await import('@/lib/serpapi');
+        // Check if SERPAPI_KEY is configured
+        const serpApiKey = process.env.SERPAPI_KEY;
+        
+        if (!serpApiKey) {
+          console.log(`SERPAPI_KEY not configured, using deterministic test data for ${pair.keyword}`);
           
-          console.log(`Tracking pair ${pair.pair_id}: ${pair.keyword}`);
-          const matchResult = await trackKeyword(
-            pair.keyword, 
-            pair.url, 
-            validationResult.data.hl || 'fr', 
-            validationResult.data.gl || 'fr'
-          );
+          // Create deterministic position based on keyword + URL combination
+          const combination = `${pair.keyword.toLowerCase()}|${pair.url.toLowerCase()}`;
           
-          position = matchResult.position;
-          console.log(`SerpAPI success for ${pair.keyword}: position ${position}`);
+          // Simple hash function to convert string to number
+          let hash = 0;
+          for (let i = 0; i < combination.length; i++) {
+            const char = combination.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+          }
           
-        } catch (serpError) {
-          console.error(`SerpAPI error for ${pair.keyword}:`, serpError);
-          error = String(serpError);
+          // Convert hash to position (1-50) with realistic distribution
+          const normalizedHash = Math.abs(hash) % 1000; // 0-999
           
-          // Fallback to mock position if SerpAPI fails
-          position = Math.floor(Math.random() * 50) + 1;
-          console.log(`Using fallback mock position for ${pair.keyword}: ${position}`);
+          if (normalizedHash < 50) {
+            position = Math.floor(normalizedHash / 5) + 1;
+          } else if (normalizedHash < 200) {
+            position = Math.floor((normalizedHash - 50) / 10) + 11;
+          } else if (normalizedHash < 400) {
+            position = Math.floor((normalizedHash - 200) / 10) + 21;
+          } else if (normalizedHash < 600) {
+            position = Math.floor((normalizedHash - 400) / 10) + 31;
+          } else {
+            position = Math.floor((normalizedHash - 600) / 10) + 41;
+          }
+          
+          position = Math.max(1, Math.min(50, position));
+          error = 'SERPAPI_KEY not configured - using deterministic test data';
+          
+        } else {
+          try {
+            // Import SerpAPI tracking function
+            const { trackKeyword } = await import('@/lib/serpapi');
+            
+            console.log(`Tracking pair ${pair.pair_id}: ${pair.keyword}`);
+            const matchResult = await trackKeyword(
+              pair.keyword, 
+              pair.url, 
+              validationResult.data.hl || 'fr', 
+              validationResult.data.gl || 'fr'
+            );
+            
+            position = matchResult.position;
+            console.log(`SerpAPI success for ${pair.keyword}: position ${position}`);
+            
+          } catch (serpError) {
+            console.error(`SerpAPI error for ${pair.keyword}:`, serpError);
+            error = String(serpError);
+            
+            // Fallback to deterministic position if SerpAPI fails
+            const combination = `${pair.keyword.toLowerCase()}|${pair.url.toLowerCase()}`;
+            let hash = 0;
+            for (let i = 0; i < combination.length; i++) {
+              const char = combination.charCodeAt(i);
+              hash = ((hash << 5) - hash) + char;
+              hash = hash & hash;
+            }
+            const normalizedHash = Math.abs(hash) % 1000;
+            if (normalizedHash < 50) {
+              position = Math.floor(normalizedHash / 5) + 1;
+            } else if (normalizedHash < 200) {
+              position = Math.floor((normalizedHash - 50) / 10) + 11;
+            } else if (normalizedHash < 400) {
+              position = Math.floor((normalizedHash - 200) / 10) + 21;
+            } else if (normalizedHash < 600) {
+              position = Math.floor((normalizedHash - 400) / 10) + 31;
+            } else {
+              position = Math.floor((normalizedHash - 600) / 10) + 41;
+            }
+            position = Math.max(1, Math.min(50, position));
+            console.log(`Using fallback deterministic position for ${pair.keyword}: ${position}`);
+          }
         }
         
         // Update the pair

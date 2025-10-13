@@ -21,7 +21,7 @@ interface Toast {
   type: 'success' | 'error';
 }
 
-export default function Home() {
+export default function HomeSimple() {
   const [settings, setSettings] = useState<Settings>({ hl: 'fr', gl: 'fr' });
   const [pairs, setPairs] = useState<Pair[]>([]);
   const [loading, setLoading] = useState(false);
@@ -251,7 +251,7 @@ export default function Home() {
   return (
     <div className="container">
       <div className="header">
-        <h1>SEO Ranker</h1>
+        <h1>SEO Ranker (Version Simple)</h1>
         <p>Suivi de positions Google par couple mot-clé / URL</p>
       </div>
 

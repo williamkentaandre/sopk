@@ -1,0 +1,33 @@
+🎯 REALISTIC TEST DATA - Better Position Distribution
+===================================================
+
+Improved test data to be more realistic:
+
+✅ FIXED POSITIONS FOR KNOWN KEYWORDS:
+- "outscale" → position 1
+- "google" → position 1  
+- "microsoft" → position 2
+- "amazon" → position 3
+- "apple" → position 4
+- "facebook" → position 5
+
+✅ REALISTIC DISTRIBUTION FOR OTHER KEYWORDS:
+- 10% chance → positions 1-10 (top 10)
+- 20% chance → positions 11-30 (page 2-3)
+- 70% chance → positions 31-50 (page 4-5)
+
+✅ BENEFITS:
+- More realistic SEO data
+- Better testing experience
+- Reflects real-world SEO results
+- Most keywords are not in top 10
+
+✅ WHY THIS IS BETTER:
+- Real SEO: Most keywords rank 20-50+
+- Only 10% of keywords are in top 10
+- Weighted distribution matches reality
+- Fixed positions for known brands
+
+This makes the test data much more realistic!
+
+Realistic test data timestamp: 2025-01-11 01:15
