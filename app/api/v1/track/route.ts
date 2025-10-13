@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
             ...pair,
             last_position: matchResult.position,
             last_checked_at: checkedAt,
+            last_matched_url: matchResult.matchedUrl || null,
             updated_at: checkedAt,
           };
 

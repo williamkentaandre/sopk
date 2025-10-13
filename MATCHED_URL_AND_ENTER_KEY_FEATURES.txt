@@ -1,0 +1,256 @@
+✨ MATCHED URL + ENTER KEY FEATURES - Nouvelles fonctionnalités UX
+=====================================================================
+
+Date: 2025-01-11
+Features: Affichage de l'URL trouvée + Validation par touche Entrée
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1️⃣  COLONNE "URL TROUVÉE"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROBLÈME RÉSOLU:
+Lors du domain tracking, l'utilisateur entrait "outscale.com" mais ne savait pas
+quelle URL exacte avait été trouvée par Google (fr.outscale.com, blog.outscale.com, etc.)
+
+SOLUTION:
+Nouvelle colonne "URL trouvée" qui affiche l'URL exacte retournée par SerpAPI.
+
+EXEMPLE:
+- Utilisateur entre: "outscale.com" (domaine)
+- Google retourne: "https://fr.outscale.com/" (sous-domaine)
+- Affichage:
+  * Colonne URL: 🌐 Domaine outscale.com
+  * Colonne URL trouvée: https://fr.outscale.com/
+  * Colonne Position: 1
+
+IMPLÉMENTATION:
+
+1. Backend (lib/types.ts):
+   ```typescript
+   export interface Pair {
+     ...
+     last_matched_url?: string | null;  // NOUVEAU
+   }
+   ```
+
+2. API Tracking (track/route.ts):
+   ```typescript
+   const updatedPair = {
+     ...pair,
+     last_position: matchResult.position,
+     last_matched_url: matchResult.matchedUrl || null,  // NOUVEAU
+     ...
+   };
+   ```
+
+3. Frontend (app/page.tsx):
+   ```tsx
+   <th>URL trouvée</th>
+   
+   <td>
+     {pair.last_matched_url ? (
+       <a href={pair.last_matched_url} target="_blank">
+         {pair.last_matched_url.length > 50 
+           ? pair.last_matched_url.substring(0, 50) + '...' 
+           : pair.last_matched_url}
+       </a>
+     ) : (
+       <span>-</span>
+     )}
+   </td>
+   ```
+
+STYLE:
+- Couleur verte (#059669) pour différencier de la colonne URL (bleue)
+- Texte plus petit (0.85rem)
+- Tooltip: "URL exacte trouvée dans les résultats Google"
+- Troncature à 50 caractères avec "..."
+
+AVANTAGES:
+✅ Transparence totale sur les résultats
+✅ Vérification facile du matching
+✅ Utile pour le domain tracking
+✅ Debug visuel immédiat
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2️⃣  VALIDATION PAR TOUCHE "ENTRÉE"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROBLÈME RÉSOLU:
+Utilisateur devait cliquer sur "Ajouter" avec la souris après avoir tapé
+les valeurs au clavier. Workflow interrompu.
+
+SOLUTION:
+Ajout de la gestion de la touche "Entrée" sur les champs mot-clé et URL.
+
+IMPLÉMENTATION:
+
+```tsx
+<input
+  type="text"
+  value={newPair.keyword}
+  onChange={(e) => setNewPair({ ...newPair, keyword: e.target.value })}
+  onKeyDown={(e) => e.key === 'Enter' && addPair()}  // NOUVEAU
+  placeholder="Nouveau mot-clé"
+/>
+
+<input
+  type="text"
+  value={newPair.url}
+  onChange={(e) => setNewPair({ ...newPair, url: e.target.value })}
+  onKeyDown={(e) => e.key === 'Enter' && addPair()}  // NOUVEAU
+  placeholder="URL ou domaine"
+/>
+```
+
+COMPORTEMENT:
+1. Utilisateur tape le mot-clé
+2. Appuie sur Tab (ou clique)
+3. Tape l'URL
+4. Appuie sur Entrée ✅
+5. Le couple est ajouté immédiatement
+6. Les champs se vident
+7. Focus reste dans le formulaire
+
+WORKFLOW AMÉLIORÉ:
+AVANT:
+  Clavier → Clavier → Souris (clic "Ajouter") → Clavier
+
+APRÈS:
+  Clavier → Clavier → Entrée ✅ → Clavier
+
+Gain de temps et fluidité !
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 NOUVELLE STRUCTURE DU TABLEAU
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AVANT (5 colonnes):
+| Mot-clé | URL | Position | Dernière mesure | Actions |
+| 30%     | 35% | 10%      | 15%             | 10%     |
+
+APRÈS (6 colonnes):
+| Mot-clé | URL | URL trouvée | Position | Dernière mesure | Actions |
+| 20%     | 25% | 25%         | 8%       | 12%             | 10%     |
+
+Ajustements:
+- Mot-clé: 30% → 20% (réduit)
+- URL: 35% → 25% (réduit)
+- URL trouvée: 0% → 25% (nouveau)
+- Position: 10% → 8% (réduit)
+- Dernière mesure: 15% → 12% (réduit)
+- Actions: 10% → 10% (inchangé)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎨 AFFICHAGE VISUEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Colonne URL (bleue):
+  🌐 Domaine outscale.com  (si domaine)
+  https://outscale.com/page  (si URL)
+
+Colonne URL trouvée (verte):
+  https://fr.outscale.com/
+  Lien cliquable, couleur #059669
+
+Colonne Position:
+  1 (si trouvée)
+  - (si non trouvée)
+
+Si URL trop longue (> 50 caractères):
+  https://very-long-url.com/very/long/path...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📁 FICHIERS MODIFIÉS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. lib/types.ts
+   - Ajout de last_matched_url?: string | null dans interface Pair
+
+2. app/api/v1/pairs/[pairId]/track/route.ts
+   - Sauvegarde de last_matched_url lors du tracking
+
+3. app/api/v1/track/route.ts
+   - Sauvegarde de last_matched_url lors du batch tracking
+
+4. app/page.tsx
+   - Ajout colonne "URL trouvée" dans le header
+   - Ajout onKeyDown sur les inputs (mot-clé et URL)
+   - Affichage de last_matched_url dans le tableau
+   - Ajustement des largeurs de colonnes
+   - Correction du colspan (5 → 6)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🧪 TESTS APRÈS DÉPLOIEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test 1: Touche Entrée
+1. Taper un mot-clé dans le champ
+2. Tab pour passer au champ URL
+3. Taper une URL
+4. Appuyer sur Entrée
+5. ✅ Le couple devrait être ajouté immédiatement
+
+Test 2: URL trouvée (domain tracking)
+1. Ajouter: "test" → "outscale.com"
+2. Mesurer
+3. ✅ Colonne "URL trouvée" devrait afficher l'URL exacte
+4. Exemple: "https://fr.outscale.com/"
+
+Test 3: URL trouvée (URL spécifique)
+1. Ajouter: "test" → "https://outscale.com/page"
+2. Mesurer
+3. ✅ Colonne "URL trouvée" devrait afficher la même URL
+4. Ou une variante si match exact pas trouvé
+
+Test 4: Pas de match
+1. Ajouter un mot-clé qui ne donne pas de résultats
+2. Mesurer
+3. ✅ Position: "-"
+4. ✅ URL trouvée: "-"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ AVANTAGES COMBINÉS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+UX améliorée:
+✅ Workflow clavier fluide (touche Entrée)
+✅ Transparence sur les résultats (URL trouvée)
+✅ Vérification visuelle immédiate
+✅ Gain de temps à l'ajout
+
+Debug facilité:
+✅ Voir exactement ce que Google a retourné
+✅ Identifier les problèmes de matching
+✅ Vérifier le comportement du domain tracking
+
+Professionnalisme:
+✅ Interface plus complète
+✅ Informations détaillées
+✅ Raccourcis clavier standard
+✅ Expérience utilisateur moderne
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 EXEMPLE D'UTILISATION CONCRÈTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Scénario: Ajout rapide de plusieurs couples
+
+1. Taper "cloud" → Tab → "outscale.com" → Entrée ✅
+2. Taper "iaas" → Tab → "outscale.com" → Entrée ✅
+3. Taper "sécurité" → Tab → "outscale.com" → Entrée ✅
+
+Résultat: 3 couples ajoutés en quelques secondes, sans toucher la souris !
+
+Ensuite, cliquer "Mesurer tout" et voir:
+
+| Mot-clé   | URL          | URL trouvée                  | Position |
+|-----------|--------------|------------------------------|----------|
+| cloud     | 🌐 outscale  | https://fr.outscale.com/     | 1        |
+| iaas      | 🌐 outscale  | https://outscale.com/iaas    | 3        |
+| sécurité  | 🌐 outscale  | https://fr.outscale.com/sec  | 7        |
+
+L'utilisateur voit exactement quelles pages rankent pour chaque mot-clé !
+
+Features timestamp: 2025-01-11 05:45
+
