@@ -56,27 +56,55 @@ export async function POST(
     let error = null;
 
     try {
-      // Import SerpAPI tracking function
-      const { trackKeyword } = await import('@/lib/serpapi');
+      console.log('=== SERPAPI TRACKING ATTEMPT ===');
+      console.log('Keyword:', pair.keyword);
+      console.log('URL:', pair.url);
+      console.log('HL:', validationResult.data.hl || 'fr');
+      console.log('GL:', validationResult.data.gl || 'fr');
       
-      console.log('Starting real SerpAPI tracking...');
-      const matchResult = await trackKeyword(
-        pair.keyword, 
-        pair.url, 
-        validationResult.data.hl || 'fr', 
-        validationResult.data.gl || 'fr'
-      );
+      // Check if SERPAPI_KEY is configured
+      const serpApiKey = process.env.SERPAPI_KEY;
+      console.log('SERPAPI_KEY configured:', serpApiKey ? 'YES' : 'NO');
       
-      position = matchResult.position;
-      console.log('SerpAPI tracking successful:', { position });
+      if (!serpApiKey) {
+        console.log('SERPAPI_KEY not configured, using mock data');
+        position = Math.floor(Math.random() * 50) + 1;
+        error = 'SERPAPI_KEY not configured';
+      } else {
+        try {
+          // Import SerpAPI tracking function
+          const { trackKeyword } = await import('@/lib/serpapi');
+          
+          console.log('Starting real SerpAPI tracking...');
+          const matchResult = await trackKeyword(
+            pair.keyword, 
+            pair.url, 
+            validationResult.data.hl || 'fr', 
+            validationResult.data.gl || 'fr'
+          );
+          
+          position = matchResult.position;
+          console.log('SerpAPI tracking successful:', { position });
+          
+        } catch (serpError) {
+          console.error('SerpAPI error:', serpError);
+          error = String(serpError);
+          
+          // Fallback to mock position if SerpAPI fails
+          position = Math.floor(Math.random() * 50) + 1;
+          console.log('Using fallback mock position:', position);
+        }
+      }
       
-    } catch (serpError) {
-      console.error('SerpAPI error:', serpError);
-      error = String(serpError);
+      console.log('=== TRACKING RESULT ===');
+      console.log('Final position:', position);
+      console.log('Error:', error);
+      console.log('========================');
       
-      // Fallback to mock position if SerpAPI fails
+    } catch (generalError) {
+      console.error('General tracking error:', generalError);
+      error = String(generalError);
       position = Math.floor(Math.random() * 50) + 1;
-      console.log('Using fallback mock position:', position);
     }
     
     // Update the pair with new tracking data
