@@ -83,7 +83,10 @@ export async function GET(request: NextRequest) {
 
     // Generate export file
     if (format === 'csv') {
-      const csvContent = generateCSV(exportData);
+      const csvContent = generateCSV({
+        pairs: exportData,
+        timestamps: exportData.length > 0 ? exportData[0].timestamps : []
+      });
       return new NextResponse(csvContent, {
         headers: {
           'Content-Type': 'text/csv;charset=utf-8',
@@ -91,7 +94,10 @@ export async function GET(request: NextRequest) {
         },
       });
     } else if (format === 'xlsx') {
-      const buffer = await generateXLSX(exportData);
+      const buffer = await generateXLSX({
+        pairs: exportData,
+        timestamps: exportData.length > 0 ? exportData[0].timestamps : []
+      });
       return new NextResponse(buffer as any, {
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

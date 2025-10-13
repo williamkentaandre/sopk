@@ -28,6 +28,12 @@ Type 'Record<string, any>' is missing the following properties from type 'Pair'
 - Line 75: Fixed collectTimestamps function call
   - Before: const timestamps = collectTimestamps(history);
   - After: const timestamps = collectTimestamps([{ history }]);
+- Lines 86-89: Fixed generateCSV function call
+  - Before: const csvContent = generateCSV(exportData);
+  - After: const csvContent = generateCSV({ pairs: exportData, timestamps: exportData.length > 0 ? exportData[0].timestamps : [] });
+- Lines 97-100: Fixed generateXLSX function call
+  - Before: const buffer = await generateXLSX(exportData);
+  - After: const buffer = await generateXLSX({ pairs: exportData, timestamps: exportData.length > 0 ? exportData[0].timestamps : [] });
 
 ✅ BENEFITS:
 - TypeScript compilation now succeeds
