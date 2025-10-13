@@ -102,10 +102,10 @@ export default function Home() {
       return;
     }
     
-    // Validation basique de l'URL
+    // Validation basique de l'URL ou domaine
     const url = newPair.url.trim();
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      showToast('L\'URL doit commencer par http:// ou https://', 'error');
+    if (!url || url.length < 3) {
+      showToast('URL ou domaine invalide', 'error');
       return;
     }
 
