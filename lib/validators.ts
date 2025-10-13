@@ -34,9 +34,9 @@ export const batchTrackSchema = z.object({
 
 export const historyQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(500).optional().default(50),
-  from: z.string().datetime().optional(),
-  to: z.string().datetime().optional(),
-  order: z.enum(['asc', 'desc']).optional().default('desc'),
+  from: z.string().datetime().nullable().optional(),
+  to: z.string().datetime().nullable().optional(),
+  order: z.enum(['asc', 'desc']).nullable().optional().default('desc'),
 });
 
 export const exportQuerySchema = z.object({

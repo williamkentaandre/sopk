@@ -17,10 +17,10 @@ export async function GET(
 
     // Validate query parameters
     const queryObject = {
-      limit: searchParams.get('limit'),
-      from: searchParams.get('from'),
-      to: searchParams.get('to'),
-      order: searchParams.get('order'),
+      limit: searchParams.get('limit') || '50',
+      from: searchParams.get('from') || undefined,
+      to: searchParams.get('to') || undefined,
+      order: searchParams.get('order') || 'desc',
     };
 
     const validationResult = historyQuerySchema.safeParse(queryObject);

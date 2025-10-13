@@ -1,0 +1,64 @@
+🔧 EXPORT AND POSITION ACCURACY FIXES
+=====================================
+
+Fixed two critical issues with export and position accuracy:
+
+✅ PROBLEM 1: Export Missing Position Data
+- Export CSV/XLSX shows "-" for positions that exist in UI
+- Root cause: History API validation issues preventing data retrieval
+- History entries exist but export can't access them
+
+✅ PROBLEM 2: Position Accuracy Issues
+- SerpAPI positions don't match manual Google searches
+- Possible causes: Different search parameters, location, or matching logic
+- Need to verify SerpAPI configuration and matching algorithm
+
+✅ SOLUTIONS APPLIED:
+
+1. Fixed History API Validation (app/api/v1/pairs/[pairId]/history/route.ts):
+   - Added default values for optional parameters
+   - Changed null handling to prevent validation errors
+
+2. Fixed History Query Schema (lib/validators.ts):
+   - Added .nullable() to optional string fields
+   - Prevents validation errors when parameters are null
+
+3. Created Detailed SerpAPI Test (app/api/v1/test-serpapi-detailed/route.ts):
+   - Tests specific keyword/URL combinations
+   - Shows URL normalization results
+   - Helps diagnose position accuracy issues
+
+✅ CHANGES MADE:
+
+File: app/api/v1/pairs/[pairId]/history/route.ts
+- Added default values: limit='50', order='desc'
+- Convert null to undefined for optional parameters
+
+File: lib/validators.ts
+- Added .nullable() to historyQuerySchema fields
+- Prevents validation errors with null values
+
+File: app/api/v1/test-serpapi-detailed/route.ts (NEW)
+- Detailed SerpAPI testing endpoint
+- URL normalization testing
+- Position matching diagnostics
+
+✅ EXPECTED RESULTS:
+- Export should now include all position data
+- History API should work without validation errors
+- Detailed SerpAPI test will help diagnose position accuracy
+
+✅ VERIFICATION STEPS:
+1. Deploy the fixes
+2. Test export: should show actual positions instead of "-"
+3. Test detailed SerpAPI: /api/v1/test-serpapi-detailed?keyword=outscale&url=https://fr.outscale.com/
+4. Compare SerpAPI results with manual Google searches
+
+✅ POSITION ACCURACY INVESTIGATION:
+The detailed test will help identify why SerpAPI positions differ from manual searches:
+- Check if SerpAPI uses different search parameters
+- Verify URL normalization is working correctly
+- Compare SerpAPI results with actual Google search results
+- Check if location/language settings affect results
+
+Export and position fixes timestamp: 2025-01-11 03:20
