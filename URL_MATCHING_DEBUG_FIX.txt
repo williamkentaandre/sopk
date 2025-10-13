@@ -1,0 +1,105 @@
+🔧 URL MATCHING DEBUG FIX - Enhanced Logging and Diagnostics
+============================================================
+
+Fixed and enhanced URL matching for better debugging of position tracking issues:
+
+✅ PROBLEM REPORTED:
+- Position tracking works sometimes but not always
+- Issue especially when URLs don't start with "www."
+- User reports positions don't match manual Google searches
+
+✅ INVESTIGATION:
+- URL normalization should remove "www." from both target and results
+- But matching still fails sometimes
+- Need detailed logs to understand what's happening
+
+✅ SOLUTIONS APPLIED:
+
+1. Enhanced URL Matching Logs (lib/serpapi.ts):
+   - Added detailed console logs for every matching attempt
+   - Shows target URL normalization
+   - Shows each result URL normalization
+   - Indicates exact match vs domain match
+   - Shows why no match is found
+
+2. Improved Test API (app/api/v1/test-serpapi-detailed/route.ts):
+   - Now shows first 10 SerpAPI results
+   - Displays URL normalization for each result
+   - Shows domain extraction
+   - Helps compare with manual searches
+
+✅ DEBUG LOGS ADDED:
+
+URL Matching Debug Output:
+```
+🔍 URL Matching Debug:
+  Target URL: https://www.pole-mer-bretagne-atlantique.com/node/24824
+  Normalized Target: pole-mer-bretagne-atlantique.com/node/24824
+  Target Domain: pole-mer-bretagne-atlantique.com
+  Total Results: 100
+
+  ✅ EXACT MATCH at position 11
+    Result URL: https://www.pole-mer-bretagne-atlantique.com/node/24824
+    Normalized: pole-mer-bretagne-atlantique.com/node/24824
+
+OR
+
+  🔗 Domain match at position 5
+    Result URL: https://www.pole-mer-bretagne-atlantique.com/another-page
+    Result Domain: pole-mer-bretagne-atlantique.com
+
+OR
+
+  ❌ NO MATCH FOUND
+  Checked 100 results
+```
+
+✅ TEST API RESPONSE:
+```json
+{
+  "success": true,
+  "keyword": "kenta",
+  "targetUrl": "https://www.pole-mer-bretagne-atlantique.com/node/24824",
+  "normalizedTarget": "pole-mer-bretagne-atlantique.com/node/24824",
+  "targetDomain": "pole-mer-bretagne-atlantique.com",
+  "matchResult": {
+    "position": 11,
+    "matchedUrl": "...",
+    "matchType": "exact"
+  },
+  "totalResults": 100,
+  "first10Results": [
+    {
+      "position": 1,
+      "url": "...",
+      "normalized": "...",
+      "domain": "...",
+      "title": "..."
+    }
+  ]
+}
+```
+
+✅ HOW TO USE:
+
+1. Deploy the changes
+2. Track a keyword/URL pair that has issues
+3. Check Vercel logs for detailed matching output
+4. Test specific combinations:
+   ```
+   https://cursor-amber-nine.vercel.app/api/v1/test-serpapi-detailed?keyword=kenta&url=https://www.pole-mer-bretagne-atlantique.com/node/24824
+   ```
+
+✅ EXPECTED BENEFITS:
+- Detailed logs show exact matching process
+- Easy to see if URL normalization is working
+- Can compare SerpAPI results with manual searches
+- Helps identify why positions differ from expectations
+
+✅ NEXT STEPS:
+1. Monitor logs after deployment
+2. Compare first10Results with manual Google search
+3. Verify URL normalization is correct for all cases
+4. Adjust matching logic if needed based on findings
+
+URL matching debug fix timestamp: 2025-01-11 03:25

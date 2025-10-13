@@ -15,7 +15,14 @@ export async function GET(request: NextRequest) {
     console.log('Keyword:', keyword);
     console.log('Target URL:', url);
     
-    // Test SerpAPI call
+    // Import callSerpApi dynamically to get raw results
+    const { callSerpApi } = await import('@/lib/serpapi');
+    
+    // Get raw SerpAPI results
+    const serpResponse = await callSerpApi({ keyword, hl: 'fr', gl: 'fr', num: 100 });
+    const organicResults = serpResponse.organic_results || [];
+    
+    // Test URL matching
     const matchResult = await trackKeyword(keyword, url, 'fr', 'fr');
     
     console.log('Match result:', matchResult);
@@ -27,6 +34,15 @@ export async function GET(request: NextRequest) {
     console.log('Normalized target:', normalizedTarget);
     console.log('Target domain:', targetDomain);
     
+    // Show first 10 results with normalization
+    const first10Results = organicResults.slice(0, 10).map(result => ({
+      position: result.position,
+      url: result.link,
+      normalized: normalizeUrl(result.link),
+      domain: extractDomain(result.link),
+      title: result.title,
+    }));
+    
     return NextResponse.json({
       success: true,
       keyword,
@@ -34,6 +50,8 @@ export async function GET(request: NextRequest) {
       normalizedTarget,
       targetDomain,
       matchResult,
+      totalResults: organicResults.length,
+      first10Results,
       serpApiKey: process.env.SERPAPI_API_KEY ? 'SET' : 'NOT_SET',
     });
     

@@ -72,6 +72,12 @@ export function matchUrlInResults(
   const normalizedTarget = normalizeUrl(targetUrl);
   const targetDomain = extractDomain(targetUrl);
 
+  console.log('🔍 URL Matching Debug:');
+  console.log('  Target URL:', targetUrl);
+  console.log('  Normalized Target:', normalizedTarget);
+  console.log('  Target Domain:', targetDomain);
+  console.log('  Total Results:', organicResults.length);
+
   let bestDomainMatch: { position: number; url: string } | null = null;
 
   // Iterate through organic results
@@ -80,6 +86,9 @@ export function matchUrlInResults(
     
     // Check for exact match
     if (normalizedResult === normalizedTarget) {
+      console.log('  ✅ EXACT MATCH at position', result.position);
+      console.log('    Result URL:', result.link);
+      console.log('    Normalized:', normalizedResult);
       return {
         position: result.position,
         matchedUrl: result.link,
@@ -92,6 +101,9 @@ export function matchUrlInResults(
     if (resultDomain && resultDomain === targetDomain) {
       // Keep track of best (lowest position) domain match
       if (!bestDomainMatch || result.position < bestDomainMatch.position) {
+        console.log('  🔗 Domain match at position', result.position);
+        console.log('    Result URL:', result.link);
+        console.log('    Result Domain:', resultDomain);
         bestDomainMatch = {
           position: result.position,
           url: result.link,
@@ -102,6 +114,7 @@ export function matchUrlInResults(
 
   // Return best domain match if found
   if (bestDomainMatch) {
+    console.log('  ✅ DOMAIN MATCH (best) at position', bestDomainMatch.position);
     return {
       position: bestDomainMatch.position,
       matchedUrl: bestDomainMatch.url,
@@ -110,6 +123,8 @@ export function matchUrlInResults(
   }
 
   // No match found
+  console.log('  ❌ NO MATCH FOUND');
+  console.log('  Checked', organicResults.length, 'results');
   return {
     position: null,
     matchedUrl: null,
