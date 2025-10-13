@@ -2,21 +2,31 @@ export const runtime = "nodejs";
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
+import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { docClient, TABLE_NAME, KEYS } from '@/lib/db';
 import { settingsSchema } from '@/lib/validators';
-
-// Simple in-memory storage for settings
-let currentSettings = {
-  hl: 'fr',
-  gl: 'fr',
-  updated_at: new Date().toISOString()
-};
 
 // GET /api/v1/settings
 export async function GET(request: NextRequest) {
   try {
+    const command = new GetCommand({
+      TableName: TABLE_NAME,
+      Key: KEYS.settings(),
+    });
+
+    const result = await docClient.send(command);
+
+    if (!result.Item) {
+      // Return default settings
+      return NextResponse.json({
+        hl: 'fr',
+        gl: 'fr',
+      });
+    }
+
     return NextResponse.json({
-      hl: currentSettings.hl,
-      gl: currentSettings.gl,
+      hl: result.Item.hl,
+      gl: result.Item.gl,
     });
   } catch (error) {
     console.error('Error getting settings:', error);
@@ -55,12 +65,17 @@ export async function PUT(request: NextRequest) {
 
     const { hl, gl } = validationResult.data;
 
-    // Update in-memory settings
-    currentSettings = {
-      hl,
-      gl,
-      updated_at: new Date().toISOString()
-    };
+    const command = new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        ...KEYS.settings(),
+        hl,
+        gl,
+        updated_at: new Date().toISOString(),
+      },
+    });
+
+    await docClient.send(command);
 
     return NextResponse.json({
       hl,

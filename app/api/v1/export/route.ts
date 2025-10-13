@@ -36,99 +36,78 @@ export async function GET(request: NextRequest) {
 
     const { format, pair_ids, max_points } = validationResult.data;
 
-    // Parse pair IDs if provided
-    let pairIdsArray: string[] | null = null;
-    if (pair_ids) {
-      pairIdsArray = pair_ids.split(',').map(id => id.trim()).filter(Boolean);
-    }
-
     // Get pairs
-    let pairs: Pair[] = [];
+    const pairsQuery = new QueryCommand({
+      TableName: TABLE_NAME,
+      IndexName: 'GSI1',
+      KeyConditionExpression: 'GSI1PK = :pk',
+      ExpressionAttributeValues: {
+        ':pk': 'ENTITY#PAIR',
+      },
+    });
 
-    if (pairIdsArray && pairIdsArray.length > 0) {
-      // Get specific pairs
-      for (const pairId of pairIdsArray) {
-        const queryCommand = new QueryCommand({
-          TableName: TABLE_NAME,
-          KeyConditionExpression: 'PK = :pk AND SK = :sk',
-          ExpressionAttributeValues: {
-            ':pk': `PAIR#${pairId}`,
-            ':sk': 'META',
-          },
-        });
+    const pairsResult = await docClient.send(pairsQuery);
+    let pairs: Pair[] = pairsResult.Items || [];
 
-        const result = await docClient.send(queryCommand);
-        if (result.Items && result.Items.length > 0) {
-          pairs.push(result.Items[0] as Pair);
-        }
-      }
-    } else {
-      // Get all pairs
-      const queryCommand = new QueryCommand({
-        TableName: TABLE_NAME,
-        IndexName: 'GSI1',
-        KeyConditionExpression: 'GSI1PK = :pk',
-        ExpressionAttributeValues: {
-          ':pk': 'ENTITY#PAIR',
-        },
-      });
-
-      const result = await docClient.send(queryCommand);
-      pairs = (result.Items || []) as Pair[];
+    // Filter by pair_ids if provided
+    if (pair_ids && pair_ids.length > 0) {
+      pairs = pairs.filter(pair => pair_ids.includes(pair.pair_id));
     }
 
     // Get history for each pair
-    const pairsWithHistory = await Promise.all(
-      pairs.map(async (pair) => {
-        const historyCommand = new QueryCommand({
-          TableName: TABLE_NAME,
-          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-          ExpressionAttributeValues: {
-            ':pk': `PAIR#${pair.pair_id}`,
-            ':sk': 'HISTO#',
-          },
-        });
+    const exportData = [];
+    for (const pair of pairs) {
+      const historyQuery = new QueryCommand({
+        TableName: TABLE_NAME,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk_prefix)',
+        ExpressionAttributeValues: {
+          ':pk': `PAIR#${pair.pair_id}`,
+          ':sk_prefix': 'HISTORY#',
+        },
+        ScanIndexForward: false, // Sort by timestamp descending
+        Limit: max_points || 100,
+      });
 
-        const historyResult = await docClient.send(historyCommand);
-        const history = (historyResult.Items || []) as HistoryEntry[];
+      const historyResult = await docClient.send(historyQuery);
+      const history: HistoryEntry[] = historyResult.Items || [];
 
-        return { pair, history };
-      })
-    );
+      // Collect timestamps for this pair
+      const timestamps = collectTimestamps(history);
+      
+      exportData.push({
+        pair,
+        history,
+        timestamps,
+      });
+    }
 
-    // Collect unique timestamps (sorted descending, most recent first)
-    const maxPointsLimit = max_points || parseInt(process.env.EXPORT_MAX_POINTS || '0', 10) || undefined;
-    const timestamps = collectTimestamps(pairsWithHistory, maxPointsLimit);
-
-    // Prepare export data
-    const exportData = {
-      pairs: pairsWithHistory,
-      timestamps,
-    };
-
-    // Generate file based on format
-    const now = new Date();
-    const dateStr = now.toISOString().slice(0, 16).replace(/[-:T]/g, '').replace(/(\d{8})(\d{4})/, '$1-$2');
-
-    if (format === 'xlsx') {
+    // Generate export file
+    if (format === 'csv') {
+      const csvContent = generateCSV(exportData);
+      return new NextResponse(csvContent, {
+        headers: {
+          'Content-Type': 'text/csv;charset=utf-8',
+          'Content-Disposition': `attachment; filename="seo-export-${new Date().toISOString().slice(0, 10)}.csv"`,
+        },
+      });
+    } else if (format === 'xlsx') {
       const buffer = await generateXLSX(exportData);
-
       return new NextResponse(buffer as any, {
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          'Content-Disposition': `attachment; filename="seo-export-${dateStr}.xlsx"`,
+          'Content-Disposition': `attachment; filename="seo-export-${new Date().toISOString().slice(0, 10)}.xlsx"`,
         },
       });
     } else {
-      // CSV (default)
-      const csv = generateCSV(exportData);
-
-      return new NextResponse(csv, {
-        headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="seo-export-${dateStr}.csv"`,
+      return NextResponse.json(
+        {
+          error: {
+            code: 400,
+            message: 'Invalid format. Use csv or xlsx',
+          },
         },
-      });
+        { status: 400 }
+      );
     }
   } catch (error) {
     console.error('Error exporting data:', error);
@@ -144,4 +123,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

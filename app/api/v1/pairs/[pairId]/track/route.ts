@@ -2,9 +2,10 @@ export const runtime = "nodejs";
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
+import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { docClient, TABLE_NAME, KEYS } from '@/lib/db';
 import { trackSchema } from '@/lib/validators';
 import { trackKeyword } from '@/lib/serpapi';
-import { simpleStorage } from '@/lib/simple-storage';
 
 // POST /api/v1/pairs/:pairId/track
 export async function POST(
@@ -31,10 +32,17 @@ export async function POST(
     }
 
     const { hl, gl } = validationResult.data;
+    const finalHl = hl || 'fr';
+    const finalGl = gl || 'fr';
 
     // Get the pair
-    const pair = simpleStorage.getPair(pairId);
-    if (!pair) {
+    const getCommand = new GetCommand({
+      TableName: TABLE_NAME,
+      Key: KEYS.pair(pairId),
+    });
+
+    const result = await docClient.send(getCommand);
+    if (!result.Item) {
       return NextResponse.json(
         {
           error: {
@@ -46,6 +54,8 @@ export async function POST(
       );
     }
 
+    const pair = result.Item;
+
     // Track using SerpAPI
     const checkedAt = new Date().toISOString();
     let position = null;
@@ -55,14 +65,14 @@ export async function POST(
       console.log('=== SERPAPI TRACKING ===');
       console.log('Keyword:', pair.keyword);
       console.log('URL:', pair.url);
-      console.log('HL:', hl);
-      console.log('GL:', gl);
+      console.log('HL:', finalHl);
+      console.log('GL:', finalGl);
       
       const matchResult = await trackKeyword(
         pair.keyword, 
         pair.url, 
-        hl, 
-        gl
+        finalHl, 
+        finalGl
       );
       
       position = matchResult.position;
@@ -74,27 +84,22 @@ export async function POST(
     }
 
     // Update the pair with new tracking data
-    const updatedPair = simpleStorage.updatePair(pairId, {
-      last_position: position,
-      last_checked_at: checkedAt,
+    const updateCommand = new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        ...pair,
+        last_position: position,
+        last_checked_at: checkedAt,
+        updated_at: checkedAt,
+      },
     });
 
-    if (!updatedPair) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 500,
-            message: 'Failed to update pair',
-          },
-        },
-        { status: 500 }
-      );
-    }
+    await docClient.send(updateCommand);
 
     return NextResponse.json({
       pair_id: pairId,
       keyword: pair.keyword,
-      url: pair.url,
+      url: pair.raw_url || pair.url,
       position,
       checked_at: checkedAt,
       error,
