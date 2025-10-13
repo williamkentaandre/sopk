@@ -458,7 +458,7 @@ export default function Home() {
                     type="text"
                     value={newPair.url}
                     onChange={(e) => setNewPair({ ...newPair, url: e.target.value })}
-                    placeholder="URL ou domaine (ex: outscale.com)"
+                    placeholder="URL ou domaine (ex: example.com)"
                     title="Entrez une URL complète (https://...) ou juste un domaine (example.com) pour tracker toutes les pages du domaine"
                   />
                 </td>

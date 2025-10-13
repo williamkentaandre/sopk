@@ -1,0 +1,162 @@
+🔧 DOMAIN TRACKING FIX - Corrections et améliorations
+=====================================================
+
+Date: 2025-01-11
+Fixes: Domain tracking logic + Remove brand references
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ PROBLÈME 1: Le calcul de position ne fonctionnait pas pour les domaines seuls
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Symptôme:
+- Quand l'utilisateur entrait "example.com" (sans URL)
+- Le système ne calculait pas la position correctement
+- Seules les URLs complètes fonctionnaient
+
+Cause:
+La logique de matching ne différenciait pas entre:
+- Domaine seul: "example.com" → Doit chercher toutes les pages de ce domaine
+- URL complète: "https://example.com/page" → Doit chercher cette page exacte
+
+Solution:
+Amélioration de la fonction matchUrlInResults() dans lib/serpapi.ts:
+
+1. Détection du type d'entrée:
+   ```typescript
+   const isDomainOnly = !targetUrl.startsWith('http://') && 
+                        !targetUrl.startsWith('https://') && 
+                        !targetUrl.includes('/');
+   ```
+
+2. Stratégie de matching adaptée:
+   - Si DOMAINE SEUL → Matching de domaine uniquement (meilleure position)
+   - Si URL COMPLÈTE → Exact match d'abord, puis domaine en fallback
+
+3. Logs améliorés:
+   - Affiche "Is Domain Only: true/false"
+   - Permet de débugger facilement le comportement
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ PROBLÈME 2: Mentions de marques dans l'interface
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Symptôme:
+- "outscale.com" apparaissait dans les exemples
+- Pas neutre pour l'application
+
+Solution:
+Remplacement par des exemples génériques:
+
+1. Placeholder du champ URL:
+   - Avant: "URL ou domaine (ex: outscale.com)"
+   - Après: "URL ou domaine (ex: example.com)"
+
+2. Fichier exemple CSV (public/exemple-import.csv):
+   - Avant: Exemples avec outscale.com
+   - Après: Exemples avec example.com et monsite.fr
+   
+   ```csv
+   Mot-clé,URL
+   exemple domaine,example.com
+   page spécifique,https://www.example.com/page/
+   autre domaine,monsite.fr
+   url complète,https://www.monsite.fr/article/
+   ```
+
+3. Commentaires de code (lib/url-utils.ts):
+   - Avant: "outscale.com" dans les exemples
+   - Après: "example.com" dans les exemples
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 DÉTAILS TECHNIQUES: Comment fonctionne le matching maintenant
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CAS 1: Domaine seul (example.com)
+1. isDomainOnly = true
+2. Pour chaque résultat Google:
+   - Extrait le domaine du résultat
+   - Compare avec le domaine cible
+   - Garde la meilleure position (plus petite)
+3. Retourne la position la plus basse trouvée
+
+Exemple:
+Input: "example.com"
+Résultats Google:
+  Position 3: https://www.example.com/about
+  Position 7: https://example.com/products
+  Position 12: https://blog.example.com/article
+→ Retourne position 3 ✅
+
+CAS 2: URL complète (https://example.com/page)
+1. isDomainOnly = false
+2. Pour chaque résultat Google:
+   - Essaie d'abord un match exact (URL complète normalisée)
+   - Si trouvé → retourne immédiatement
+   - Sinon, essaie le match de domaine
+3. Retourne exact match OU meilleure position du domaine
+
+Exemple:
+Input: "https://example.com/products"
+Résultats Google:
+  Position 3: https://www.example.com/about
+  Position 7: https://example.com/products  ← Match exact!
+  Position 12: https://blog.example.com/article
+→ Retourne position 7 (exact) ✅
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📁 FICHIERS MODIFIÉS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. lib/serpapi.ts
+   - Ajout de la détection isDomainOnly
+   - Logique de matching séparée pour domaine vs URL
+   - Logs améliorés pour le debugging
+
+2. app/page.tsx
+   - Placeholder: "example.com" au lieu d'"outscale.com"
+
+3. lib/url-utils.ts
+   - Commentaires: "example.com" au lieu d'"outscale.com"
+
+4. public/exemple-import.csv
+   - Exemples génériques (example.com, monsite.fr)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ TESTS RECOMMANDÉS APRÈS DÉPLOIEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test 1: Domaine seul
+1. Ajouter: "test" → "example.com"
+2. Mesurer
+3. Vérifier: Position trouvée pour n'importe quelle page d'example.com
+4. Vérifier logs: "Is Domain Only: true"
+
+Test 2: URL complète
+1. Ajouter: "test" → "https://www.example.com/page"
+2. Mesurer
+3. Vérifier: Position pour cette page spécifique OU fallback domaine
+4. Vérifier logs: "Is Domain Only: false"
+
+Test 3: Avec www.
+1. Ajouter: "test" → "www.example.com"
+2. Mesurer
+3. Vérifier: Traité comme domaine (www. est normalisé)
+
+Test 4: Pas de mentions de marques
+1. Vérifier placeholder du champ URL
+2. Télécharger le fichier exemple CSV
+3. Confirmer: Seulement "example.com", "monsite.fr", etc.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 RÉSULTAT ATTENDU
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Après ce fix:
+✅ Domaine seul (example.com) → Trouve la meilleure position du domaine
+✅ URL complète → Trouve la position exacte ou meilleure position du domaine
+✅ Aucune mention de marque dans l'interface
+✅ Exemples neutres et génériques
+✅ Logs clairs pour debugging
+
+Fix timestamp: 2025-01-11 04:10
+

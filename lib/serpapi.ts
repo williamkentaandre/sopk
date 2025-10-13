@@ -71,9 +71,15 @@ export function matchUrlInResults(
 ): MatchResult {
   const normalizedTarget = normalizeUrl(targetUrl);
   const targetDomain = extractDomain(targetUrl);
+  
+  // Check if input is just a domain (no path, no protocol)
+  const isDomainOnly = !targetUrl.startsWith('http://') && 
+                       !targetUrl.startsWith('https://') && 
+                       !targetUrl.includes('/');
 
   console.log('🔍 URL Matching Debug:');
   console.log('  Target URL:', targetUrl);
+  console.log('  Is Domain Only:', isDomainOnly);
   console.log('  Normalized Target:', normalizedTarget);
   console.log('  Target Domain:', targetDomain);
   console.log('  Total Results:', organicResults.length);
@@ -83,31 +89,47 @@ export function matchUrlInResults(
   // Iterate through organic results
   for (const result of organicResults) {
     const normalizedResult = normalizeUrl(result.link);
-    
-    // Check for exact match
-    if (normalizedResult === normalizedTarget) {
-      console.log('  ✅ EXACT MATCH at position', result.position);
-      console.log('    Result URL:', result.link);
-      console.log('    Normalized:', normalizedResult);
-      return {
-        position: result.position,
-        matchedUrl: result.link,
-        matchType: 'exact',
-      };
-    }
-
-    // Check for domain match
     const resultDomain = extractDomain(result.link);
-    if (resultDomain && resultDomain === targetDomain) {
-      // Keep track of best (lowest position) domain match
-      if (!bestDomainMatch || result.position < bestDomainMatch.position) {
-        console.log('  🔗 Domain match at position', result.position);
+    
+    // If target is just a domain, only do domain matching
+    if (isDomainOnly) {
+      if (resultDomain && resultDomain === targetDomain) {
+        // Keep track of best (lowest position) domain match
+        if (!bestDomainMatch || result.position < bestDomainMatch.position) {
+          console.log('  🔗 Domain match at position', result.position);
+          console.log('    Result URL:', result.link);
+          console.log('    Result Domain:', resultDomain);
+          bestDomainMatch = {
+            position: result.position,
+            url: result.link,
+          };
+        }
+      }
+    } else {
+      // For full URLs, try exact match first
+      if (normalizedResult === normalizedTarget) {
+        console.log('  ✅ EXACT MATCH at position', result.position);
         console.log('    Result URL:', result.link);
-        console.log('    Result Domain:', resultDomain);
-        bestDomainMatch = {
+        console.log('    Normalized:', normalizedResult);
+        return {
           position: result.position,
-          url: result.link,
+          matchedUrl: result.link,
+          matchType: 'exact',
         };
+      }
+
+      // Then fall back to domain match
+      if (resultDomain && resultDomain === targetDomain) {
+        // Keep track of best (lowest position) domain match
+        if (!bestDomainMatch || result.position < bestDomainMatch.position) {
+          console.log('  🔗 Domain match at position', result.position);
+          console.log('    Result URL:', result.link);
+          console.log('    Result Domain:', resultDomain);
+          bestDomainMatch = {
+            position: result.position,
+            url: result.link,
+          };
+        }
       }
     }
   }

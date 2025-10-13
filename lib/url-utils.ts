@@ -94,8 +94,8 @@ export function isValidUrl(url: string): boolean {
 
 /**
  * Checks if the input is a domain (not a full URL)
- * Examples: "outscale.com", "www.google.fr" are domains
- * Examples: "https://outscale.com/page" is a full URL
+ * Examples: "example.com", "www.google.fr" are domains
+ * Examples: "https://example.com/page" is a full URL
  */
 export function isDomain(input: string): boolean {
   const trimmed = input.trim();
