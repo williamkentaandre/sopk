@@ -60,6 +60,7 @@ export async function POST(
     const checkedAt = new Date().toISOString();
     let position = null;
     let error = null;
+    let matchResult = null;
 
     try {
       console.log('=== SERPAPI TRACKING ===');
@@ -68,7 +69,7 @@ export async function POST(
       console.log('HL:', finalHl);
       console.log('GL:', finalGl);
       
-      const matchResult = await trackKeyword(
+      matchResult = await trackKeyword(
         pair.keyword, 
         pair.url, 
         finalHl, 
