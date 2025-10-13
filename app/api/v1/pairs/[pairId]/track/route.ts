@@ -137,6 +137,7 @@ export async function POST(
       keyword: pair.keyword,
       url: pair.raw_url || pair.url,
       position,
+      matched_url: matchResult?.matchedUrl || null,
       checked_at: checkedAt,
       error,
     });

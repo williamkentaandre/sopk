@@ -251,10 +251,16 @@ export default function Home() {
       if (response.ok) {
         const result = await response.json();
         const position = result.position;
+        const matchedUrl = result.matched_url || null;
         
         setPairs(prev => prev.map(p => 
           p.pair_id === pairId 
-            ? { ...p, last_position: position, last_checked_at: new Date().toISOString() }
+            ? { 
+                ...p, 
+                last_position: position, 
+                last_checked_at: new Date().toISOString(),
+                last_matched_url: matchedUrl 
+              }
             : p
         ));
         
