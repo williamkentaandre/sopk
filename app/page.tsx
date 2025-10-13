@@ -191,7 +191,7 @@ export default function Home() {
     setTracking(prev => new Set(prev).add(pairId));
     
     try {
-      const res = await fetch(`/api/v1/pairs/${pairId}/track`, {
+      const res = await fetch(`/api/v1/pairs-temp/${pairId}/track`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hl: settings.hl, gl: settings.gl }),
@@ -230,7 +230,7 @@ export default function Home() {
 
     setSaving(true);
     try {
-      const res = await fetch('/api/v1/track', {
+      const res = await fetch('/api/v1/track-temp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hl: settings.hl, gl: settings.gl }),

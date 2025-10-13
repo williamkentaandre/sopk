@@ -51,7 +51,7 @@ export const memoryStorage = {
     return { ...pair };
   },
 
-  updatePair: (pairId: string, updates: Partial<Pick<Pair, 'keyword' | 'url'>>): Pair | null => {
+  updatePair: (pairId: string, updates: Partial<Pick<Pair, 'keyword' | 'url' | 'last_position' | 'last_checked_at'>>): Pair | null => {
     const index = memoryPairs.findIndex(p => p.pair_id === pairId);
     if (index === -1) return null;
 
