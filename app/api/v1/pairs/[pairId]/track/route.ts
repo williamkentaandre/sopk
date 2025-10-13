@@ -96,6 +96,28 @@ export async function POST(
 
     await docClient.send(updateCommand);
 
+    // Save history entry if position was found
+    if (position !== null && position !== undefined) {
+      const historyCommand = new PutCommand({
+        TableName: TABLE_NAME,
+        Item: {
+          ...KEYS.history(pairId, checkedAt),
+          pair_id: pairId,
+          keyword: pair.keyword,
+          url: pair.raw_url || pair.url,
+          position,
+          checked_at: checkedAt,
+          hl: hl || 'fr',
+          gl: gl || 'fr',
+          error: error || null,
+          serp_link: matchResult?.serpLink || null,
+        },
+      });
+
+      await docClient.send(historyCommand);
+      console.log('History entry saved:', { pairId, position, checkedAt });
+    }
+
     return NextResponse.json({
       pair_id: pairId,
       keyword: pair.keyword,

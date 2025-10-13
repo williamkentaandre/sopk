@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
         KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk_prefix)',
         ExpressionAttributeValues: {
           ':pk': `PAIR#${pair.pair_id}`,
-          ':sk_prefix': 'HISTORY#',
+          ':sk_prefix': 'HISTO#',
         },
         ScanIndexForward: false, // Sort by timestamp descending
         Limit: max_points || 100,
