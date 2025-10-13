@@ -62,7 +62,12 @@ export function normalizeUrl(url: string): string {
 }
 
 /**
- * Extracts the domain from a URL
+ * Extracts the root domain from a URL (without subdomains)
+ * Examples:
+ * - "https://fr.outscale.com" → "outscale.com"
+ * - "https://blog.outscale.com" → "outscale.com"  
+ * - "https://www.google.com" → "google.com"
+ * - "outscale.com" → "outscale.com"
  */
 export function extractDomain(url: string): string {
   try {
@@ -83,11 +88,27 @@ export function extractDomain(url: string): string {
     }
 
     let hostname = urlObj.hostname.toLowerCase();
+    
+    // Remove www. prefix
     if (hostname.startsWith('www.')) {
       hostname = hostname.substring(4);
     }
 
-    return hostname;
+    // Extract root domain (remove subdomains)
+    // Split by dots and take last 2 parts (domain.tld)
+    const parts = hostname.split('.');
+    
+    // Handle edge cases
+    if (parts.length <= 2) {
+      // Already a root domain (e.g., "google.com", "localhost")
+      return hostname;
+    }
+    
+    // For subdomains (e.g., "fr.outscale.com" → "outscale.com")
+    // Take last 2 parts
+    const rootDomain = parts.slice(-2).join('.');
+    
+    return rootDomain;
   } catch (error) {
     console.error('extractDomain error for URL:', url, error);
     return '';

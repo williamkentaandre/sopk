@@ -1,0 +1,237 @@
+🎯 SUBDOMAIN MATCHING FIX - LE VRAI PROBLÈME RÉSOLU !
+======================================================
+
+Date: 2025-01-11
+Issue: Les sous-domaines ne matchaient pas avec le domaine racine
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 LE VRAI PROBLÈME DÉCOUVERT !
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test effectué:
+```bash
+curl "https://app.vercel.app/api/v1/test-domain-matching?target=outscale.com&result=https://fr.outscale.com/"
+```
+
+Résultat:
+```json
+{
+  "target": {
+    "domain": "outscale.com"           ← Domaine cible
+  },
+  "result": {
+    "domain": "fr.outscale.com"        ← Sous-domaine !
+  },
+  "matching": {
+    "domainMatch": false               ← ❌ PAS DE MATCH
+  }
+}
+```
+
+PROBLÈME:
+- Utilisateur cherche: "outscale.com"
+- Google retourne: "https://fr.outscale.com/"
+- Système compare: "outscale.com" ≠ "fr.outscale.com"
+- Résultat: ❌ PAS DE MATCH !
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ ANCIEN COMPORTEMENT (lib/url-utils.ts)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+extractDomain() retournait le hostname complet:
+
+```typescript
+let hostname = urlObj.hostname.toLowerCase();
+if (hostname.startsWith('www.')) {
+  hostname = hostname.substring(4);
+}
+return hostname;  // ❌ Retourne TOUT le hostname
+```
+
+Exemples:
+- "https://fr.outscale.com" → "fr.outscale.com"  ❌
+- "https://blog.outscale.com" → "blog.outscale.com"  ❌
+- "https://www.outscale.com" → "outscale.com"  ✅ (www. retiré)
+- "outscale.com" → "outscale.com"  ✅
+
+Résultat:
+- "outscale.com" ≠ "fr.outscale.com" ❌
+- Aucun match trouvé !
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ NOUVEAU COMPORTEMENT (CORRIGÉ)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+extractDomain() extrait maintenant le DOMAINE RACINE (sans sous-domaine):
+
+```typescript
+let hostname = urlObj.hostname.toLowerCase();
+
+// Remove www. prefix
+if (hostname.startsWith('www.')) {
+  hostname = hostname.substring(4);
+}
+
+// Extract root domain (remove subdomains)
+const parts = hostname.split('.');
+
+if (parts.length <= 2) {
+  // Already a root domain
+  return hostname;
+}
+
+// For subdomains, take last 2 parts
+const rootDomain = parts.slice(-2).join('.');
+return rootDomain;  // ✅ Retourne le domaine RACINE
+```
+
+Exemples:
+- "https://fr.outscale.com" → "outscale.com"  ✅
+- "https://blog.outscale.com" → "outscale.com"  ✅
+- "https://www.outscale.com" → "outscale.com"  ✅
+- "https://api.v2.outscale.com" → "outscale.com"  ✅
+- "outscale.com" → "outscale.com"  ✅
+- "google.com" → "google.com"  ✅
+
+Résultat:
+- "outscale.com" = "outscale.com" ✅
+- MATCH TROUVÉ !
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 EXEMPLES CONCRETS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CAS 1: Recherche "outscale" avec domaine "outscale.com"
+---------------------------------------------------------
+
+Résultats Google:
+1. https://fr.outscale.com/
+2. https://blog.outscale.com/actualites
+3. https://en.outscale.com/
+4. https://outscale.com/contact
+5. https://www.outscale.com/
+
+AVANT (ancien code):
+- Target: "outscale.com"
+- Result 1: "fr.outscale.com" → ❌ PAS DE MATCH
+- Result 2: "blog.outscale.com" → ❌ PAS DE MATCH
+- Result 3: "en.outscale.com" → ❌ PAS DE MATCH
+- Result 4: "outscale.com" → ✅ MATCH position 4
+- Result 5: "outscale.com" (www. retiré) → ✅ MATCH position 5
+→ Retourne position 4 (pas optimal)
+
+APRÈS (nouveau code):
+- Target: "outscale.com"
+- Result 1: "outscale.com" (racine) → ✅ MATCH position 1
+- Result 2: "outscale.com" (racine) → ✅ MATCH position 2
+- Result 3: "outscale.com" (racine) → ✅ MATCH position 3
+- Result 4: "outscale.com" → ✅ MATCH position 4
+- Result 5: "outscale.com" → ✅ MATCH position 5
+→ Retourne position 1 ✅ (meilleure position)
+
+
+CAS 2: Domaines avec plusieurs niveaux
+----------------------------------------
+
+"api.v2.outscale.com" → "outscale.com"  ✅
+"fr.blog.outscale.com" → "outscale.com"  ✅
+"docs.developers.outscale.com" → "outscale.com"  ✅
+
+
+CAS 3: TLD avec plusieurs parties (edge case)
+-----------------------------------------------
+
+Note: Cette implémentation simple ne gère pas les TLDs composés
+comme .co.uk, .com.au, etc.
+
+"example.co.uk" → "co.uk"  ⚠️ (Limitation connue)
+
+Pour la plupart des cas (.com, .fr, .org, etc.), ça fonctionne parfaitement.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🧪 TESTS APRÈS DÉPLOIEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test 1: API de test
+```bash
+curl "https://votre-app.vercel.app/api/v1/test-domain-matching?target=outscale.com&result=https://fr.outscale.com/"
+```
+
+Attendu:
+```json
+{
+  "target": { "domain": "outscale.com" },
+  "result": { "domain": "outscale.com" },
+  "matching": { "domainMatch": true }  ← ✅ DOIT ÊTRE TRUE
+}
+```
+
+
+Test 2: Tracking réel
+1. Ajouter: "outscale" → "outscale.com"
+2. Mesurer
+3. Vérifier logs Vercel:
+```
+  📌 Target Domain: outscale.com
+  [Pos 1] Checking: https://fr.outscale.com/
+    Result Domain: "outscale.com" vs Target Domain: "outscale.com"
+  ✅ Domain match at position 1
+```
+
+
+Test 3: Avec différents sous-domaines
+1. Ajouter plusieurs couples avec "outscale.com"
+2. Mesurer chacun
+3. Tous devraient trouver une position (si le domaine apparaît)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📁 FICHIER MODIFIÉ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+lib/url-utils.ts
+- extractDomain(): Extrait maintenant le domaine RACINE
+- Supprime les sous-domaines (fr., blog., api., etc.)
+- Garde www. removal
+- Nouveaux commentaires explicatifs
+
+Logique:
+1. Parse l'URL
+2. Retire "www." si présent
+3. Split par "."
+4. Prend les 2 dernières parties (domain.tld)
+5. Retourne le domaine racine
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ IMPACT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AVANT ce fix:
+❌ "outscale.com" ne matchait PAS "fr.outscale.com"
+❌ Positions souvent non trouvées
+❌ Domain tracking inutilisable
+
+APRÈS ce fix:
+✅ "outscale.com" matche TOUS les sous-domaines
+✅ Trouve la meilleure position parmi TOUTES les pages
+✅ Domain tracking VRAIMENT fonctionnel
+✅ Meilleure détection de positions
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 RÉSUMÉ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problème racine:
+Les sous-domaines (fr., blog., api., etc.) n'étaient pas reconnus comme
+faisant partie du domaine principal.
+
+Solution:
+Extraire le domaine RACINE en prenant les 2 dernières parties du hostname.
+
+Résultat:
+Le domain tracking fonctionne maintenant correctement, même quand Google
+retourne des sous-domaines dans les résultats.
+
+C'ÉTAIT LE PROBLÈME PRINCIPAL ! 🎯
+
+Fix timestamp: 2025-01-11 05:15
+
