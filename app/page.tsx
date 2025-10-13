@@ -458,7 +458,8 @@ export default function Home() {
                     type="text"
                     value={newPair.url}
                     onChange={(e) => setNewPair({ ...newPair, url: e.target.value })}
-                    placeholder="https://exemple.com/page"
+                    placeholder="URL ou domaine (ex: outscale.com)"
+                    title="Entrez une URL complète (https://...) ou juste un domaine (example.com) pour tracker toutes les pages du domaine"
                   />
                 </td>
                 <td>-</td>
@@ -495,11 +496,26 @@ export default function Home() {
                         type="text"
                         value={editValues.url}
                         onChange={(e) => setEditValues({ ...editValues, url: e.target.value })}
+                        placeholder="URL ou domaine"
+                        title="Entrez une URL complète ou juste un domaine"
                       />
                     ) : (
-                      <a href={pair.url} target="_blank" rel="noopener noreferrer" style={{ color: '#1a73e8' }}>
-                        {pair.url}
-                      </a>
+                      <>
+                        {!pair.url.startsWith('http://') && !pair.url.startsWith('https://') && !pair.url.includes('/') ? (
+                          <span title={`Tracking de domaine : toutes les pages de ${pair.url}`}>
+                            <span style={{ background: '#e8f4f8', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', marginRight: '4px' }}>
+                              🌐 Domaine
+                            </span>
+                            <a href={`https://${pair.url}`} target="_blank" rel="noopener noreferrer" style={{ color: '#1a73e8' }}>
+                              {pair.url}
+                            </a>
+                          </span>
+                        ) : (
+                          <a href={pair.url} target="_blank" rel="noopener noreferrer" style={{ color: '#1a73e8' }}>
+                            {pair.url}
+                          </a>
+                        )}
+                      </>
                     )}
                   </td>
                   <td>

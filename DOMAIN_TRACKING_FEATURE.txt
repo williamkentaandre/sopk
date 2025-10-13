@@ -1,0 +1,160 @@
+🌐 DOMAIN TRACKING FEATURE - Track Any Page from a Domain
+==========================================================
+
+Added the ability to track keyword positions for entire domains instead of specific URLs:
+
+✅ FEATURE DESCRIPTION:
+Users can now enter just a domain name (e.g., "outscale.com") instead of a complete URL:
+- Tracks the best position found for any page from that domain
+- Useful when you don't care about the specific landing page
+- Automatically finds which page ranks highest
+- Visual indicator shows domain vs URL tracking
+
+✅ HOW IT WORKS:
+
+Input Formats:
+1. Full URL: "https://fr.outscale.com/solutions/cloud"
+   → Tracks this specific page only
+   
+2. Domain only: "outscale.com" or "www.outscale.com"
+   → Tracks ANY page from this domain
+   → Returns the best (lowest) position found
+
+Domain Detection:
+- No protocol (http://) → Domain
+- No path (/) → Domain
+- No query (?param=value) → Domain
+- Examples: "outscale.com", "www.google.fr", "amazon.fr"
+
+✅ MATCHING LOGIC:
+
+When tracking a domain:
+1. SerpAPI returns 100 Google results
+2. System looks for ANY URL containing the domain
+3. Returns the BEST (lowest) position found
+4. Example: "outscale.com" matches:
+   - Position 1: https://fr.outscale.com/
+   - Position 5: https://blog.outscale.com/article
+   - Position 10: https://outscale.com/en/products
+   → Returns position 1 (best)
+
+When tracking a URL:
+1. First tries exact URL match
+2. If not found, falls back to domain match
+3. Returns specific position or best domain position
+
+✅ VISUAL INDICATORS:
+
+In the UI:
+- Domain entries show: 🌐 Domaine outscale.com
+- URL entries show: https://outscale.com/page
+- Badge color: Light blue (#e8f4f8)
+- Tooltip: "Tracking de domaine : toutes les pages de X"
+
+Placeholder text:
+"URL ou domaine (ex: outscale.com)"
+
+✅ COMPONENTS UPDATED:
+
+1. URL Utils (lib/url-utils.ts):
+   - isDomain(): Detects if input is a domain
+   - prepareTrackingUrl(): Prepares URL for tracking
+   - Returns domain detection status
+
+2. Frontend (app/page.tsx):
+   - Updated input placeholder
+   - Added domain vs URL detection
+   - Visual badge for domain tracking
+   - Tooltip explanations
+
+3. SerpAPI Matching (lib/serpapi.ts):
+   - Already supports domain matching
+   - Returns best position for domain
+   - Logs matching details
+
+✅ USE CASES:
+
+1. Brand Monitoring:
+   - Track "outscale.com" for keyword "cloud"
+   - Don't care which page ranks
+   - Just want to know if brand is visible
+
+2. Competitor Analysis:
+   - Track competitor domain
+   - See their best ranking page
+   - Compare across keywords
+
+3. Multi-Page SEO:
+   - Your content is across multiple pages
+   - Track domain-level performance
+   - Identify which page ranks best
+
+4. Flexible Tracking:
+   - Sometimes you have a specific landing page
+   - Sometimes any page is fine
+   - Mix both approaches as needed
+
+✅ BENEFITS:
+- More flexible tracking options
+- No need to know exact URL
+- Automatic best position detection
+- Visual clarity on tracking type
+- Works with existing infrastructure
+
+✅ EXAMPLES:
+
+Input → Tracking Behavior:
+- "outscale.com" → Domain tracking, any page
+- "www.outscale.com" → Domain tracking, any page
+- "outscale.com/" → Domain tracking, homepage
+- "https://outscale.com" → Domain tracking, homepage
+- "https://outscale.com/page" → Specific URL tracking
+- "outscale.com/page" → Specific URL tracking
+
+Best Position Logic:
+Keyword: "cloud computing"
+Results:
+- Pos 3: https://outscale.com/solutions
+- Pos 7: https://blog.outscale.com/cloud
+- Pos 12: https://fr.outscale.com/
+
+If tracking "outscale.com" → Returns position 3 ✓
+If tracking "https://blog.outscale.com/cloud" → Returns position 7 ✓
+
+✅ CSV IMPORT SUPPORT:
+
+CSV format works with both:
+```csv
+Mot-clé,URL
+cloud,outscale.com
+iaas,https://fr.outscale.com/infrastructure
+```
+
+First row tracks domain, second tracks specific URL.
+
+✅ TECHNICAL DETAILS:
+
+Domain Normalization:
+- Removes "www." prefix
+- Converts to lowercase
+- Stores as-is (no protocol added)
+
+URL Matching:
+- Exact match first
+- Domain match second
+- Both use normalized comparison
+
+Visual Detection:
+- Frontend checks for protocol
+- Checks for path separator (/)
+- Shows badge if neither present
+
+✅ FUTURE ENHANCEMENTS:
+
+Possible additions:
+- Show which specific page ranked
+- Track multiple positions per domain
+- Domain-level analytics
+- Page distribution charts
+
+Domain tracking feature timestamp: 2025-01-11 03:50

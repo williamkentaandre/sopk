@@ -1,0 +1,189 @@
+🚀 NEW FEATURES SUMMARY - Latest Updates
+==========================================
+
+This deployment includes TWO major new features:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1️⃣ DELETE ALL PAIRS - Bulk Deletion Feature
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ What it does:
+Delete ALL keyword/URL pairs and their complete history with one click.
+
+✅ Key Features:
+- Red "Supprimer tout" button in main interface
+- Double confirmation for safety
+- Shows exact count before deletion
+- Deletes pairs AND all history entries
+- Success notification with deleted count
+- Button disabled when empty or loading
+
+✅ Safety:
+1st confirmation: "Êtes-vous sûr de vouloir supprimer TOUS les X couples ?"
+2nd confirmation: "Dernière confirmation : Supprimer tous les couples et leur historique ?"
+
+✅ Use Cases:
+- Reset project completely
+- Clear test data
+- Start fresh tracking
+- Seasonal cleanup
+
+API: DELETE /api/v1/pairs/delete-all
+File: app/api/v1/pairs/delete-all/route.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2️⃣ DOMAIN TRACKING - Track Entire Domains
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ What it does:
+Track keyword positions for ANY page from a domain, not just specific URLs.
+
+✅ Key Features:
+- Enter just "outscale.com" instead of full URL
+- System finds best position across all domain pages
+- Visual indicator: 🌐 Domaine badge
+- Works in manual entry and CSV import
+- Automatic detection (domain vs URL)
+- Tooltip explanations
+
+✅ Examples:
+
+Input Format → Behavior:
+- "outscale.com" → Tracks any page from outscale.com, returns best position
+- "https://outscale.com/page" → Tracks this specific page only
+
+Real Example:
+Keyword: "cloud"
+Results:
+  Position 1: https://fr.outscale.com/
+  Position 5: https://blog.outscale.com/cloud
+  Position 10: https://outscale.com/products
+
+→ If tracking "outscale.com": Returns position 1 ✅
+→ If tracking "https://blog.outscale.com/cloud": Returns position 5 ✅
+
+✅ Visual Indicators:
+- Domain entries: 🌐 Domaine outscale.com (blue badge)
+- URL entries: https://outscale.com/page (normal link)
+- Input placeholder: "URL ou domaine (ex: outscale.com)"
+- Edit tooltip: "Entrez une URL complète ou juste un domaine"
+
+✅ Use Cases:
+- Brand monitoring (any page from your domain)
+- Don't care about specific landing page
+- Automatic best position detection
+- Competitor domain tracking
+- Multi-page SEO campaigns
+
+✅ CSV Import Support:
+```csv
+Mot-clé,URL
+cloud,outscale.com          ← Domain tracking
+iaas,https://fr.outscale.com/page  ← URL tracking
+```
+
+Files Updated:
+- lib/url-utils.ts: Added isDomain(), prepareTrackingUrl()
+- app/page.tsx: Visual indicators, tooltips, detection logic
+- public/exemple-import.csv: Mixed examples
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 COMBINED WORKFLOW EXAMPLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Example 1: Brand Monitoring
+1. Add: "outscale" → "outscale.com" (domain)
+2. Track → Gets position 1 (best page found)
+3. Add: "cloud platform" → "outscale.com" (domain)
+4. Track → Gets position 8 (best page found)
+5. Export CSV to analyze
+6. Done with campaign → "Supprimer tout"
+
+Example 2: Competitor Analysis
+1. Import CSV with competitor domains
+2. Track all → See their best positions
+3. Compare with your specific URLs
+4. Export results
+5. Next campaign → "Supprimer tout"
+
+Example 3: Mixed Tracking
+1. Add: "product" → "mysite.com" (domain - any page)
+2. Add: "buy now" → "https://mysite.com/shop" (specific page)
+3. Add: "blog" → "mysite.com" (domain - any blog page)
+4. Track all → See both domain and URL results
+5. Export with all data
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 TECHNICAL IMPLEMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Delete All:
+- API: DELETE /api/v1/pairs/delete-all
+- Queries all pairs via DynamoDB GSI
+- Deletes pair + all history entries
+- Returns: { deleted: count, errors: [...] }
+- Frontend: Double confirm → API call → Clear UI
+
+Domain Tracking:
+- Detection: No http://, no path → domain
+- Storage: Stores domain as-is (e.g., "outscale.com")
+- Matching: SerpAPI finds best domain position
+- Display: Badge + link for domains, normal link for URLs
+
+Integration:
+- Works with existing CSV import
+- Works with manual entry
+- Works with edit function
+- Works with all tracking APIs
+- Works with export (shows domain in data)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✨ USER BENEFITS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Delete All:
+✓ Quick project reset
+✓ Easy cleanup
+✓ Safe with confirmations
+✓ Complete data removal
+
+Domain Tracking:
+✓ More flexible tracking
+✓ Less URL management
+✓ Automatic best position
+✓ Brand-level insights
+✓ Competitor monitoring
+
+Combined:
+✓ Test with domain tracking
+✓ Delete all when done
+✓ Start new campaign
+✓ Mix domain and URL tracking
+✓ Professional workflow
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 DEPLOYMENT INSTRUCTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GitHub Desktop:
+1. Summary: "🌐🗑️ Add domain tracking and delete all features"
+2. Commit to main
+3. Push origin
+
+After Deploy:
+1. Try domain tracking: Add "outscale" → "outscale.com"
+2. Track it → See best position
+3. Notice 🌐 Domaine badge
+4. Try "Supprimer tout" button
+5. Confirm twice → All deleted
+
+Files Changed:
+✅ app/api/v1/pairs/delete-all/route.ts (NEW)
+✅ lib/url-utils.ts (UPDATED)
+✅ app/page.tsx (UPDATED)
+✅ public/exemple-import.csv (UPDATED)
+✅ Documentation files (NEW)
+
+Ready to deploy! 🚀
+
+Features timestamp: 2025-01-11 03:55

@@ -92,3 +92,59 @@ export function isValidUrl(url: string): boolean {
   }
 }
 
+/**
+ * Checks if the input is a domain (not a full URL)
+ * Examples: "outscale.com", "www.google.fr" are domains
+ * Examples: "https://outscale.com/page" is a full URL
+ */
+export function isDomain(input: string): boolean {
+  const trimmed = input.trim();
+  
+  // If it has a protocol, it's a full URL
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return false;
+  }
+  
+  // Check if it looks like a domain (no path, no query)
+  try {
+    const url = new URL('https://' + trimmed);
+    // If pathname is just "/" and no search/hash, it's a domain
+    return url.pathname === '/' && !url.search && !url.hash;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Converts input to a tracking-ready format
+ * If domain: returns normalized domain for domain-level tracking
+ * If URL: returns the URL as-is
+ */
+export function prepareTrackingUrl(input: string): {
+  url: string;
+  isDomainTracking: boolean;
+  displayUrl: string;
+} {
+  const trimmed = input.trim();
+  
+  if (isDomain(trimmed)) {
+    // It's a domain - normalize it
+    let domain = trimmed.toLowerCase();
+    if (domain.startsWith('www.')) {
+      domain = domain.substring(4);
+    }
+    return {
+      url: domain,
+      isDomainTracking: true,
+      displayUrl: `[Domaine] ${domain}`,
+    };
+  } else {
+    // It's a full URL
+    return {
+      url: trimmed,
+      isDomainTracking: false,
+      displayUrl: trimmed,
+    };
+  }
+}
+
