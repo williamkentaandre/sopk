@@ -553,9 +553,9 @@ export default function Home() {
                     )}
                   </td>
                   <td>
-                    {pair.last_matched_url ? (
-                      <a href={pair.last_matched_url} target="_blank" rel="noopener noreferrer" style={{ color: '#059669', fontSize: '0.85rem' }} title="URL exacte trouvée dans les résultats Google">
-                        {pair.last_matched_url.length > 50 ? pair.last_matched_url.substring(0, 50) + '...' : pair.last_matched_url}
+                    {(pair as any).last_matched_url ? (
+                      <a href={(pair as any).last_matched_url} target="_blank" rel="noopener noreferrer" style={{ color: '#059669', fontSize: '0.85rem' }} title="URL exacte trouvée dans les résultats Google">
+                        {(pair as any).last_matched_url.length > 50 ? (pair as any).last_matched_url.substring(0, 50) + '...' : (pair as any).last_matched_url}
                       </a>
                     ) : (
                       <span style={{ color: '#999', fontSize: '0.85rem' }}>-</span>
