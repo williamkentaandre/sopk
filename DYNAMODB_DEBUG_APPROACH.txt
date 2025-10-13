@@ -1,0 +1,43 @@
+🔍 DYNAMODB DEBUG APPROACH - Enhanced Logging
+============================================
+
+Added comprehensive debugging to identify the DynamoDB 500 error:
+
+✅ DEBUG FEATURES ADDED:
+- Enhanced logging in pairs API (GET and POST)
+- Detailed error information with codes and names
+- Environment variable verification
+- DynamoDB connection testing
+- Table existence verification
+
+✅ NEW DEBUG API:
+- /api/v1/test-dynamo - Tests DynamoDB connection
+- Lists all available tables
+- Describes our specific table
+- Verifies credentials and region
+
+✅ LOGGING ADDED:
+- TABLE_NAME verification
+- AWS_REGION verification
+- AWS_ACCESS_KEY_ID status
+- DynamoDB query execution
+- Detailed error information
+- Request body logging
+
+✅ ERROR DETAILS CAPTURED:
+- Error name (e.g., ResourceNotFoundException)
+- Error code (e.g., ResourceNotFoundException)
+- Error message
+- Status code
+- Table name and region
+
+✅ NEXT STEPS:
+1. Deploy with enhanced logging
+2. Test the /api/v1/test-dynamo endpoint
+3. Check Vercel function logs for detailed error info
+4. Identify the exact DynamoDB issue
+5. Fix the root cause
+
+This will help us identify exactly what's wrong with DynamoDB!
+
+DynamoDB debug approach timestamp: 2025-01-11 02:20
