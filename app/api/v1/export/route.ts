@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     });
 
     const pairsResult = await docClient.send(pairsQuery);
-    let pairs: Pair[] = pairsResult.Items || [];
+    let pairs: Pair[] = (pairsResult.Items || []) as Pair[];
 
     // Filter by pair_ids if provided
     if (pair_ids && pair_ids.length > 0) {
