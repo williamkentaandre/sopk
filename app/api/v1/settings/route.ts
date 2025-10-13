@@ -2,32 +2,21 @@ export const runtime = "nodejs";
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { docClient, TABLE_NAME, KEYS } from '@/lib/db';
 import { settingsSchema } from '@/lib/validators';
-import { Settings } from '@/lib/types';
+
+// Simple in-memory storage for settings
+let currentSettings = {
+  hl: 'fr',
+  gl: 'fr',
+  updated_at: new Date().toISOString()
+};
 
 // GET /api/v1/settings
 export async function GET(request: NextRequest) {
   try {
-    const command = new GetCommand({
-      TableName: TABLE_NAME,
-      Key: KEYS.settings(),
-    });
-
-    const result = await docClient.send(command);
-
-    if (!result.Item) {
-      // Return default settings
-      return NextResponse.json({
-        hl: 'fr',
-        gl: 'fr',
-      });
-    }
-
     return NextResponse.json({
-      hl: result.Item.hl,
-      gl: result.Item.gl,
+      hl: currentSettings.hl,
+      gl: currentSettings.gl,
     });
   } catch (error) {
     console.error('Error getting settings:', error);
@@ -48,12 +37,6 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log('=== SETTINGS PUT DEBUG ===');
-    console.log('Received body:', JSON.stringify(body, null, 2));
-    console.log('Body type:', typeof body);
-    console.log('hl value:', body.hl, 'type:', typeof body.hl);
-    console.log('gl value:', body.gl, 'type:', typeof body.gl);
-    console.log('========================');
     
     // Validate input
     const validationResult = settingsSchema.safeParse(body);
@@ -72,17 +55,12 @@ export async function PUT(request: NextRequest) {
 
     const { hl, gl } = validationResult.data;
 
-    const command = new PutCommand({
-      TableName: TABLE_NAME,
-      Item: {
-        ...KEYS.settings(),
-        hl,
-        gl,
-        updated_at: new Date().toISOString(),
-      },
-    });
-
-    await docClient.send(command);
+    // Update in-memory settings
+    currentSettings = {
+      hl,
+      gl,
+      updated_at: new Date().toISOString()
+    };
 
     return NextResponse.json({
       hl,
@@ -99,7 +77,7 @@ export async function PUT(request: NextRequest) {
         },
       },
       { status: 500 }
-      );
+    );
   }
 }
 

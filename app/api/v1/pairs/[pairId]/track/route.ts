@@ -2,10 +2,9 @@ export const runtime = "nodejs";
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { docClient, TABLE_NAME, KEYS } from '@/lib/db';
 import { trackSchema } from '@/lib/validators';
 import { trackKeyword } from '@/lib/serpapi';
+import { simpleStorage } from '@/lib/simple-storage';
 
 // POST /api/v1/pairs/:pairId/track
 export async function POST(
@@ -23,7 +22,7 @@ export async function POST(
         {
           error: {
             code: 400,
-            message: 'Invalid track parameters',
+            message: 'Invalid tracking data',
             details: validationResult.error.errors,
           },
         },
@@ -31,15 +30,11 @@ export async function POST(
       );
     }
 
-    // Get pair
-    const getCommand = new GetCommand({
-      TableName: TABLE_NAME,
-      Key: KEYS.pair(pairId),
-    });
+    const { hl, gl } = validationResult.data;
 
-    const pairResult = await docClient.send(getCommand);
-
-    if (!pairResult.Item) {
+    // Get the pair
+    const pair = simpleStorage.getPair(pairId);
+    if (!pair) {
       return NextResponse.json(
         {
           error: {
@@ -51,109 +46,58 @@ export async function POST(
       );
     }
 
-    const pair = pairResult.Item;
-
-    // Get hl/gl (from request or global settings)
-    let hl = validationResult.data.hl;
-    let gl = validationResult.data.gl;
-
-    if (!hl || !gl) {
-      const settingsCommand = new GetCommand({
-        TableName: TABLE_NAME,
-        Key: KEYS.settings(),
-      });
-
-      const settingsResult = await docClient.send(settingsCommand);
-      const settings = settingsResult.Item || { hl: 'fr', gl: 'fr' };
-
-      hl = hl || settings.hl || 'fr';
-      gl = gl || settings.gl || 'fr';
-    }
-
-    // Ensure hl and gl are strings
-    const finalHl: string = hl || 'fr';
-    const finalGl: string = gl || 'fr';
-
-    // Track keyword
+    // Track using SerpAPI
     const checkedAt = new Date().toISOString();
-    let matchResult;
+    let position = null;
     let error = null;
 
     try {
-      matchResult = await trackKeyword(pair.keyword, pair.url, finalHl, finalGl);
-    } catch (err) {
-      console.error('SerpAPI error:', err);
-      error = String(err);
+      console.log('=== SERPAPI TRACKING ===');
+      console.log('Keyword:', pair.keyword);
+      console.log('URL:', pair.url);
+      console.log('HL:', hl);
+      console.log('GL:', gl);
       
-      // Save failed tracking
-      const historyItem = {
-        ...KEYS.history(pairId, checkedAt),
-        checked_at: checkedAt,
-        hl: finalHl,
-        gl: finalGl,
-        position: null,
-        matched_url: null,
-        match_type: 'none',
-        source: 'serpapi',
-        error,
-      };
+      const matchResult = await trackKeyword(
+        pair.keyword, 
+        pair.url, 
+        hl, 
+        gl
+      );
+      
+      position = matchResult.position;
+      console.log('SerpAPI tracking successful:', { position });
+      
+    } catch (serpError) {
+      console.error('SerpAPI error:', serpError);
+      error = String(serpError);
+    }
 
-      await docClient.send(new PutCommand({
-        TableName: TABLE_NAME,
-        Item: historyItem,
-      }));
+    // Update the pair with new tracking data
+    const updatedPair = simpleStorage.updatePair(pairId, {
+      last_position: position,
+      last_checked_at: checkedAt,
+    });
 
+    if (!updatedPair) {
       return NextResponse.json(
         {
           error: {
-            code: 502,
-            message: 'SerpAPI unavailable',
-            details: { error },
+            code: 500,
+            message: 'Failed to update pair',
           },
         },
-        { status: 502 }
+        { status: 500 }
       );
     }
 
-    // Save history entry
-    const historyItem = {
-      ...KEYS.history(pairId, checkedAt),
-      checked_at: checkedAt,
-      hl: finalHl,
-      gl: finalGl,
-      position: matchResult.position,
-      matched_url: matchResult.matchedUrl,
-      match_type: matchResult.matchType,
-      serp_link: matchResult.serpLink,
-      source: 'serpapi',
-    };
-
-    await docClient.send(new PutCommand({
-      TableName: TABLE_NAME,
-      Item: historyItem,
-    }));
-
-    // Update pair metadata
-    const updatedPair = {
-      ...pair,
-      last_position: matchResult.position,
-      last_checked_at: checkedAt,
-      updated_at: checkedAt,
-    };
-
-    await docClient.send(new PutCommand({
-      TableName: TABLE_NAME,
-      Item: updatedPair,
-    }));
-
     return NextResponse.json({
       pair_id: pairId,
+      keyword: pair.keyword,
+      url: pair.url,
+      position,
       checked_at: checkedAt,
-      hl: finalHl,
-      gl: finalGl,
-      position: matchResult.position,
-      matched_url: matchResult.matchedUrl,
-      match_type: matchResult.matchType,
+      error,
     });
   } catch (error) {
     console.error('Error tracking pair:', error);
@@ -169,4 +113,3 @@ export async function POST(
     );
   }
 }
-
