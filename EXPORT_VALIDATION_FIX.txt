@@ -1,0 +1,75 @@
+🔧 EXPORT VALIDATION FIX - Fixed Export API Parameter Validation
+==============================================================
+
+Fixed the export API parameter validation issues:
+
+✅ PROBLEM IDENTIFIED:
+- Export API failed with validation errors
+- pair_ids parameter was null instead of undefined
+- max_points parameter was null instead of having a default value
+- This caused "Invalid export parameters" error
+
+✅ ERROR MESSAGE:
+{
+  "error": {
+    "code": 400,
+    "message": "Invalid export parameters",
+    "details": [
+      {
+        "code": "invalid_type",
+        "expected": "string",
+        "received": "null",
+        "path": ["pair_ids"],
+        "message": "Expected string, received null"
+      },
+      {
+        "code": "too_small",
+        "minimum": 1,
+        "type": "number",
+        "inclusive": true,
+        "exact": false,
+        "message": "Number must be greater than or equal to 1",
+        "path": ["max_points"]
+      }
+    ]
+  }
+}
+
+✅ ROOT CAUSE:
+- searchParams.get() returns null when parameter is not provided
+- Zod validation expected undefined for optional parameters
+- No default values were provided for optional parameters
+
+✅ SOLUTION APPLIED:
+1. Updated validators.ts:
+   - Changed pair_ids to z.string().nullable().optional()
+   - Added default value for max_points: .default(100)
+
+2. Updated export route.ts:
+   - Convert null to undefined for pair_ids
+   - Provide default values for format and max_points
+   - Handle null values properly
+
+✅ CHANGES MADE:
+- File: lib/validators.ts
+  - pair_ids: z.string().optional() → z.string().nullable().optional()
+  - max_points: .optional() → .optional().default(100)
+
+- File: app/api/v1/export/route.ts
+  - format: searchParams.get('format') → searchParams.get('format') || 'csv'
+  - pair_ids: searchParams.get('pair_ids') → searchParams.get('pair_ids') || undefined
+  - max_points: searchParams.get('max_points') → searchParams.get('max_points') || '100'
+
+✅ BENEFITS:
+- Export API now accepts requests without parameters
+- Default values are properly applied
+- CSV and XLSX exports should work correctly
+- No more validation errors for optional parameters
+
+✅ EXPECTED RESULTS:
+- Export API should work with minimal parameters
+- CSV export should work with: /api/v1/export?format=csv
+- XLSX export should work with: /api/v1/export?format=xlsx
+- Frontend export buttons should function correctly
+
+Export validation fix timestamp: 2025-01-11 03:05

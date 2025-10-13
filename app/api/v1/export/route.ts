@@ -15,9 +15,9 @@ export async function GET(request: NextRequest) {
 
     // Validate query parameters
     const queryObject = {
-      format: searchParams.get('format'),
-      pair_ids: searchParams.get('pair_ids'),
-      max_points: searchParams.get('max_points'),
+      format: searchParams.get('format') || 'csv',
+      pair_ids: searchParams.get('pair_ids') || undefined,
+      max_points: searchParams.get('max_points') || '100',
     };
 
     const validationResult = exportQuerySchema.safeParse(queryObject);

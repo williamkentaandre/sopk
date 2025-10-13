@@ -1,0 +1,45 @@
+🔧 VERCEL ENVIRONMENT VARIABLE FIX - Correct DynamoDB Table Name
+================================================================
+
+Fixed the DynamoDB table name mismatch issue:
+
+✅ PROBLEM IDENTIFIED:
+- Code expects table name: "seo_ranker" (with underscore)
+- Vercel environment variable DYNAMODB_TABLE is set to: "seo-ranker" (with dash)
+- This causes ResourceNotFoundException
+
+✅ ERROR MESSAGE:
+ResourceNotFoundException: Requested resource not found: Table: seo-ranker not found
+
+✅ ROOT CAUSE:
+- The code in lib/db.ts uses: process.env.DYNAMODB_TABLE || "seo_ranker"
+- If DYNAMODB_TABLE is set in Vercel, it overrides the default
+- The Vercel environment variable has the wrong name (dash instead of underscore)
+
+✅ SOLUTION:
+Update the DYNAMODB_TABLE environment variable in Vercel:
+
+1. Go to Vercel Dashboard
+2. Select your project: cursor-amber-nine
+3. Go to Settings → Environment Variables
+4. Find DYNAMODB_TABLE
+5. Change value from "seo-ranker" to "seo_ranker"
+6. Redeploy the application
+
+✅ ALTERNATIVE SOLUTION:
+Remove the DYNAMODB_TABLE environment variable entirely:
+- The code will use the default "seo_ranker"
+- This matches your actual AWS table name
+
+✅ VERIFICATION:
+After fixing, test these endpoints:
+- https://cursor-amber-nine.vercel.app/api/v1/test-dynamo
+- https://cursor-amber-nine.vercel.app/api/v1/settings
+- https://cursor-amber-nine.vercel.app/api/v1/pairs
+
+✅ EXPECTED RESULTS:
+- No more ResourceNotFoundException errors
+- Settings and pairs APIs should work
+- Frontend buttons should function correctly
+
+Environment variable fix timestamp: 2025-01-11 03:00

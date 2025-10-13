@@ -41,7 +41,7 @@ export const historyQuerySchema = z.object({
 
 export const exportQuerySchema = z.object({
   format: z.enum(['csv', 'xlsx']).optional().default('csv'),
-  pair_ids: z.string().optional(),
-  max_points: z.coerce.number().int().min(1).max(500).optional(),
+  pair_ids: z.string().nullable().optional(),
+  max_points: z.coerce.number().int().min(1).max(500).optional().default(100),
 });
 
