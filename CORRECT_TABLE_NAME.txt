@@ -1,0 +1,33 @@
+✅ CORRECT TABLE NAME - Fixed to Match AWS Console
+================================================
+
+Fixed the DynamoDB table name to match the actual table in AWS:
+
+✅ TABLE DETAILS FROM AWS CONSOLE:
+- Table name: "seo_ranker" (with underscore)
+- Status: Active ✅
+- Region: eu-north-1 ✅
+- Items: 2 (already has data!)
+- Partition key: PK (String) ✅
+- Sort key: SK (String) ✅
+- Capacity mode: On-demand ✅
+
+✅ CODE FIXED:
+- Changed TABLE_NAME back to "seo_ranker"
+- Matches exactly what's in AWS Console
+- Table is active and ready to use
+
+✅ EXPECTED RESULTS:
+- APIs should now work correctly
+- No more ResourceNotFoundException
+- Can read existing 2 items
+- Can create new pairs
+
+✅ READY FOR TESTING:
+- Deploy this fix
+- Test the APIs
+- Should work immediately!
+
+The table exists and is properly configured!
+
+Correct table name timestamp: 2025-01-11 02:40

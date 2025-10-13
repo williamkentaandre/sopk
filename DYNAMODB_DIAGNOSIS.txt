@@ -1,0 +1,53 @@
+🔍 DYNAMODB DIAGNOSIS - Problem Identified
+==========================================
+
+✅ TEST RESULTS:
+- Application frontend: ✅ WORKING (SEO Ranker loads)
+- API pairs GET: ❌ ResourceNotFoundException
+- API settings GET: ❌ ResourceNotFoundException
+- Error: "Requested resource not found"
+
+✅ PROBLEM IDENTIFIED:
+The DynamoDB table does not exist or is not accessible.
+
+✅ POSSIBLE CAUSES:
+1. Table was never created
+2. Table name mismatch
+3. Wrong AWS region
+4. Insufficient IAM permissions
+5. Table was deleted
+
+✅ SOLUTION OPTIONS:
+
+OPTION 1: Create the table manually
+- Go to AWS Console → DynamoDB
+- Create table with name: "seo-ranker-table"
+- Region: eu-north-1
+- Primary key: PK (String), SK (String)
+- Add GSI1: GSI1PK (String), GSI1SK (String)
+
+OPTION 2: Use AWS CLI to create table
+aws dynamodb create-table \
+  --table-name seo-ranker-table \
+  --attribute-definitions \
+    AttributeName=PK,AttributeType=S \
+    AttributeName=SK,AttributeType=S \
+    AttributeName=GSI1PK,AttributeType=S \
+    AttributeName=GSI1SK,AttributeType=S \
+  --key-schema \
+    AttributeName=PK,KeyType=HASH \
+    AttributeName=SK,KeyType=RANGE \
+  --global-secondary-indexes \
+    IndexName=GSI1,KeySchema=[{AttributeName=GSI1PK,KeyType=HASH},{AttributeName=GSI1SK,KeyType=RANGE}],Projection={ProjectionType=ALL},ProvisionedThroughput={ReadCapacityUnits=5,WriteCapacityUnits=5} \
+  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
+  --region eu-north-1
+
+OPTION 3: Use simple storage temporarily
+- Switch back to in-memory storage
+- Keep SerpAPI for real positions
+- No DynamoDB dependency
+
+✅ RECOMMENDATION:
+Start with OPTION 1 (manual table creation) for production.
+
+DynamoDB diagnosis timestamp: 2025-01-11 02:30

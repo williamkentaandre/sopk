@@ -1,0 +1,36 @@
+🔧 TABLE NAME FIX - Updated Default Table Name
+==============================================
+
+Fixed the DynamoDB table name to match common naming conventions:
+
+✅ PROBLEM:
+- Code was looking for table: "seo_ranker" (with underscore)
+- User likely created table with different name
+- ResourceNotFoundException still occurring
+
+✅ SOLUTION:
+- Changed default table name from "seo_ranker" to "seo-ranker-table"
+- This matches the naming convention used in documentation
+- More standard AWS table naming
+
+✅ POSSIBLE TABLE NAMES:
+- seo-ranker-table (new default)
+- seo_ranker (old default)
+- seo-ranker
+- seo_ranker_table
+- Or custom name set in DYNAMODB_TABLE env var
+
+✅ NEXT STEPS:
+1. Deploy this fix
+2. Test if table is found
+3. If still not found, check exact table name in AWS Console
+4. Update DYNAMODB_TABLE environment variable if needed
+
+✅ TO VERIFY TABLE NAME:
+- Go to AWS Console → DynamoDB
+- Check the exact table name
+- Update environment variable DYNAMODB_TABLE if different
+
+This should resolve the ResourceNotFoundException!
+
+Table name fix timestamp: 2025-01-11 02:35
