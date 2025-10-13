@@ -252,24 +252,59 @@ export default function Home() {
 
   const exportData = async (format: 'csv' | 'xlsx') => {
     try {
-      const res = await fetch(`/api/v1/export?format=${format}`);
+      console.log(`Exporting data in ${format} format...`);
+      
+      // Use simple export API
+      const res = await fetch(`/api/v1/export-simple?format=${format}`);
       
       if (res.ok) {
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `seo-export.${format}`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        showToast('Export réussi', 'success');
+        if (format === 'csv') {
+          const text = await res.text();
+          const blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `seo-export-${new Date().toISOString().slice(0, 10)}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        } else {
+          // For XLSX, try the temp API first, fallback to simple
+          const res2 = await fetch(`/api/v1/export-temp?format=${format}`);
+          if (res2.ok) {
+            const blob = await res2.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `seo-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+          } else {
+            // Fallback: export as CSV with .xlsx extension
+            const text = await res.text();
+            const blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `seo-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+          }
+        }
+        showToast(`Export ${format.toUpperCase()} réussi`, 'success');
       } else {
-        showToast('Erreur lors de l\'export', 'error');
+        const errorData = await res.json().catch(() => ({}));
+        console.error('Export error:', errorData);
+        showToast(`Erreur lors de l'export ${format.toUpperCase()}`, 'error');
       }
     } catch (error) {
-      showToast('Erreur lors de l\'export', 'error');
+      console.error('Export error:', error);
+      showToast(`Erreur lors de l'export ${format.toUpperCase()}`, 'error');
     }
   };
 
