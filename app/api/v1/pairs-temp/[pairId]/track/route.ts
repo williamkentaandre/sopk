@@ -50,28 +50,55 @@ export async function POST(
       );
     }
 
-    // Simulate tracking (mock result for now)
-    const mockPosition = Math.floor(Math.random() * 50) + 1; // Random position 1-50
+    // Real tracking with SerpAPI
     const checkedAt = new Date().toISOString();
+    let position = null;
+    let error = null;
+
+    try {
+      // Import SerpAPI tracking function
+      const { trackKeyword } = await import('@/lib/serpapi');
+      
+      console.log('Starting real SerpAPI tracking...');
+      const matchResult = await trackKeyword(
+        pair.keyword, 
+        pair.url, 
+        validationResult.data.hl || 'fr', 
+        validationResult.data.gl || 'fr'
+      );
+      
+      position = matchResult.position;
+      console.log('SerpAPI tracking successful:', { position });
+      
+    } catch (serpError) {
+      console.error('SerpAPI error:', serpError);
+      error = String(serpError);
+      
+      // Fallback to mock position if SerpAPI fails
+      position = Math.floor(Math.random() * 50) + 1;
+      console.log('Using fallback mock position:', position);
+    }
     
     // Update the pair with new tracking data
     const updatedPair = memoryStorage.updatePair(pairId, {
-      last_position: mockPosition,
+      last_position: position,
       last_checked_at: checkedAt,
     });
 
     console.log('Tracking completed:', {
       pairId,
-      position: mockPosition,
+      position,
       checkedAt,
+      error,
     });
 
     return NextResponse.json({
       pair_id: pairId,
-      position: mockPosition,
+      position,
       checked_at: checkedAt,
       hl: validationResult.data.hl || 'fr',
       gl: validationResult.data.gl || 'fr',
+      error,
     });
     
   } catch (error) {

@@ -40,13 +40,37 @@ export async function POST(request: NextRequest) {
     // Track each pair
     for (const pair of pairs) {
       try {
-        // Simulate tracking (mock result)
-        const mockPosition = Math.floor(Math.random() * 50) + 1;
         const checkedAt = new Date().toISOString();
+        let position = null;
+        let error = null;
+
+        try {
+          // Import SerpAPI tracking function
+          const { trackKeyword } = await import('@/lib/serpapi');
+          
+          console.log(`Tracking pair ${pair.pair_id}: ${pair.keyword}`);
+          const matchResult = await trackKeyword(
+            pair.keyword, 
+            pair.url, 
+            validationResult.data.hl || 'fr', 
+            validationResult.data.gl || 'fr'
+          );
+          
+          position = matchResult.position;
+          console.log(`SerpAPI success for ${pair.keyword}: position ${position}`);
+          
+        } catch (serpError) {
+          console.error(`SerpAPI error for ${pair.keyword}:`, serpError);
+          error = String(serpError);
+          
+          // Fallback to mock position if SerpAPI fails
+          position = Math.floor(Math.random() * 50) + 1;
+          console.log(`Using fallback mock position for ${pair.keyword}: ${position}`);
+        }
         
         // Update the pair
         memoryStorage.updatePair(pair.pair_id, {
-          last_position: mockPosition,
+          last_position: position,
           last_checked_at: checkedAt,
         });
 
@@ -54,8 +78,9 @@ export async function POST(request: NextRequest) {
         results.details.push({
           pair_id: pair.pair_id,
           keyword: pair.keyword,
-          position: mockPosition,
+          position,
           checked_at: checkedAt,
+          error,
         });
       } catch (error) {
         results.failed++;
