@@ -32,27 +32,38 @@ export default function Home() {
   const [editingPair, setEditingPair] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<{ keyword: string; url: string }>({ keyword: '', url: '' });
 
-  // Load data from localStorage on mount
+  // Load data from APIs on mount
   useEffect(() => {
-    const savedSettings = localStorage.getItem('seo-settings');
-    const savedPairs = localStorage.getItem('seo-pairs');
-    
-    if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
-    }
-    if (savedPairs) {
-      setPairs(JSON.parse(savedPairs));
-    }
+    loadData();
   }, []);
 
-  // Save data to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('seo-settings', JSON.stringify(settings));
-  }, [settings]);
+  const loadData = async () => {
+    try {
+      const [settingsRes, pairsRes] = await Promise.all([
+        fetch('/api/v1/settings-temp'),
+        fetch('/api/v1/pairs-temp'),
+      ]);
 
-  useEffect(() => {
-    localStorage.setItem('seo-pairs', JSON.stringify(pairs));
-  }, [pairs]);
+      if (settingsRes.ok && pairsRes.ok) {
+        const settingsData = await settingsRes.json();
+        const pairsData = await pairsRes.json();
+
+        setSettings(settingsData);
+        setPairs(pairsData.items || []);
+      } else {
+        // Fallback to default values if APIs fail
+        console.log('APIs not available, using default values');
+        setSettings({ hl: 'fr', gl: 'fr' });
+        setPairs([]);
+      }
+    } catch (error) {
+      console.log('Error loading data, using default values:', error);
+      setSettings({ hl: 'fr', gl: 'fr' });
+      setPairs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const showToast = (message: string, type: 'success' | 'error') => {
     const id = Date.now();
@@ -65,10 +76,20 @@ export default function Home() {
   const saveSettings = async () => {
     setSaving(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      showToast('Paramètres sauvegardés', 'success');
+      const response = await fetch('/api/v1/settings-temp', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      });
+
+      if (response.ok) {
+        showToast('Paramètres sauvegardés', 'success');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
+      }
     } catch (error) {
+      console.error('Settings save error:', error);
       showToast('Erreur lors de la sauvegarde', 'error');
     } finally {
       setSaving(false);
@@ -89,18 +110,28 @@ export default function Home() {
     }
 
     try {
-      const newPairData: Pair = {
-        pair_id: `pair_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        keyword: newPair.keyword.trim(),
-        url: newPair.url.trim(),
-        last_position: null,
-        last_checked_at: null,
-      };
+      const response = await fetch('/api/v1/pairs-temp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pairs: [{
+            keyword: newPair.keyword.trim(),
+            url: newPair.url.trim()
+          }]
+        })
+      });
 
-      setPairs(prev => [newPairData, ...prev]);
-      setNewPair({ keyword: '', url: '' });
-      showToast('Couple ajouté', 'success');
+      if (response.ok) {
+        const result = await response.json();
+        setPairs(prev => [...result.items, ...prev]);
+        setNewPair({ keyword: '', url: '' });
+        showToast('Couple ajouté', 'success');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
+      }
     } catch (error) {
+      console.error('Add pair error:', error);
       showToast('Erreur lors de l\'ajout', 'error');
     }
   };
@@ -146,49 +177,39 @@ export default function Home() {
     setTracking(prev => new Set(prev).add(pairId));
     
     try {
-      // Simulate tracking with realistic position
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Generate deterministic position based on keyword + URL
       const pair = pairs.find(p => p.pair_id === pairId);
       if (!pair) return;
 
-      const combination = `${pair.keyword.toLowerCase()}|${pair.url.toLowerCase()}`;
-      let hash = 0;
-      for (let i = 0; i < combination.length; i++) {
-        const char = combination.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-      }
-      
-      const normalizedHash = Math.abs(hash) % 1000;
-      let position;
-      
-      if (normalizedHash < 50) {
-        position = Math.floor(normalizedHash / 5) + 1;
-      } else if (normalizedHash < 200) {
-        position = Math.floor((normalizedHash - 50) / 10) + 11;
-      } else if (normalizedHash < 400) {
-        position = Math.floor((normalizedHash - 200) / 10) + 21;
-      } else if (normalizedHash < 600) {
-        position = Math.floor((normalizedHash - 400) / 10) + 31;
+      // Use real SerpAPI tracking
+      const response = await fetch(`/api/v1/pairs-temp/${pairId}/track`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hl: settings.hl,
+          gl: settings.gl
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const position = result.position;
+        
+        setPairs(prev => prev.map(p => 
+          p.pair_id === pairId 
+            ? { ...p, last_position: position, last_checked_at: new Date().toISOString() }
+            : p
+        ));
+        
+        const positionText = position !== null 
+          ? `Position: ${position}` 
+          : 'Non trouvé';
+        showToast(`Mesure effectuée - ${positionText}`, 'success');
       } else {
-        position = Math.floor((normalizedHash - 600) / 10) + 41;
+        const errorData = await response.json().catch(() => ({}));
+        showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
       }
-      
-      position = Math.max(1, Math.min(50, position));
-      
-      setPairs(prev => prev.map(p => 
-        p.pair_id === pairId 
-          ? { ...p, last_position: position, last_checked_at: new Date().toISOString() }
-          : p
-      ));
-      
-      const positionText = position !== null 
-        ? `Position: ${position}` 
-        : 'Non trouvé';
-      showToast(`Mesure effectuée - ${positionText}`, 'success');
     } catch (error) {
+      console.error('Tracking error:', error);
       showToast('Erreur lors de la mesure', 'error');
     } finally {
       setTracking(prev => {
@@ -206,12 +227,37 @@ export default function Home() {
 
     setSaving(true);
     try {
-      // Track all pairs
-      for (const pair of pairs) {
-        await trackPair(pair.pair_id);
+      // Use real SerpAPI batch tracking
+      const response = await fetch('/api/v1/track-temp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hl: settings.hl,
+          gl: settings.gl
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Update pairs with new positions
+        setPairs(prev => prev.map(pair => {
+          const updatedPair = result.results?.find((r: any) => r.pair_id === pair.pair_id);
+          if (updatedPair) {
+            return {
+              ...pair,
+              last_position: updatedPair.position,
+              last_checked_at: updatedPair.checked_at
+            };
+          }
+          return pair;
+        }));
+        showToast('Mesures effectuées', 'success');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
       }
-      showToast('Mesures effectuées', 'success');
     } catch (error) {
+      console.error('Batch tracking error:', error);
       showToast('Erreur lors des mesures', 'error');
     } finally {
       setSaving(false);
