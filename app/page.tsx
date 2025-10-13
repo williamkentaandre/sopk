@@ -39,8 +39,8 @@ export default function Home() {
   const loadData = async () => {
     try {
       const [settingsRes, pairsRes] = await Promise.all([
-        fetch('/api/v1/settings'),
-        fetch('/api/v1/pairs'),
+        fetch('/api/v1/settings-temp'),
+        fetch('/api/v1/pairs-temp'),
       ]);
 
       const settingsData = await settingsRes.json();
@@ -74,7 +74,7 @@ export default function Home() {
       
       console.log('Sending settings:', safeSettings);
       
-      const res = await fetch('/api/v1/settings', {
+      const res = await fetch('/api/v1/settings-temp', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(safeSettings),
@@ -115,7 +115,7 @@ export default function Home() {
       
       console.log('Sending pair data:', pairData);
       
-      const res = await fetch('/api/v1/pairs', {
+      const res = await fetch('/api/v1/pairs-temp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(pairData),

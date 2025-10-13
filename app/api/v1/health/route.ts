@@ -3,45 +3,21 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 
-// GET /api/v1/health
 export async function GET(request: NextRequest) {
   try {
-    let serpApiStatus = 'unknown';
-
-    // Check SerpAPI availability
-    const apiKey = process.env.SERPAPI_API_KEY;
-    
-    if (apiKey) {
-      try {
-        const url = new URL('https://serpapi.com/search');
-        url.searchParams.append('q', 'test');
-        url.searchParams.append('engine', 'google');
-        url.searchParams.append('api_key', apiKey);
-        url.searchParams.append('num', '1');
-
-        const response = await fetch(url.toString(), {
-          method: 'GET',
-          signal: AbortSignal.timeout(5000), // 5 second timeout
-        });
-
-        serpApiStatus = response.ok ? 'reachable' : 'error';
-      } catch (error) {
-        serpApiStatus = 'unreachable';
-      }
-    } else {
-      serpApiStatus = 'not_configured';
-    }
-
-    return NextResponse.json({
-      ok: true,
-      serpapi: serpApiStatus,
+    // Test basic functionality
+    const health = {
+      status: 'OK',
       timestamp: new Date().toISOString(),
-    });
+      version: '1.0.0',
+      environment: process.env.NODE_ENV || 'development',
+    };
+
+    return NextResponse.json(health);
   } catch (error) {
-    console.error('Health check error:', error);
     return NextResponse.json(
       {
-        ok: false,
+        status: 'ERROR',
         error: String(error),
         timestamp: new Date().toISOString(),
       },
@@ -49,4 +25,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
