@@ -1,0 +1,45 @@
+🧪 TEST APPLICATION - Debug Version Deployed
+============================================
+
+The debug version has been committed and is ready for testing:
+
+✅ WHAT WAS DEPLOYED:
+- Enhanced DynamoDB logging in pairs API
+- New /api/v1/test-dynamo diagnostic endpoint
+- Detailed error information capture
+- Environment variable verification
+
+🚀 DEPLOYMENT INSTRUCTIONS:
+1. Open GitHub Desktop
+2. You should see the commit ready to push
+3. Summary: "🔍 Add DynamoDB debug logging to identify 500 errors"
+4. Push origin
+
+🧪 TESTING STEPS AFTER DEPLOYMENT:
+
+1. Test DynamoDB Connection:
+   https://cursor-amber-nine.vercel.app/api/v1/test-dynamo
+   - Should show table status and credentials
+
+2. Test Pairs API:
+   https://cursor-amber-nine.vercel.app/api/v1/pairs
+   - Should show detailed error logs if failing
+
+3. Test Application:
+   https://cursor-amber-nine.vercel.app/
+   - Try to add a keyword/URL pair
+   - Check browser console for errors
+
+4. Check Vercel Logs:
+   - Go to Vercel dashboard
+   - Check function logs for detailed error info
+
+✅ EXPECTED RESULTS:
+- Debug info will show exact DynamoDB issue
+- We'll know if table exists or not
+- We'll see credential status
+- We'll get specific error codes
+
+This will help us fix the DynamoDB issue!
+
+Test application timestamp: 2025-01-11 02:25
