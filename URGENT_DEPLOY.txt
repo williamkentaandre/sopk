@@ -1,0 +1,23 @@
+🚨 URGENT DEPLOY - Validation Fixes
+===================================
+
+This file forces an immediate redeploy with validation fixes.
+
+CRITICAL FIXES APPLIED:
+✅ Fixed settings validation (hl/gl undefined errors)
+✅ Fixed pairs validation (URL validation errors)  
+✅ Added debug logs for troubleshooting
+✅ Made validation more permissive
+✅ Added frontend validation with fallbacks
+
+The application is currently showing 400/500 errors because:
+- Old cached code is still running
+- Validation fixes are not deployed yet
+- DynamoDB connection issues persist
+
+This deploy will:
+- Apply all validation fixes
+- Clear Vercel cache completely
+- Deploy latest code with debug logs
+
+URGENT timestamp: 2025-01-11 00:25
