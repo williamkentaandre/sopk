@@ -38,8 +38,8 @@ export function formatTimestamp(isoTimestamp: string): string {
 export function generateCSV(data: ExportData): string {
   const lines: string[] = [];
 
-  // Header row - add "Dernière Position" column
-  const headers = ['Mot-clé', 'URL', 'Dernière Position', ...data.timestamps.map(formatTimestamp)];
+  // Header row - add "Dernière Position" and "URL Trouvée" columns
+  const headers = ['Mot-clé', 'URL', 'Dernière Position', 'URL Trouvée', ...data.timestamps.map(formatTimestamp)];
   lines.push(headers.map(h => `"${h.replace(/"/g, '""')}"`).join(','));
 
   // Data rows
@@ -53,6 +53,10 @@ export function generateCSV(data: ExportData): string {
     // Last position (from pair.last_position)
     const lastPos = pair.last_position;
     row.push(lastPos !== null && lastPos !== undefined ? String(lastPos) : '-');
+    
+    // Last matched URL (from pair.last_matched_url)
+    const lastMatchedUrl = (pair as any).last_matched_url;
+    row.push(lastMatchedUrl ? `"${lastMatchedUrl.replace(/"/g, '""')}"` : '-');
 
     // Position for each timestamp (from history)
     for (const timestamp of data.timestamps) {
@@ -74,8 +78,8 @@ export async function generateXLSX(data: ExportData): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('SEO Rankings');
 
-  // Header row - add "Dernière Position" column
-  const headers = ['Mot-clé', 'URL', 'Dernière Position', ...data.timestamps.map(formatTimestamp)];
+  // Header row - add "Dernière Position" and "URL Trouvée" columns
+  const headers = ['Mot-clé', 'URL', 'Dernière Position', 'URL Trouvée', ...data.timestamps.map(formatTimestamp)];
   worksheet.addRow(headers);
 
   // Style header row
@@ -97,6 +101,10 @@ export async function generateXLSX(data: ExportData): Promise<Buffer> {
     // Last position (from pair.last_position)
     const lastPos = pair.last_position;
     row.push(lastPos !== null && lastPos !== undefined ? lastPos : '-');
+    
+    // Last matched URL (from pair.last_matched_url)
+    const lastMatchedUrl = (pair as any).last_matched_url;
+    row.push(lastMatchedUrl || '-');
 
     // Position for each timestamp (from history)
     for (const timestamp of data.timestamps) {
