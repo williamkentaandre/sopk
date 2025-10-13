@@ -1,0 +1,74 @@
+🔧 EXPORT LAST POSITION FIX - Added Last Position Column
+========================================================
+
+Enhanced export functionality to always show the last known position:
+
+✅ PROBLEM IDENTIFIED:
+- Export CSV/XLSX was missing positions for many rows
+- History entries were not being saved (fixed in previous commits)
+- Even when history exists, user wants to see last position clearly
+- Need a dedicated "Dernière Position" column
+
+✅ SOLUTION APPLIED:
+
+Added "Dernière Position" column to both CSV and XLSX exports:
+- Shows pair.last_position (the most recent position)
+- Always visible, even if history is empty
+- Separate from timestamp-based history columns
+
+✅ CHANGES MADE:
+
+File: lib/export-utils.ts
+
+1. CSV Export (generateCSV):
+   - Added "Dernière Position" as 3rd column
+   - Shows pair.last_position value
+   - Followed by timestamp-based history columns
+
+2. XLSX Export (generateXLSX):
+   - Added "Dernière Position" as 3rd column
+   - Shows pair.last_position value
+   - Followed by timestamp-based history columns
+
+✅ NEW EXPORT FORMAT:
+
+CSV/XLSX Structure:
+```
+Mot-clé | URL | Dernière Position | 2025-10-13 20:18 | 2025-10-13 17:36 | ...
+--------|-----|-------------------|------------------|------------------|----
+outscale| ... | 1                 | 1                | 1                | ...
+kenta   | ... | 11                | -                | -                | ...
+sfdr    | ... | -                 | -                | -                | ...
+```
+
+Column Explanation:
+- **Mot-clé**: Keyword being tracked
+- **URL**: Target URL
+- **Dernière Position**: Most recent position (from pair.last_position)
+- **Timestamp columns**: Historical positions at specific dates/times
+
+✅ BENEFITS:
+- Always shows last known position for every row
+- Easy to see current rankings at a glance
+- Historical data still available in timestamp columns
+- Works even if history entries are not yet saved
+- Clear separation between "current" and "historical" data
+
+✅ EXPECTED RESULTS:
+- All rows will show their last position in 3rd column
+- No more rows with only "-" values
+- Export will be immediately useful for tracking
+- Historical trends visible in timestamp columns
+
+✅ COMBINED WITH PREVIOUS FIXES:
+This works together with:
+1. History saving fix (saves position history)
+2. History API validation fix (retrieves history correctly)
+3. Export history keys fix (uses correct HISTO# prefix)
+
+After deployment, exports will show:
+- ✅ Last position for every tracked pair
+- ✅ Historical positions when available
+- ✅ Complete tracking data in one file
+
+Export last position fix timestamp: 2025-01-11 03:30

@@ -38,8 +38,8 @@ export function formatTimestamp(isoTimestamp: string): string {
 export function generateCSV(data: ExportData): string {
   const lines: string[] = [];
 
-  // Header row
-  const headers = ['Mot-clé', 'URL', ...data.timestamps.map(formatTimestamp)];
+  // Header row - add "Dernière Position" column
+  const headers = ['Mot-clé', 'URL', 'Dernière Position', ...data.timestamps.map(formatTimestamp)];
   lines.push(headers.map(h => `"${h.replace(/"/g, '""')}"`).join(','));
 
   // Data rows
@@ -49,8 +49,12 @@ export function generateCSV(data: ExportData): string {
     // Keyword and URL
     row.push(`"${pair.keyword.replace(/"/g, '""')}"`);
     row.push(`"${(pair.raw_url || pair.url).replace(/"/g, '""')}"`);
+    
+    // Last position (from pair.last_position)
+    const lastPos = pair.last_position;
+    row.push(lastPos !== null && lastPos !== undefined ? String(lastPos) : '-');
 
-    // Position for each timestamp
+    // Position for each timestamp (from history)
     for (const timestamp of data.timestamps) {
       const entry = history.find(h => h.checked_at === timestamp);
       const position = entry?.position;
@@ -70,8 +74,8 @@ export async function generateXLSX(data: ExportData): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('SEO Rankings');
 
-  // Header row
-  const headers = ['Mot-clé', 'URL', ...data.timestamps.map(formatTimestamp)];
+  // Header row - add "Dernière Position" column
+  const headers = ['Mot-clé', 'URL', 'Dernière Position', ...data.timestamps.map(formatTimestamp)];
   worksheet.addRow(headers);
 
   // Style header row
@@ -89,7 +93,12 @@ export async function generateXLSX(data: ExportData): Promise<Buffer> {
     
     row.push(pair.keyword);
     row.push(pair.raw_url || pair.url);
+    
+    // Last position (from pair.last_position)
+    const lastPos = pair.last_position;
+    row.push(lastPos !== null && lastPos !== undefined ? lastPos : '-');
 
+    // Position for each timestamp (from history)
     for (const timestamp of data.timestamps) {
       const entry = history.find(h => h.checked_at === timestamp);
       const position = entry?.position;
