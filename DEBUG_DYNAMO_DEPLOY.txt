@@ -1,0 +1,24 @@
+🔍 DEBUG DYNAMO DEPLOY - Diagnose 500 Errors
+============================================
+
+Added debug API to diagnose DynamoDB 500 errors:
+
+✅ Created /api/v1/debug route
+✅ Tests environment variables
+✅ Tests DynamoDB import
+✅ Tests DynamoDB connection
+✅ Detailed error logging
+
+Current issue:
+- 500 Internal Server Error on /api/v1/pairs
+- 500 Internal Server Error on /api/v1/settings
+- Validation fixes are working (no more 400 errors)
+- Problem is now DynamoDB connection
+
+This deploy will:
+- Add debug API to diagnose the exact DynamoDB issue
+- Show environment variables status
+- Test DynamoDB connection step by step
+- Provide detailed error information
+
+Debug timestamp: 2025-01-11 00:30
