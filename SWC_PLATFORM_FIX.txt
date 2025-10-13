@@ -1,0 +1,36 @@
+🔧 SWC PLATFORM FIX - Removed Platform-Specific Dependencies
+============================================================
+
+Fixed the SWC platform compatibility issue for Vercel deployment:
+
+✅ PROBLEM:
+- Added platform-specific SWC dependencies (@next/swc-darwin-x64, etc.)
+- Vercel runs on Linux, but dependencies were for macOS
+- Build failed with "Unsupported platform" error
+
+✅ SOLUTION:
+- Removed all platform-specific SWC dependencies
+- Let Next.js handle SWC dependencies automatically
+- Next.js will install the correct SWC binaries for the platform
+
+✅ CHANGES MADE:
+- Removed @next/swc-darwin-x64
+- Removed @next/swc-linux-x64-gnu  
+- Removed @next/swc-linux-x64-musl
+- Removed @next/swc-win32-x64-msvc
+- Removed .npmrc file
+
+✅ BENEFITS:
+- Next.js automatically installs correct SWC binaries
+- Works on all platforms (macOS, Linux, Windows)
+- No more platform compatibility issues
+- Cleaner package.json
+
+✅ EXPECTED RESULTS:
+- Build should complete successfully on Vercel
+- No more EBADPLATFORM errors
+- Application should deploy properly
+
+Next.js will handle SWC dependencies automatically!
+
+SWC platform fix timestamp: 2025-01-11 02:45
