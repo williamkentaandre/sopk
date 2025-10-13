@@ -48,6 +48,12 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log('=== SETTINGS PUT DEBUG ===');
+    console.log('Received body:', JSON.stringify(body, null, 2));
+    console.log('Body type:', typeof body);
+    console.log('hl value:', body.hl, 'type:', typeof body.hl);
+    console.log('gl value:', body.gl, 'type:', typeof body.gl);
+    console.log('========================');
     
     // Validate input
     const validationResult = settingsSchema.safeParse(body);

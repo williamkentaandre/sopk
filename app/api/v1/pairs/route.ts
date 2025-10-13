@@ -65,6 +65,20 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log('=== PAIRS POST DEBUG ===');
+    console.log('Received body:', JSON.stringify(body, null, 2));
+    console.log('Body type:', typeof body);
+    if (body.pairs && Array.isArray(body.pairs)) {
+      body.pairs.forEach((pair: any, index: number) => {
+        console.log(`Pair ${index}:`, {
+          keyword: pair.keyword,
+          url: pair.url,
+          keywordType: typeof pair.keyword,
+          urlType: typeof pair.url
+        });
+      });
+    }
+    console.log('========================');
     
     // Validate input
     const validationResult = createPairsSchema.safeParse(body);

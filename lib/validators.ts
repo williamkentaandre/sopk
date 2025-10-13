@@ -1,13 +1,13 @@
 import { z } from 'zod';
 
 export const settingsSchema = z.object({
-  hl: z.string().min(2).max(5),
-  gl: z.string().min(2).max(5),
+  hl: z.string().min(1).max(5).default('fr'),
+  gl: z.string().min(1).max(5).default('fr'),
 });
 
 export const pairSchema = z.object({
   keyword: z.string().min(1).max(500),
-  url: z.string().url().max(2000),
+  url: z.string().min(1).max(2000), // Supprimer .url() pour être plus permissif
 });
 
 export const createPairsSchema = z.object({

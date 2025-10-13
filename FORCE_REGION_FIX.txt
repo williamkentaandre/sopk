@@ -13,3 +13,4 @@ This ensures the DynamoDB client always connects to eu-north-1
 regardless of environment variables or caching issues.
 
 Timestamp: 2025-01-11 00:15
+

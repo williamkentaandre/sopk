@@ -66,10 +66,18 @@ export default function Home() {
   const saveSettings = async () => {
     setSaving(true);
     try {
+      // S'assurer que les valeurs ne sont jamais vides
+      const safeSettings = {
+        hl: settings.hl?.trim() || 'fr',
+        gl: settings.gl?.trim() || 'fr'
+      };
+      
+      console.log('Sending settings:', safeSettings);
+      
       const res = await fetch('/api/v1/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(safeSettings),
       });
 
       if (res.ok) {
@@ -89,14 +97,28 @@ export default function Home() {
       showToast('Veuillez remplir tous les champs', 'error');
       return;
     }
+    
+    // Validation basique de l'URL
+    const url = newPair.url.trim();
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      showToast('L\'URL doit commencer par http:// ou https://', 'error');
+      return;
+    }
 
     try {
+      const pairData = {
+        pairs: [{ 
+          keyword: newPair.keyword.trim(), 
+          url: newPair.url.trim() 
+        }]
+      };
+      
+      console.log('Sending pair data:', pairData);
+      
       const res = await fetch('/api/v1/pairs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pairs: [{ keyword: newPair.keyword, url: newPair.url }],
-        }),
+        body: JSON.stringify(pairData),
       });
 
       if (res.ok) {

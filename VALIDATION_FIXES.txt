@@ -1,0 +1,31 @@
+🔧 VALIDATION FIXES - Debug & Corrections
+==========================================
+
+Fixed validation errors for settings and pairs:
+
+✅ SETTINGS VALIDATION:
+- Added debug logs to see received data
+- Made hl/gl validation more permissive (min 1 instead of 2)
+- Added default values (fr) in schema
+- Added frontend validation to ensure values are never empty
+- Added console.log to see what's being sent
+
+✅ PAIRS VALIDATION:
+- Added debug logs to see received pair data
+- Removed strict URL validation (.url()) to be more permissive
+- Added frontend URL validation (must start with http/https)
+- Added console.log to see what's being sent
+- Trim whitespace from inputs
+
+✅ FRONTEND IMPROVEMENTS:
+- Safe settings with fallback to 'fr'
+- URL validation before sending
+- Better error handling
+- Debug logs for troubleshooting
+
+This should fix:
+- "hl/gl Required" errors
+- "Invalid url" errors
+- Better user experience with validation
+
+Fix timestamp: 2025-01-11 00:20

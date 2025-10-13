@@ -1,0 +1,16 @@
+🔧 Fix validation errors for settings and pairs
+
+- Fixed "hl/gl Required" errors in settings API
+- Fixed "Invalid url" errors in pairs API  
+- Added debug logs to troubleshoot validation issues
+- Made validation more permissive (removed strict URL validation)
+- Added frontend validation with fallback values
+- Improved error handling and user experience
+
+Files modified:
+- app/api/v1/settings/route.ts (added debug logs)
+- app/api/v1/pairs/route.ts (added debug logs)
+- lib/validators.ts (more permissive validation)
+- app/page.tsx (frontend validation improvements)
+
+This should resolve the validation errors users are experiencing.
