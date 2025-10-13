@@ -187,7 +187,7 @@ export default function Home() {
       if (response.ok) {
         const result = await response.json();
         showToast(`${result.imported} couples importés${result.failed > 0 ? `, ${result.failed} échoués` : ''}`, 'success');
-        loadPairs(); // Reload pairs list
+        loadData(); // Reload pairs list
       } else {
         const errorData = await response.json().catch(() => ({}));
         showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
