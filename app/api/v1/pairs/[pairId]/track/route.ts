@@ -91,6 +91,7 @@ export async function POST(
         ...pair,
         last_position: position,
         last_checked_at: checkedAt,
+        last_matched_url: matchResult?.matchedUrl || null,
         updated_at: checkedAt,
       },
     });

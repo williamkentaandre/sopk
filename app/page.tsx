@@ -372,21 +372,51 @@ export default function Home() {
         <div className="settings-form">
           <div className="form-group">
             <label>Langue (hl)</label>
-            <input
-              type="text"
+            <select
               value={settings.hl}
               onChange={(e) => setSettings({ ...settings, hl: e.target.value })}
-              placeholder="fr"
-            />
+            >
+              <option value="fr">Français</option>
+              <option value="en">Anglais (English)</option>
+              <option value="es">Espagnol (Español)</option>
+              <option value="de">Allemand (Deutsch)</option>
+              <option value="it">Italien (Italiano)</option>
+              <option value="pt">Portugais (Português)</option>
+              <option value="nl">Néerlandais (Nederlands)</option>
+              <option value="pl">Polonais (Polski)</option>
+              <option value="ru">Russe (Русский)</option>
+              <option value="ja">Japonais (日本語)</option>
+              <option value="zh">Chinois (中文)</option>
+              <option value="ar">Arabe (العربية)</option>
+            </select>
           </div>
           <div className="form-group">
             <label>Emplacement (gl)</label>
-            <input
-              type="text"
+            <select
               value={settings.gl}
               onChange={(e) => setSettings({ ...settings, gl: e.target.value })}
-              placeholder="fr"
-            />
+            >
+              <option value="fr">France</option>
+              <option value="be">Belgique</option>
+              <option value="ch">Suisse</option>
+              <option value="ca">Canada</option>
+              <option value="us">États-Unis</option>
+              <option value="uk">Royaume-Uni</option>
+              <option value="de">Allemagne</option>
+              <option value="es">Espagne</option>
+              <option value="it">Italie</option>
+              <option value="pt">Portugal</option>
+              <option value="nl">Pays-Bas</option>
+              <option value="pl">Pologne</option>
+              <option value="ru">Russie</option>
+              <option value="jp">Japon</option>
+              <option value="cn">Chine</option>
+              <option value="au">Australie</option>
+              <option value="br">Brésil</option>
+              <option value="mx">Mexique</option>
+              <option value="in">Inde</option>
+              <option value="sg">Singapour</option>
+            </select>
           </div>
           <button 
             className="btn btn-primary" 

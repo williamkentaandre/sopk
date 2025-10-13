@@ -1,0 +1,244 @@
+🎨 DROPDOWN SETTINGS FEATURE - Menus déroulants pour paramètres
+=================================================================
+
+Date: 2025-01-11
+Feature: Remplacement des champs texte par des menus déroulants
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ AMÉLIORATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AVANT:
+- Champs texte libres pour langue (hl) et emplacement (gl)
+- Risque d'erreur de saisie
+- Pas de liste des options disponibles
+- Utilisateur doit connaître les codes (fr, en, us, etc.)
+
+APRÈS:
+- Menus déroulants (select) avec options prédéfinies
+- Aucune erreur de saisie possible
+- Liste claire des langues et pays disponibles
+- Noms complets pour meilleure compréhension
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌍 LANGUES DISPONIBLES (hl)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Code | Nom affiché
+-----|------------------------------------------
+fr   | Français
+en   | Anglais (English)
+es   | Espagnol (Español)
+de   | Allemand (Deutsch)
+it   | Italien (Italiano)
+pt   | Portugais (Português)
+nl   | Néerlandais (Nederlands)
+pl   | Polonais (Polski)
+ru   | Russe (Русский)
+ja   | Japonais (日本語)
+zh   | Chinois (中文)
+ar   | Arabe (العربية)
+
+Affichage: Nom en français + Nom natif entre parenthèses
+Exemple: "Anglais (English)"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📍 EMPLACEMENTS DISPONIBLES (gl)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Code | Pays
+-----|------------------------------------------
+fr   | France
+be   | Belgique
+ch   | Suisse
+ca   | Canada
+us   | États-Unis
+uk   | Royaume-Uni
+de   | Allemagne
+es   | Espagne
+it   | Italie
+pt   | Portugal
+nl   | Pays-Bas
+pl   | Pologne
+ru   | Russie
+jp   | Japon
+cn   | Chine
+au   | Australie
+br   | Brésil
+mx   | Mexique
+in   | Inde
+sg   | Singapour
+
+Total: 20 pays les plus courants
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💻 CODE HTML (app/page.tsx)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Menu déroulant Langue:
+```tsx
+<select
+  value={settings.hl}
+  onChange={(e) => setSettings({ ...settings, hl: e.target.value })}
+>
+  <option value="fr">Français</option>
+  <option value="en">Anglais (English)</option>
+  <option value="es">Espagnol (Español)</option>
+  ...
+</select>
+```
+
+Menu déroulant Emplacement:
+```tsx
+<select
+  value={settings.gl}
+  onChange={(e) => setSettings({ ...settings, gl: e.target.value })}
+>
+  <option value="fr">France</option>
+  <option value="be">Belgique</option>
+  <option value="ch">Suisse</option>
+  ...
+</select>
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎨 STYLE CSS (app/globals.css)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Style unifié pour input et select:
+```css
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  background: white;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #1a73e8;
+}
+
+.form-group select {
+  cursor: pointer;
+}
+```
+
+Caractéristiques:
+- Même style que les inputs (cohérence visuelle)
+- Background blanc (pour compatibilité navigateurs)
+- Cursor pointer pour indiquer l'interactivité
+- Focus bleu (#1a73e8) comme les autres éléments
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ AVANTAGES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. UX améliorée:
+   ✅ Plus besoin de connaître les codes (fr, en, etc.)
+   ✅ Sélection visuelle claire
+   ✅ Aucune erreur de frappe possible
+   ✅ Noms complets + noms natifs
+
+2. Validation automatique:
+   ✅ Seules les valeurs valides sont sélectionnables
+   ✅ Pas de validation côté serveur nécessaire
+   ✅ Cohérence garantie
+
+3. Accessibilité:
+   ✅ Menus déroulants standard HTML
+   ✅ Support clavier natif
+   ✅ Compatible lecteurs d'écran
+
+4. Découverte:
+   ✅ Utilisateur voit toutes les options disponibles
+   ✅ Pas besoin de documentation externe
+   ✅ Interface auto-explicative
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔄 COMPORTEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Workflow:
+1. Utilisateur ouvre la page
+2. Voit "Français" et "France" par défaut
+3. Clique sur un menu déroulant
+4. Liste des options s'affiche
+5. Sélectionne une option
+6. Valeur se met à jour immédiatement
+7. Clique "Sauvegarder" pour persister
+
+Valeur par défaut:
+- Langue (hl): "fr" (Français)
+- Emplacement (gl): "fr" (France)
+
+Si valeur stockée non reconnue:
+- Affiche quand même la valeur
+- Utilisateur peut la changer via le menu
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📁 FICHIERS MODIFIÉS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. app/page.tsx
+   - Ligne 374-391: Menu déroulant Langue (hl)
+     * 12 langues disponibles
+     * Format: "Nom français (Nom natif)"
+   
+   - Ligne 393-419: Menu déroulant Emplacement (gl)
+     * 20 pays disponibles
+     * Noms en français
+
+2. app/globals.css
+   - Ligne 72-90: Style unifié pour select
+     * Même apparence que les inputs
+     * Cursor pointer
+     * Focus bleu
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 EXEMPLE D'UTILISATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Scénario: Tracking pour le marché espagnol
+
+1. Utilisateur ouvre les paramètres
+2. Sélectionne "Espagnol (Español)" dans Langue
+3. Sélectionne "Espagne" dans Emplacement
+4. Clique "Sauvegarder"
+5. Tous les futurs trackings utiliseront hl=es, gl=es
+
+Scénario: Tracking multi-pays
+
+1. Tracking France: hl=fr, gl=fr
+2. Tracking Belgique francophone: hl=fr, gl=be
+3. Tracking Canada francophone: hl=fr, gl=ca
+4. Tracking Suisse francophone: hl=fr, gl=ch
+
+Tous avec la même langue, différents emplacements.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 FUTURES AMÉLIORATIONS POSSIBLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Ajouter plus de langues/pays:
+   - Actuellement: 12 langues, 20 pays
+   - Possibilité: Ajouter tous les codes Google
+
+2. Groupement des options:
+   - <optgroup> pour regrouper par région
+   - Exemple: Europe, Asie, Amériques
+
+3. Recherche dans le menu:
+   - Pour listes très longues
+   - Librairie comme react-select
+
+4. Combinaisons suggérées:
+   - "Français (France)" → hl=fr, gl=fr
+   - Raccourcis pour configurations courantes
+
+Feature timestamp: 2025-01-11 05:30
+

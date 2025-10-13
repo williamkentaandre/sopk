@@ -12,6 +12,7 @@ export interface Pair {
   updated_at: string;
   last_position: number | null;
   last_checked_at: string | null;
+  last_matched_url?: string | null;
 }
 
 export interface HistoryEntry {
