@@ -501,13 +501,13 @@ export default function Home() {
                       />
                     ) : (
                       <>
-                        {!pair.url.startsWith('http://') && !pair.url.startsWith('https://') && !pair.url.includes('/') ? (
-                          <span title={`Tracking de domaine : toutes les pages de ${pair.url}`}>
+                        {!pair.url.startsWith('http://') && !pair.url.startsWith('https://') ? (
+                          <span title={`Tracking de domaine : toutes les pages de ${pair.url.replace(/\/$/, '')}`}>
                             <span style={{ background: '#e8f4f8', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', marginRight: '4px' }}>
                               🌐 Domaine
                             </span>
-                            <a href={`https://${pair.url}`} target="_blank" rel="noopener noreferrer" style={{ color: '#1a73e8' }}>
-                              {pair.url}
+                            <a href={`https://${pair.url.replace(/^www\./, '')}`} target="_blank" rel="noopener noreferrer" style={{ color: '#1a73e8' }}>
+                              {pair.url.replace(/\/$/, '')}
                             </a>
                           </span>
                         ) : (

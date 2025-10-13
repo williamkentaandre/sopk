@@ -72,13 +72,15 @@ export function matchUrlInResults(
   const normalizedTarget = normalizeUrl(targetUrl);
   const targetDomain = extractDomain(targetUrl);
   
-  // Check if input is just a domain (no path, no protocol)
-  const isDomainOnly = !targetUrl.startsWith('http://') && 
-                       !targetUrl.startsWith('https://') && 
-                       !targetUrl.includes('/');
+  // Check if input is just a domain (no protocol = domain tracking)
+  // This handles: "example.com", "www.example.com", "example.com/"
+  const trimmedUrl = targetUrl.trim().replace(/\/$/, ''); // Remove trailing slash
+  const isDomainOnly = !trimmedUrl.startsWith('http://') && 
+                       !trimmedUrl.startsWith('https://');
 
   console.log('🔍 URL Matching Debug:');
   console.log('  Target URL:', targetUrl);
+  console.log('  Trimmed URL:', trimmedUrl);
   console.log('  Is Domain Only:', isDomainOnly);
   console.log('  Normalized Target:', normalizedTarget);
   console.log('  Target Domain:', targetDomain);
@@ -93,10 +95,13 @@ export function matchUrlInResults(
     
     // If target is just a domain, only do domain matching
     if (isDomainOnly) {
+      console.log(`  [Pos ${result.position}] Checking:`, result.link);
+      console.log(`    Result Domain: "${resultDomain}" vs Target Domain: "${targetDomain}"`);
+      
       if (resultDomain && resultDomain === targetDomain) {
         // Keep track of best (lowest position) domain match
         if (!bestDomainMatch || result.position < bestDomainMatch.position) {
-          console.log('  🔗 Domain match at position', result.position);
+          console.log('  ✅ Domain match at position', result.position);
           console.log('    Result URL:', result.link);
           console.log('    Result Domain:', resultDomain);
           bestDomainMatch = {

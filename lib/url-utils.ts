@@ -9,14 +9,22 @@
  */
 export function normalizeUrl(url: string): string {
   try {
+    // Clean up the URL first
+    let cleanUrl = url.trim();
+    
+    // Remove trailing slash if no protocol (domain only)
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = cleanUrl.replace(/\/$/, '');
+    }
+    
     // Parse the URL
     let urlObj: URL;
     
     // Handle URLs without protocol
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      urlObj = new URL('https://' + url);
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      urlObj = new URL('https://' + cleanUrl);
     } else {
-      urlObj = new URL(url);
+      urlObj = new URL(cleanUrl);
     }
 
     // Get hostname without www.
@@ -47,6 +55,7 @@ export function normalizeUrl(url: string): string {
     // Reconstruct normalized URL (without protocol and hash)
     return hostname + pathname + search;
   } catch (error) {
+    console.error('normalizeUrl error for URL:', url, error);
     // If parsing fails, just return lowercase version
     return url.toLowerCase();
   }
@@ -57,12 +66,20 @@ export function normalizeUrl(url: string): string {
  */
 export function extractDomain(url: string): string {
   try {
+    // Clean up the URL first
+    let cleanUrl = url.trim();
+    
+    // Remove trailing slash if no protocol
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = cleanUrl.replace(/\/$/, '');
+    }
+    
     let urlObj: URL;
     
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      urlObj = new URL('https://' + url);
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      urlObj = new URL('https://' + cleanUrl);
     } else {
-      urlObj = new URL(url);
+      urlObj = new URL(cleanUrl);
     }
 
     let hostname = urlObj.hostname.toLowerCase();
@@ -72,6 +89,7 @@ export function extractDomain(url: string): string {
 
     return hostname;
   } catch (error) {
+    console.error('extractDomain error for URL:', url, error);
     return '';
   }
 }
