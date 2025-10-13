@@ -40,8 +40,8 @@ export default function Home() {
   const loadData = async () => {
     try {
       const [settingsRes, pairsRes] = await Promise.all([
-        fetch('/api/v1/settings-temp'),
-        fetch('/api/v1/pairs-temp'),
+        fetch('/api/v1/settings'),
+        fetch('/api/v1/pairs'),
       ]);
 
       if (settingsRes.ok && pairsRes.ok) {
@@ -76,7 +76,7 @@ export default function Home() {
   const saveSettings = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/v1/settings-temp', {
+      const response = await fetch('/api/v1/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)
@@ -110,7 +110,7 @@ export default function Home() {
     }
 
     try {
-      const response = await fetch('/api/v1/pairs-temp', {
+      const response = await fetch('/api/v1/pairs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -180,8 +180,8 @@ export default function Home() {
       const pair = pairs.find(p => p.pair_id === pairId);
       if (!pair) return;
 
-      // Use real SerpAPI tracking
-      const response = await fetch(`/api/v1/pairs-temp/${pairId}/track`, {
+      // Use real SerpAPI tracking only
+      const response = await fetch(`/api/v1/pairs/${pairId}/track`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -206,11 +206,11 @@ export default function Home() {
         showToast(`Mesure effectuée - ${positionText}`, 'success');
       } else {
         const errorData = await response.json().catch(() => ({}));
-        showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
+        showToast(`Erreur SerpAPI: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
       }
     } catch (error) {
       console.error('Tracking error:', error);
-      showToast('Erreur lors de la mesure', 'error');
+      showToast('Erreur lors de la mesure SerpAPI', 'error');
     } finally {
       setTracking(prev => {
         const next = new Set(prev);
@@ -228,7 +228,7 @@ export default function Home() {
     setSaving(true);
     try {
       // Use real SerpAPI batch tracking
-      const response = await fetch('/api/v1/track-temp', {
+      const response = await fetch('/api/v1/track', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -254,11 +254,11 @@ export default function Home() {
         showToast('Mesures effectuées', 'success');
       } else {
         const errorData = await response.json().catch(() => ({}));
-        showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
+        showToast(`Erreur SerpAPI: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
       }
     } catch (error) {
       console.error('Batch tracking error:', error);
-      showToast('Erreur lors des mesures', 'error');
+      showToast('Erreur lors des mesures SerpAPI', 'error');
     } finally {
       setSaving(false);
     }
@@ -266,30 +266,38 @@ export default function Home() {
 
   const exportData = async (format: 'csv' | 'xlsx') => {
     try {
-      const headers = ['Mot-clé', 'URL', 'Position', 'Dernière mesure'];
-      const rows = pairs.map(pair => [
-        pair.keyword,
-        pair.url,
-        pair.last_position || '',
-        pair.last_checked_at ? new Date(pair.last_checked_at).toLocaleString('fr-FR') : ''
-      ]);
-
-      const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      ].join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `seo-export-${new Date().toISOString().slice(0, 10)}.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      showToast(`Export ${format.toUpperCase()} réussi`, 'success');
+      const response = await fetch(`/api/v1/export?format=${format}`);
+      
+      if (response.ok) {
+        if (format === 'csv') {
+          const text = await response.text();
+          const blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `seo-export-${new Date().toISOString().slice(0, 10)}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        } else {
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `seo-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        }
+        showToast(`Export ${format.toUpperCase()} réussi`, 'success');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        showToast(`Erreur export: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
+      }
     } catch (error) {
+      console.error('Export error:', error);
       showToast(`Erreur lors de l'export ${format.toUpperCase()}`, 'error');
     }
   };
