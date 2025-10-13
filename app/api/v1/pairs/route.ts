@@ -59,10 +59,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error listing pairs:', error);
     console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      code: error.code,
-      statusCode: error.statusCode,
+      name: (error as any)?.name,
+      message: (error as any)?.message,
+      code: (error as any)?.code,
+      statusCode: (error as any)?.statusCode,
     });
     return NextResponse.json(
       {
@@ -71,8 +71,8 @@ export async function GET(request: NextRequest) {
           message: 'Failed to list pairs',
           details: { 
             error: String(error),
-            name: error.name,
-            code: error.code,
+            name: (error as any)?.name,
+            code: (error as any)?.code,
             tableName: TABLE_NAME,
             region: process.env.AWS_REGION,
           },
@@ -191,10 +191,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating pairs:', error);
     console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      code: error.code,
-      statusCode: error.statusCode,
+      name: (error as any)?.name,
+      message: (error as any)?.message,
+      code: (error as any)?.code,
+      statusCode: (error as any)?.statusCode,
     });
     return NextResponse.json(
       {
@@ -203,8 +203,8 @@ export async function POST(request: NextRequest) {
           message: 'Failed to create pairs',
           details: { 
             error: String(error),
-            name: error.name,
-            code: error.code,
+            name: (error as any)?.name,
+            code: (error as any)?.code,
             tableName: TABLE_NAME,
             region: process.env.AWS_REGION,
           },
