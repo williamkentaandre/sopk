@@ -1,98 +1,59 @@
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { docClient, TABLE_NAME, KEYS } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth-server';
+import { prisma } from '@/lib/prisma';
 import { settingsSchema } from '@/lib/validators';
 
-// GET /api/v1/settings
 export async function GET(request: NextRequest) {
-  try {
-    const command = new GetCommand({
-      TableName: TABLE_NAME,
-      Key: KEYS.settings(),
-    });
-
-    const result = await docClient.send(command);
-
-    if (!result.Item) {
-      // Return default settings
-      return NextResponse.json({
-        hl: 'fr',
-        gl: 'fr',
-      });
-    }
-
-    return NextResponse.json({
-      hl: result.Item.hl,
-      gl: result.Item.gl,
-    });
-  } catch (error) {
-    console.error('Error getting settings:', error);
-    return NextResponse.json(
-      {
-        error: {
-          code: 500,
-          message: 'Failed to retrieve settings',
-          details: { error: String(error) },
-        },
-      },
-      { status: 500 }
-    );
+  const user = await getCurrentUser(request);
+  if (!user) {
+    return NextResponse.json({ error: { code: 401, message: 'Non connecté' } }, { status: 401 });
   }
+  return NextResponse.json({
+    hl: user.hl ?? 'fr',
+    gl: user.gl ?? 'fr',
+    hasSerpApiKey: !!user.serpApiKey,
+  });
 }
 
-// PUT /api/v1/settings
 export async function PUT(request: NextRequest) {
+  const user = await getCurrentUser(request);
+  if (!user) {
+    return NextResponse.json({ error: { code: 401, message: 'Non connecté' } }, { status: 401 });
+  }
   try {
     const body = await request.json();
-    
-    // Validate input
     const validationResult = settingsSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        {
-          error: {
-            code: 400,
-            message: 'Invalid settings data',
-            details: validationResult.error.errors,
-          },
-        },
+        { error: { code: 400, message: 'Données invalides', details: validationResult.error.errors } },
         { status: 400 }
       );
     }
-
     const { hl, gl } = validationResult.data;
+    const serpApiKey = typeof body.serpApiKey === 'string' ? body.serpApiKey : undefined;
 
-    const command = new PutCommand({
-      TableName: TABLE_NAME,
-      Item: {
-        ...KEYS.settings(),
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
         hl,
         gl,
-        updated_at: new Date().toISOString(),
+        ...(serpApiKey !== undefined && { serpApiKey: serpApiKey || null }),
       },
     });
-
-    await docClient.send(command);
 
     return NextResponse.json({
       hl,
       gl,
+      hasSerpApiKey: serpApiKey !== undefined ? !!serpApiKey : !!user.serpApiKey,
     });
-  } catch (error) {
-    console.error('Error updating settings:', error);
+  } catch (e) {
+    console.error('Settings update error:', e);
     return NextResponse.json(
-      {
-        error: {
-          code: 500,
-          message: 'Failed to update settings',
-          details: { error: String(error) },
-        },
-      },
+      { error: { code: 500, message: 'Erreur serveur' } },
       { status: 500 }
     );
   }
 }
-

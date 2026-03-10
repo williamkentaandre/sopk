@@ -28,14 +28,22 @@ export interface MatchResult {
   serpLink?: string;
 }
 
+export interface SerpApiOptions {
+  apiKey?: string | null;
+}
+
 /**
- * Calls SerpAPI Google Organic search
+ * Calls SerpAPI Google Organic search.
+ * Uses options.apiKey if provided, otherwise process.env.SERPAPI_API_KEY.
  */
-export async function callSerpApi(params: SerpApiParams): Promise<SerpApiResponse> {
-  const apiKey = process.env.SERPAPI_API_KEY;
-  
+export async function callSerpApi(
+  params: SerpApiParams,
+  options?: SerpApiOptions
+): Promise<SerpApiResponse> {
+  const apiKey = options?.apiKey ?? process.env.SERPAPI_API_KEY;
+
   if (!apiKey) {
-    throw new Error('SERPAPI_API_KEY not configured');
+    throw new Error('Clé SERP API manquante. Configurez-la dans Paramètres.');
   }
 
   const url = new URL('https://serpapi.com/search');
@@ -173,15 +181,17 @@ export function matchUrlInResults(
 }
 
 /**
- * Track a keyword/URL pair using SerpAPI
+ * Track a keyword/URL pair using SerpAPI.
+ * Pass options.apiKey for per-user key (SaaS).
  */
 export async function trackKeyword(
   keyword: string,
   url: string,
   hl: string,
-  gl: string
+  gl: string,
+  options?: SerpApiOptions
 ): Promise<MatchResult & { serpLink?: string }> {
-  const serpResponse = await callSerpApi({ keyword, hl, gl, num: 100 });
+  const serpResponse = await callSerpApi({ keyword, hl, gl, num: 100 }, options);
   
   const organicResults = serpResponse.organic_results || [];
   const matchResult = matchUrlInResults(url, organicResults);

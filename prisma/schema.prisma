@@ -1,0 +1,58 @@
+// SEO Ranker SaaS - Prisma schema
+// PostgreSQL required for production (Vercel). Use Neon/Supabase/Vercel Postgres.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String   @id @default(cuid())
+  email                String   @unique
+  passwordHash         String
+  serpApiKey           String?
+  stripePaymentStatus   String   @default("pending") // "pending" | "paid"
+  hl                   String   @default("fr")
+  gl                   String   @default("fr")
+  createdAt            DateTime @default(now())
+
+  pairs                Pair[]
+}
+
+model Pair {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  keyword         String
+  url             String    // normalized
+  rawUrl          String    // display
+  lastPosition    Int?
+  lastCheckedAt   DateTime?
+  lastMatchedUrl  String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  history         PairHistory[]
+
+  @@index([userId])
+}
+
+model PairHistory {
+  id          String   @id @default(cuid())
+  pairId      String
+  pair        Pair     @relation(fields: [pairId], references: [id], onDelete: Cascade)
+  checkedAt   DateTime
+  position    Int?
+  matchedUrl  String?
+  matchType   String?  // exact | domain | none
+  serpLink    String?
+  hl          String?
+  gl          String?
+  error       String?
+
+  @@index([pairId])
+}

@@ -1,242 +1,104 @@
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { GetCommand, PutCommand, DeleteCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
-import { docClient, TABLE_NAME, KEYS } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth-server';
+import { prisma } from '@/lib/prisma';
 import { updatePairSchema } from '@/lib/validators';
 import { normalizeUrl, isValidUrl } from '@/lib/url-utils';
 
-// GET /api/v1/pairs/:pairId
+async function getPairForUser(pairId: string, userId: string) {
+  return prisma.pair.findFirst({
+    where: { id: pairId, userId },
+  });
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { pairId: string } }
 ) {
-  try {
-    const { pairId } = params;
-
-    const command = new GetCommand({
-      TableName: TABLE_NAME,
-      Key: KEYS.pair(pairId),
-    });
-
-    const result = await docClient.send(command);
-
-    if (!result.Item) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 404,
-            message: 'Pair not found',
-          },
-        },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({
-      pair_id: result.Item.pair_id,
-      keyword: result.Item.keyword,
-      url: result.Item.raw_url || result.Item.url,
-      last_position: result.Item.last_position ?? null,
-      last_checked_at: result.Item.last_checked_at ?? null,
-    });
-  } catch (error) {
-    console.error('Error getting pair:', error);
-    return NextResponse.json(
-      {
-        error: {
-          code: 500,
-          message: 'Failed to get pair',
-          details: { error: String(error) },
-        },
-      },
-      { status: 500 }
-    );
+  const user = await getCurrentUser(request);
+  if (!user) {
+    return NextResponse.json({ error: { code: 401, message: 'Non connecté' } }, { status: 401 });
   }
+  const { pairId } = params;
+  const pair = await getPairForUser(pairId, user.id);
+  if (!pair) {
+    return NextResponse.json({ error: { code: 404, message: 'Pair not found' } }, { status: 404 });
+  }
+  return NextResponse.json({
+    pair_id: pair.id,
+    keyword: pair.keyword,
+    url: pair.rawUrl,
+    last_position: pair.lastPosition,
+    last_checked_at: pair.lastCheckedAt?.toISOString() ?? null,
+  });
 }
 
-// PUT /api/v1/pairs/:pairId
 export async function PUT(
   request: NextRequest,
   { params }: { params: { pairId: string } }
 ) {
-  try {
-    const { pairId } = params;
-    const body = await request.json();
+  const user = await getCurrentUser(request);
+  if (!user) {
+    return NextResponse.json({ error: { code: 401, message: 'Non connecté' } }, { status: 401 });
+  }
+  const { pairId } = params;
+  const pair = await getPairForUser(pairId, user.id);
+  if (!pair) {
+    return NextResponse.json({ error: { code: 404, message: 'Pair not found' } }, { status: 404 });
+  }
 
-    // Validate input
-    const validationResult = updatePairSchema.safeParse(body);
-    if (!validationResult.success) {
+  const body = await request.json();
+  const validationResult = updatePairSchema.safeParse(body);
+  if (!validationResult.success) {
+    return NextResponse.json(
+      { error: { code: 400, message: 'Données invalides', details: validationResult.error.errors } },
+      { status: 400 }
+    );
+  }
+
+  const updates: { keyword?: string; url?: string; rawUrl?: string } = {};
+  if (validationResult.data.keyword) updates.keyword = validationResult.data.keyword;
+  if (validationResult.data.url) {
+    if (!isValidUrl(validationResult.data.url)) {
       return NextResponse.json(
-        {
-          error: {
-            code: 400,
-            message: 'Invalid update data',
-            details: validationResult.error.errors,
-          },
-        },
+        { error: { code: 400, message: 'URL invalide' } },
         { status: 400 }
       );
     }
-
-    const updates = validationResult.data;
-
-    // Check if pair exists
-    const getCommand = new GetCommand({
-      TableName: TABLE_NAME,
-      Key: KEYS.pair(pairId),
-    });
-
-    const existingPair = await docClient.send(getCommand);
-
-    if (!existingPair.Item) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 404,
-            message: 'Pair not found',
-          },
-        },
-        { status: 404 }
-      );
-    }
-
-    // Prepare updated item
-    const updatedItem = { ...existingPair.Item };
-    
-    if (updates.keyword) {
-      updatedItem.keyword = updates.keyword;
-    }
-    
-    if (updates.url) {
-      if (!isValidUrl(updates.url)) {
-        return NextResponse.json(
-          {
-            error: {
-              code: 400,
-              message: 'Invalid URL format',
-              details: { url: updates.url },
-            },
-          },
-          { status: 400 }
-        );
-      }
-      updatedItem.url = normalizeUrl(updates.url);
-      updatedItem.raw_url = updates.url;
-    }
-
-    updatedItem.updated_at = new Date().toISOString();
-
-    // Update pair
-    const putCommand = new PutCommand({
-      TableName: TABLE_NAME,
-      Item: updatedItem,
-    });
-
-    await docClient.send(putCommand);
-
-    return NextResponse.json({
-      pair_id: updatedItem.pair_id,
-      keyword: updatedItem.keyword,
-      url: updatedItem.raw_url || updatedItem.url,
-      last_position: updatedItem.last_position ?? null,
-      last_checked_at: updatedItem.last_checked_at ?? null,
-    });
-  } catch (error) {
-    console.error('Error updating pair:', error);
-    return NextResponse.json(
-      {
-        error: {
-          code: 500,
-          message: 'Failed to update pair',
-          details: { error: String(error) },
-        },
-      },
-      { status: 500 }
-    );
+    updates.url = normalizeUrl(validationResult.data.url);
+    updates.rawUrl = validationResult.data.url;
   }
+
+  const updated = await prisma.pair.update({
+    where: { id: pairId },
+    data: updates,
+  });
+
+  return NextResponse.json({
+    pair_id: updated.id,
+    keyword: updated.keyword,
+    url: updated.rawUrl,
+    last_position: updated.lastPosition,
+    last_checked_at: updated.lastCheckedAt?.toISOString() ?? null,
+  });
 }
 
-// DELETE /api/v1/pairs/:pairId
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { pairId: string } }
 ) {
-  try {
-    const { pairId } = params;
-    const searchParams = request.nextUrl.searchParams;
-    const purgeHistory = searchParams.get('purge_history') === 'true';
-
-    // Check if pair exists
-    const getCommand = new GetCommand({
-      TableName: TABLE_NAME,
-      Key: KEYS.pair(pairId),
-    });
-
-    const existingPair = await docClient.send(getCommand);
-
-    if (!existingPair.Item) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 404,
-            message: 'Pair not found',
-          },
-        },
-        { status: 404 }
-      );
-    }
-
-    // Delete the pair metadata
-    const deleteMetaCommand = new DeleteCommand({
-      TableName: TABLE_NAME,
-      Key: KEYS.pair(pairId),
-    });
-
-    await docClient.send(deleteMetaCommand);
-
-    // Optionally purge history
-    if (purgeHistory) {
-      const queryCommand = new QueryCommand({
-        TableName: TABLE_NAME,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-        ExpressionAttributeValues: {
-          ':pk': `PAIR#${pairId}`,
-          ':sk': 'HISTO#',
-        },
-      });
-
-      const historyResult = await docClient.send(queryCommand);
-
-      if (historyResult.Items && historyResult.Items.length > 0) {
-        // Delete history items
-        for (const item of historyResult.Items) {
-          const deleteHistoryCommand = new DeleteCommand({
-            TableName: TABLE_NAME,
-            Key: {
-              PK: item.PK,
-              SK: item.SK,
-            },
-          });
-          await docClient.send(deleteHistoryCommand);
-        }
-      }
-    }
-
-    return new NextResponse(null, { status: 204 });
-  } catch (error) {
-    console.error('Error deleting pair:', error);
-    return NextResponse.json(
-      {
-        error: {
-          code: 500,
-          message: 'Failed to delete pair',
-          details: { error: String(error) },
-        },
-      },
-      { status: 500 }
-    );
+  const user = await getCurrentUser(request);
+  if (!user) {
+    return NextResponse.json({ error: { code: 401, message: 'Non connecté' } }, { status: 401 });
   }
-}
+  const { pairId } = params;
+  const pair = await getPairForUser(pairId, user.id);
+  if (!pair) {
+    return NextResponse.json({ error: { code: 404, message: 'Pair not found' } }, { status: 404 });
+  }
 
+  await prisma.pair.delete({ where: { id: pairId } });
+  return new NextResponse(null, { status: 204 });
+}

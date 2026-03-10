@@ -1,157 +1,86 @@
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { docClient, TABLE_NAME, KEYS } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth-server';
+import { prisma } from '@/lib/prisma';
 import { trackSchema } from '@/lib/validators';
 import { trackKeyword } from '@/lib/serpapi';
 
-// POST /api/v1/pairs/:pairId/track
 export async function POST(
   request: NextRequest,
   { params }: { params: { pairId: string } }
 ) {
-  try {
-    const { pairId } = params;
-    const body = await request.json().catch(() => ({}));
-
-    // Validate input
-    const validationResult = trackSchema.safeParse(body);
-    if (!validationResult.success) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 400,
-            message: 'Invalid tracking data',
-            details: validationResult.error.errors,
-          },
-        },
-        { status: 400 }
-      );
-    }
-
-    const { hl, gl } = validationResult.data;
-    const finalHl = hl || 'fr';
-    const finalGl = gl || 'fr';
-
-    // Get the pair
-    const getCommand = new GetCommand({
-      TableName: TABLE_NAME,
-      Key: KEYS.pair(pairId),
-    });
-
-    const result = await docClient.send(getCommand);
-    if (!result.Item) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 404,
-            message: 'Pair not found',
-          },
-        },
-        { status: 404 }
-      );
-    }
-
-    const pair = result.Item;
-
-    // Track using SerpAPI
-    const checkedAt = new Date().toISOString();
-    let position = null;
-    let error = null;
-    let matchResult = null;
-
-    try {
-      console.log('=== SERPAPI TRACKING ===');
-      console.log('Keyword:', pair.keyword);
-      console.log('URL:', pair.url);
-      console.log('HL:', finalHl);
-      console.log('GL:', finalGl);
-      
-      matchResult = await trackKeyword(
-        pair.keyword, 
-        pair.url, 
-        finalHl, 
-        finalGl
-      );
-      
-      position = matchResult.position;
-      console.log('SerpAPI tracking successful:', { 
-        position, 
-        matchedUrl: matchResult.matchedUrl,
-        matchType: matchResult.matchType 
-      });
-      
-    } catch (serpError) {
-      console.error('SerpAPI error:', serpError);
-      error = String(serpError);
-    }
-
-    // Update the pair with new tracking data
-    const matchedUrl = matchResult?.matchedUrl || null;
-    console.log('💾 Saving to database:', {
-      last_position: position,
-      last_matched_url: matchedUrl,
-      matchedUrlType: typeof matchedUrl
-    });
-    
-    const updateCommand = new PutCommand({
-      TableName: TABLE_NAME,
-      Item: {
-        ...pair,
-        last_position: position,
-        last_checked_at: checkedAt,
-        last_matched_url: matchedUrl,
-        updated_at: checkedAt,
-      },
-    });
-
-    await docClient.send(updateCommand);
-    console.log('✅ Saved to database successfully');
-
-    // Save history entry if position was found
-    if (position !== null && position !== undefined) {
-      const historyCommand = new PutCommand({
-        TableName: TABLE_NAME,
-        Item: {
-          ...KEYS.history(pairId, checkedAt),
-          pair_id: pairId,
-          keyword: pair.keyword,
-          url: pair.raw_url || pair.url,
-          position,
-          checked_at: checkedAt,
-          hl: hl || 'fr',
-          gl: gl || 'fr',
-          error: error || null,
-          serp_link: matchResult?.serpLink || null,
-        },
-      });
-
-      await docClient.send(historyCommand);
-      console.log('History entry saved:', { pairId, position, checkedAt });
-    }
-
-    return NextResponse.json({
-      pair_id: pairId,
-      keyword: pair.keyword,
-      url: pair.raw_url || pair.url,
-      position,
-      matched_url: matchResult?.matchedUrl || null,
-      checked_at: checkedAt,
-      error,
-    });
-  } catch (error) {
-    console.error('Error tracking pair:', error);
+  const user = await getCurrentUser(request);
+  if (!user) {
+    return NextResponse.json({ error: { code: 401, message: 'Non connecté' } }, { status: 401 });
+  }
+  if (!user.serpApiKey) {
     return NextResponse.json(
-      {
-        error: {
-          code: 500,
-          message: 'Failed to track pair',
-          details: { error: String(error) },
-        },
-      },
-      { status: 500 }
+      { error: { code: 400, message: 'Configurez votre clé SERP API dans Paramètres.' } },
+      { status: 400 }
     );
   }
+
+  const { pairId } = params;
+  const pair = await prisma.pair.findFirst({
+    where: { id: pairId, userId: user.id },
+  });
+  if (!pair) {
+    return NextResponse.json({ error: { code: 404, message: 'Pair not found' } }, { status: 404 });
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const validationResult = trackSchema.safeParse(body);
+  const hl = validationResult.success ? validationResult.data.hl || 'fr' : 'fr';
+  const gl = validationResult.success ? validationResult.data.gl || 'fr' : 'fr';
+
+  const checkedAt = new Date();
+  let position: number | null = null;
+  let error: string | null = null;
+  let matchResult: Awaited<ReturnType<typeof trackKeyword>> | null = null;
+
+  try {
+    matchResult = await trackKeyword(pair.keyword, pair.url, hl, gl, {
+      apiKey: user.serpApiKey,
+    });
+    position = matchResult.position;
+  } catch (e) {
+    error = String(e);
+  }
+
+  await prisma.pair.update({
+    where: { id: pairId },
+    data: {
+      lastPosition: position,
+      lastCheckedAt: checkedAt,
+      lastMatchedUrl: matchResult?.matchedUrl ?? null,
+    },
+  });
+
+  if (position != null) {
+    await prisma.pairHistory.create({
+      data: {
+        pairId,
+        checkedAt,
+        position,
+        matchedUrl: matchResult?.matchedUrl ?? null,
+        matchType: matchResult?.matchType ?? null,
+        serpLink: matchResult?.serpLink ?? null,
+        hl,
+        gl,
+        error: error ?? null,
+      },
+    });
+  }
+
+  return NextResponse.json({
+    pair_id: pairId,
+    keyword: pair.keyword,
+    url: pair.rawUrl,
+    position,
+    matched_url: matchResult?.matchedUrl ?? null,
+    checked_at: checkedAt.toISOString(),
+    error,
+  });
 }
