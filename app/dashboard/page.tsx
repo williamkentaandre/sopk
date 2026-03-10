@@ -34,6 +34,11 @@ export default function DashboardPage() {
   const [newPair, setNewPair] = useState({ keyword: '', url: '' });
   const [editingPair, setEditingPair] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<{ keyword: string; url: string }>({ keyword: '', url: '' });
+  const [showNoKeyBanner, setShowNoKeyBanner] = useState(false);
+  const [hasSerpApiKey, setHasSerpApiKey] = useState<boolean | null>(null);
+
+  const isNoSerpKeyError = (msg: string) =>
+    /clé|serp|paramètres/i.test(msg || '');
 
   useEffect(() => {
     loadData();
@@ -49,6 +54,7 @@ export default function DashboardPage() {
         const settingsData = await settingsRes.json();
         const pairsData = await pairsRes.json();
         setSettings({ hl: settingsData.hl ?? 'fr', gl: settingsData.gl ?? 'fr' });
+        setHasSerpApiKey(!!settingsData.hasSerpApiKey);
         setPairs(pairsData.items || []);
       } else {
         if (settingsRes.status === 401 || pairsRes.status === 401) {
@@ -56,10 +62,12 @@ export default function DashboardPage() {
           return;
         }
         setSettings({ hl: 'fr', gl: 'fr' });
+        setHasSerpApiKey(null);
         setPairs([]);
       }
     } catch {
       setSettings({ hl: 'fr', gl: 'fr' });
+      setHasSerpApiKey(null);
       setPairs([]);
     } finally {
       setLoading(false);
@@ -248,7 +256,13 @@ export default function DashboardPage() {
         const positionText = result.position != null ? `Position: ${result.position}` : 'Non trouvé';
         showToast(`Mesure effectuée - ${positionText}`, 'success');
       } else {
-        showToast(`Erreur: ${result.error?.message || 'Erreur inconnue'}`, 'error');
+        const errMsg = result.error?.message || '';
+        if (isNoSerpKeyError(errMsg)) {
+          setShowNoKeyBanner(true);
+          showToast('Ajoutez votre clé dans Paramètres pour mesurer.', 'error');
+        } else {
+          showToast(`Erreur: ${errMsg || 'Erreur inconnue'}`, 'error');
+        }
       }
     } catch {
       showToast('Erreur lors de la mesure SerpAPI', 'error');
@@ -287,7 +301,13 @@ export default function DashboardPage() {
         showToast('Mesures effectuées', 'success');
       } else {
         const errorData = await response.json().catch(() => ({}));
-        showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
+        const errMsg = errorData.error?.message || '';
+        if (isNoSerpKeyError(errMsg)) {
+          setShowNoKeyBanner(true);
+          showToast('Ajoutez votre clé dans Paramètres pour mesurer.', 'error');
+        } else {
+          showToast(`Erreur: ${errMsg || 'Erreur inconnue'}`, 'error');
+        }
       }
     } catch {
       showToast('Erreur lors des mesures SerpAPI', 'error');
@@ -346,16 +366,58 @@ export default function DashboardPage() {
         <div>
           <h1>SEO Ranker</h1>
           <p>Suivi de positions Google par couple mot-clé / URL</p>
+          <p style={{ marginTop: '0.35rem', fontSize: '0.9rem' }}>
+            <Link href="/settings" style={{ color: '#1976d2', fontWeight: 500 }}>
+              → Configurer ma clé de recherche (SerpAPI, gratuit)
+            </Link>
+          </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <Link href="/settings" className="btn btn-secondary">
-            Paramètres
+          <Link href="/settings" className="btn btn-primary" style={{ border: '2px solid #2e7d32', background: '#e8f5e9', color: '#2e7d32' }}>
+            Paramètres (clé)
           </Link>
           <button type="button" className="btn btn-secondary" onClick={() => signOut({ callbackUrl: '/' })}>
             Déconnexion
           </button>
         </div>
       </div>
+
+      {(hasSerpApiKey !== true) && (
+        <div className="settings-card" style={{ background: 'linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%)', border: '2px solid #4caf50', marginBottom: '1.5rem', padding: '1.5rem', maxWidth: '36rem' }}>
+          <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.25rem', color: '#2e7d32' }}>
+            Commencer : configurez votre clé en 2 minutes
+          </h2>
+          <p style={{ margin: '0 0 1rem', color: '#333', lineHeight: 1.5 }}>
+            Pour suivre vos positions Google, l’application a besoin d’une clé fournie <strong>gratuitement</strong> par SerpAPI. Sans elle, les mesures ne peuvent pas fonctionner.
+          </p>
+          <ol style={{ margin: '0 0 1.25rem', paddingLeft: '1.25rem', color: '#333', lineHeight: 1.7 }}>
+            <li>Cliquez sur <strong>« Obtenir ma clé »</strong> (ouverture de SerpAPI dans un nouvel onglet). Créez un compte gratuit si besoin.</li>
+            <li>Sur SerpAPI, <strong>copiez votre clé</strong> (API Key).</li>
+            <li>Collez-la dans <strong>Paramètres</strong> (bouton ci‑dessous) puis enregistrez.</li>
+          </ol>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <Link href="/settings" className="btn btn-primary" style={{ fontSize: '1rem', padding: '0.6rem 1.2rem' }}>
+              Aller configurer ma clé →
+            </Link>
+            <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
+              Obtenir ma clé (gratuit)
+            </a>
+          </div>
+        </div>
+      )}
+
+      {hasSerpApiKey !== false && showNoKeyBanner && (
+        <div className="settings-card" style={{ background: '#fff3cd', border: '1px solid #ffc107', marginBottom: '1rem', padding: '1rem' }}>
+          <p style={{ margin: 0, marginBottom: '0.75rem', fontWeight: 500 }}>
+            Pour mesurer les positions, ajoutez votre clé dans Paramètres.
+          </p>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <Link href="/settings" className="btn btn-primary">Aller aux paramètres</Link>
+            <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-secondary">Obtenir une clé (gratuit)</a>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowNoKeyBanner(false)}>Fermer</button>
+          </div>
+        </div>
+      )}
 
       <div className="settings-card">
         <h2>Paramètres de recherche</h2>
