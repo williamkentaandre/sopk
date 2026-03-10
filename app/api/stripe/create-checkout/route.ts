@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getToken } from 'next-auth/jwt';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
 export async function POST(request: NextRequest) {
   try {
     const token = await getToken({
@@ -18,14 +16,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const secretKey = process.env.STRIPE_SECRET_KEY;
     const priceId = process.env.STRIPE_PRICE_ID;
-    if (!priceId || !process.env.STRIPE_SECRET_KEY) {
+    if (!priceId || !secretKey) {
       return NextResponse.json(
         { error: { code: 500, message: 'Stripe non configuré' } },
         { status: 500 }
       );
     }
 
+    const stripe = new Stripe(secretKey);
     const origin = request.headers.get('origin') || request.nextUrl.origin;
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
