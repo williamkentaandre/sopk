@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/lib/auth-server';
 import { prisma } from '@/lib/prisma';
 import { createPairsSchema } from '@/lib/validators';
 import { normalizeUrl, isValidUrl } from '@/lib/url-utils';
+import { getParisDateString } from '@/lib/date-utils';
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser(request);
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
     if (includeHistory && 'history' in p && Array.isArray(p.history)) {
       const byDay = new Map<string, number | null>();
       for (const h of p.history) {
-        const day = h.checkedAt.toISOString().slice(0, 10);
+        const day = getParisDateString(h.checkedAt.toISOString());
         byDay.set(day, h.position);
       }
       base.history_by_date = Object.fromEntries(byDay);

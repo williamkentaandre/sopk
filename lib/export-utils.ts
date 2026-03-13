@@ -1,4 +1,5 @@
 import { Pair, HistoryEntry } from './types';
+import { getParisDateString } from './date-utils';
 import ExcelJS from 'exceljs';
 
 export interface ExportData {
@@ -114,7 +115,7 @@ export function collectTimestamps(
 
   for (const { history } of data) {
     for (const entry of history) {
-      const day = entry.checked_at.slice(0, 10); // YYYY-MM-DD
+      const day = getParisDateString(entry.checked_at); // YYYY-MM-DD in Europe/Paris
       dateSet.add(day);
     }
   }

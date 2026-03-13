@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
+import { getParisDateString } from '@/lib/date-utils';
 
 interface Settings {
   hl: string;
@@ -308,7 +309,7 @@ export default function DashboardPage() {
       });
       const result = await response.json();
       if (response.ok) {
-        const day = result.checked_at?.slice(0, 10);
+        const day = result.checked_at ? getParisDateString(result.checked_at) : null;
         setPairs((prev) =>
           prev.map((p) =>
             p.pair_id === pairId
@@ -361,7 +362,7 @@ export default function DashboardPage() {
           prev.map((pair) => {
             const updated = result.results?.find((r: any) => r.pair_id === pair.pair_id);
             if (updated) {
-              const day = updated.checked_at?.slice(0, 10);
+              const day = updated.checked_at ? getParisDateString(updated.checked_at) : null;
               return {
                 ...pair,
                 last_position: updated.position,
@@ -818,7 +819,7 @@ export default function DashboardPage() {
                     <th>Mot-clé</th>
                     <th>URL</th>
                     {historyDates.map((d) => (
-                      <th key={d} style={{ whiteSpace: 'nowrap' }}>{new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })}</th>
+                      <th key={d} style={{ whiteSpace: 'nowrap' }}>{new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: '2-digit' })}</th>
                     ))}
                   </tr>
                 </thead>
