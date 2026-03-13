@@ -10,61 +10,42 @@ export interface ExportData {
 }
 
 /**
- * Formats timestamp for column headers (YYYY-MM-DD HH:mm in Europe/Paris timezone)
+ * Formats a date (YYYY-MM-DD) for column headers (one column per day)
  */
-export function formatTimestamp(isoTimestamp: string): string {
-  const date = new Date(isoTimestamp);
-  
-  // Format in Europe/Paris timezone
-  const formatter = new Intl.DateTimeFormat('fr-FR', {
-    timeZone: 'Europe/Paris',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+export function formatDateHeader(dateStr: string): string {
+  return dateStr; // YYYY-MM-DD, one column per day
+}
 
-  const parts = formatter.formatToParts(date);
-  const get = (type: string) => parts.find(p => p.type === type)?.value || '';
-
-  return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}`;
+/** Get position for a given day (most recent measurement of that day) */
+function getPositionForDay(history: HistoryEntry[], dateStr: string): number | null | undefined {
+  const entries = history.filter((h) => h.checked_at.slice(0, 10) === dateStr);
+  if (entries.length === 0) return undefined;
+  const latest = entries.sort((a, b) => b.checked_at.localeCompare(a.checked_at))[0];
+  return latest?.position ?? undefined;
 }
 
 /**
- * Generates CSV content from export data
+ * Generates CSV content from export data (one column per day)
  */
 export function generateCSV(data: ExportData): string {
   const lines: string[] = [];
 
-  // Header row - add "Dernière Position" and "URL Trouvée" columns
-  const headers = ['Mot-clé', 'URL', 'Dernière Position', 'URL Trouvée', ...data.timestamps.map(formatTimestamp)];
+  const headers = ['Mot-clé', 'URL', 'Dernière Position', 'URL Trouvée', ...data.timestamps.map(formatDateHeader)];
   lines.push(headers.map(h => `"${h.replace(/"/g, '""')}"`).join(','));
 
-  // Data rows
   for (const { pair, history } of data.pairs) {
     const row: string[] = [];
-    
-    // Keyword and URL
     row.push(`"${pair.keyword.replace(/"/g, '""')}"`);
     row.push(`"${(pair.raw_url || pair.url).replace(/"/g, '""')}"`);
-    
-    // Last position (from pair.last_position)
     const lastPos = pair.last_position;
     row.push(lastPos !== null && lastPos !== undefined ? String(lastPos) : '-');
-    
-    // Last matched URL (from pair.last_matched_url)
     const lastMatchedUrl = (pair as any).last_matched_url;
     row.push(lastMatchedUrl ? `"${lastMatchedUrl.replace(/"/g, '""')}"` : '-');
 
-    // Position for each timestamp (from history)
-    for (const timestamp of data.timestamps) {
-      const entry = history.find(h => h.checked_at === timestamp);
-      const position = entry?.position;
+    for (const dateStr of data.timestamps) {
+      const position = getPositionForDay(history, dateStr);
       row.push(position !== null && position !== undefined ? String(position) : '-');
     }
-
     lines.push(row.join(','));
   }
 
@@ -72,17 +53,15 @@ export function generateCSV(data: ExportData): string {
 }
 
 /**
- * Generates XLSX workbook from export data
+ * Generates XLSX workbook from export data (one column per day)
  */
 export async function generateXLSX(data: ExportData): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('SEO Rankings');
 
-  // Header row - add "Dernière Position" and "URL Trouvée" columns
-  const headers = ['Mot-clé', 'URL', 'Dernière Position', 'URL Trouvée', ...data.timestamps.map(formatTimestamp)];
+  const headers = ['Mot-clé', 'URL', 'Dernière Position', 'URL Trouvée', ...data.timestamps.map(formatDateHeader)];
   worksheet.addRow(headers);
 
-  // Style header row
   const headerRow = worksheet.getRow(1);
   headerRow.font = { bold: true };
   headerRow.fill = {
@@ -91,28 +70,19 @@ export async function generateXLSX(data: ExportData): Promise<Buffer> {
     fgColor: { argb: 'FFE0E0E0' },
   };
 
-  // Data rows
   for (const { pair, history } of data.pairs) {
     const row: (string | number)[] = [];
-    
     row.push(pair.keyword);
     row.push(pair.raw_url || pair.url);
-    
-    // Last position (from pair.last_position)
     const lastPos = pair.last_position;
     row.push(lastPos !== null && lastPos !== undefined ? lastPos : '-');
-    
-    // Last matched URL (from pair.last_matched_url)
     const lastMatchedUrl = (pair as any).last_matched_url;
     row.push(lastMatchedUrl || '-');
 
-    // Position for each timestamp (from history)
-    for (const timestamp of data.timestamps) {
-      const entry = history.find(h => h.checked_at === timestamp);
-      const position = entry?.position;
+    for (const dateStr of data.timestamps) {
+      const position = getPositionForDay(history, dateStr);
       row.push(position !== null && position !== undefined ? position : '-');
     }
-
     worksheet.addRow(row);
   }
 
@@ -133,26 +103,28 @@ export async function generateXLSX(data: ExportData): Promise<Buffer> {
 }
 
 /**
- * Collects all unique timestamps from history entries, sorted descending (most recent first)
+ * Collects unique days (YYYY-MM-DD) from history entries, one column per day, sorted descending (most recent first).
+ * Multiple measurements on the same day are grouped into a single column.
  */
 export function collectTimestamps(
   data: Array<{ history: HistoryEntry[] }>,
   maxPoints?: number
 ): string[] {
-  const timestampSet = new Set<string>();
+  const dateSet = new Set<string>();
 
   for (const { history } of data) {
     for (const entry of history) {
-      timestampSet.add(entry.checked_at);
+      const day = entry.checked_at.slice(0, 10); // YYYY-MM-DD
+      dateSet.add(day);
     }
   }
 
-  const timestamps = Array.from(timestampSet).sort((a, b) => b.localeCompare(a));
+  const dates = Array.from(dateSet).sort((a, b) => b.localeCompare(a));
 
-  if (maxPoints && timestamps.length > maxPoints) {
-    return timestamps.slice(0, maxPoints);
+  if (maxPoints && dates.length > maxPoints) {
+    return dates.slice(0, maxPoints);
   }
 
-  return timestamps;
+  return dates;
 }
 
