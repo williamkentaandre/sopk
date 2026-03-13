@@ -419,7 +419,7 @@ export default function DashboardPage() {
           window.URL.revokeObjectURL(url);
           document.body.removeChild(a);
         }
-        showToast(`Export ${format.toUpperCase()} réussi`, 'success');
+        // Pas de toast "réussi" : le fichier n'est pas encore enregistré (dialogue "Enregistrer sous")
       } else {
         const errorData = await response.json().catch(() => ({}));
         showToast(`Erreur export: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
@@ -551,7 +551,7 @@ export default function DashboardPage() {
         <div className="pairs-header">
           <h2>Couples Mot-clé / URL ({pairs.length})</h2>
           <div className="pairs-actions">
-            <label className="btn btn-secondary" style={{ cursor: 'pointer', margin: 0 }}>
+            <label className="btn btn-secondary" style={{ cursor: 'pointer', margin: 0 }} title="CSV : 1re colonne = mots-clés, 2e = URLs (noms des colonnes libres)">
               <input
                 type="file"
                 accept=".csv"

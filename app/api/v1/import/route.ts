@@ -24,22 +24,12 @@ export async function POST(request: NextRequest) {
   const lines = csvData.trim().split('\n');
   if (lines.length < 2) {
     return NextResponse.json(
-      { error: { code: 400, message: 'CSV must contain at least a header row and one data row' } },
+      { error: { code: 400, message: 'Le CSV doit contenir au moins une ligne d’en-tête et une ligne de données' } },
       { status: 400 }
     );
   }
 
-  const header = lines[0].split(',').map((h) => h.trim().replace(/^"|"$/g, ''));
-  const keywordIndex = header.findIndex((h) => h.toLowerCase().includes('mot') || h.toLowerCase().includes('keyword'));
-  const urlIndex = header.findIndex((h) => h.toLowerCase().includes('url'));
-
-  if (keywordIndex === -1 || urlIndex === -1) {
-    return NextResponse.json(
-      { error: { code: 400, message: 'CSV must contain "Mot-clé" (or "keyword") and "URL" columns' } },
-      { status: 400 }
-    );
-  }
-
+  // Colonne 1 = mots-clés, colonne 2 = URLs (peu importe le nom des en-têtes)
   const results: { success: boolean; pair_id?: string; keyword?: string; url?: string; error?: string }[] = [];
   const errors: { line: number; error: string; data: object }[] = [];
 
@@ -60,11 +50,11 @@ export async function POST(request: NextRequest) {
     }
     values.push(current.trim());
 
-    const keyword = values[keywordIndex]?.replace(/^"|"$/g, '').trim();
-    const url = values[urlIndex]?.replace(/^"|"$/g, '').trim();
+    const keyword = values[0]?.replace(/^"|"$/g, '').trim();
+    const url = values[1]?.replace(/^"|"$/g, '').trim();
 
     if (!keyword || !url) {
-      errors.push({ line: i + 1, error: 'Missing keyword or URL', data: { keyword, url } });
+      errors.push({ line: i + 1, error: 'Mot-clé ou URL manquant (il faut 2 colonnes)', data: { keyword: keyword || '', url: url || '' } });
       continue;
     }
 
