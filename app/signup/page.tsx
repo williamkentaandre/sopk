@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 
 export default function SignupPage() {
@@ -9,7 +9,6 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,7 +26,17 @@ export default function SignupPage() {
         setLoading(false);
         return;
       }
-      router.push('/login?registered=1');
+      const signInResult = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
+      if (signInResult?.error) {
+        setError('Compte créé. Veuillez vous connecter.');
+        setLoading(false);
+        return;
+      }
+      window.location.href = '/dashboard';
     } catch {
       setError('Erreur réseau');
       setLoading(false);

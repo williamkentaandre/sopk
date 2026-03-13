@@ -57,14 +57,14 @@ export default function SettingsPage() {
 
   return (
     <div className="container">
-      <div className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div>
+      <div className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <Link href="/dashboard" className="btn btn-secondary">
+          ← Retour au dashboard
+        </Link>
+        <div style={{ flex: 1 }}>
           <h1>Paramètres</h1>
           <p>Gérez votre compte et votre clé de recherche</p>
         </div>
-        <Link href="/dashboard" className="btn btn-secondary">
-          Retour au dashboard
-        </Link>
       </div>
 
       {/* Bloc clé en premier pour les débutants */}
@@ -87,7 +87,7 @@ export default function SettingsPage() {
         {hasSerpApiKey && !serpApiKey && !showReplaceKey ? (
           <p style={{ marginBottom: '1rem', color: '#666' }}>
             Un compte gratuit sur SerpAPI suffit.{' '}
-            <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer">Obtenir ma clé</a>
+            <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ display: 'inline-block', marginTop: '0.25rem' }}>Obtenir ma clé</a>
           </p>
         ) : null}
         {hasSerpApiKey && !serpApiKey && !showReplaceKey ? (
@@ -100,20 +100,23 @@ export default function SettingsPage() {
         ) : (
           <>
             <p style={{ marginBottom: '0.5rem', color: '#666', fontSize: '0.95rem' }}>
-              <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer">Obtenir ma clé</a>
+              <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ display: 'inline-block', marginBottom: '0.5rem' }}>Obtenir ma clé</a>
               {hasSerpApiKey && ' — entrez une nouvelle clé pour remplacer.'}
             </p>
             <form onSubmit={handleSaveSerpKey} className="settings-form">
               <div className="form-group" style={{ flex: 1 }}>
+                <label htmlFor="serp-api-key" style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 500 }}>Collez votre clé SerpAPI ici</label>
                 <input
+                  id="serp-api-key"
                   type="password"
                   value={serpApiKey}
                   onChange={(e) => setSerpApiKey(e.target.value)}
                   placeholder="Collez votre clé ici"
                   autoComplete="off"
+                  style={{ minHeight: '2.5rem', width: '100%', maxWidth: '28rem' }}
                 />
               </div>
-              <button type="submit" className="btn btn-primary" disabled={saving}>
+              <button type="submit" className="btn btn-secondary" disabled={saving}>
                 {saving ? 'Enregistrement...' : 'Enregistrer'}
               </button>
             </form>

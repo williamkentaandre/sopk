@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 
@@ -16,6 +16,7 @@ interface Pair {
   last_position: number | null;
   last_checked_at: string | null;
   last_matched_url?: string | null;
+  history_by_date?: Record<string, number | null>;
 }
 
 interface Toast {
@@ -32,10 +33,19 @@ export default function DashboardPage() {
   const [tracking, setTracking] = useState<Set<string>>(new Set());
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [newPair, setNewPair] = useState({ keyword: '', url: '' });
+  const [multiAddUrl, setMultiAddUrl] = useState('');
+  const [multiAddKeywords, setMultiAddKeywords] = useState<string[]>(['']);
   const [editingPair, setEditingPair] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<{ keyword: string; url: string }>({ keyword: '', url: '' });
   const [showNoKeyBanner, setShowNoKeyBanner] = useState(false);
   const [hasSerpApiKey, setHasSerpApiKey] = useState<boolean | null>(null);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+
+  const historyDates = useMemo(() => {
+    const set = new Set<string>();
+    pairs.forEach((p) => Object.keys(p.history_by_date || {}).forEach((d) => set.add(d)));
+    return Array.from(set).sort();
+  }, [pairs]);
 
   const isNoSerpKeyError = (msg: string) =>
     /clé|serp|paramètres/i.test(msg || '');
@@ -48,7 +58,7 @@ export default function DashboardPage() {
     try {
       const [settingsRes, pairsRes] = await Promise.all([
         fetch('/api/v1/settings'),
-        fetch('/api/v1/pairs'),
+        fetch('/api/v1/pairs?includeHistory=1'),
       ]);
       if (settingsRes.ok && pairsRes.ok) {
         const settingsData = await settingsRes.json();
@@ -100,6 +110,20 @@ export default function DashboardPage() {
     }
   };
 
+  const normalizeUrlForCompare = (u: string) => {
+    const t = u.trim().toLowerCase();
+    if (!t) return '';
+    const withoutProtocol = t.replace(/^https?:\/\//, '').replace(/^www\./, '');
+    return withoutProtocol.replace(/\/$/, '');
+  };
+
+  const isDuplicatePair = (keyword: string, url: string) =>
+    pairs.some(
+      (p) =>
+        p.keyword.trim().toLowerCase() === keyword.trim().toLowerCase() &&
+        normalizeUrlForCompare(p.url) === normalizeUrlForCompare(url)
+    );
+
   const addPair = async () => {
     if (!newPair.keyword.trim() || !newPair.url.trim()) {
       showToast('Veuillez remplir tous les champs', 'error');
@@ -108,6 +132,10 @@ export default function DashboardPage() {
     const url = newPair.url.trim();
     if (!url || url.length < 3) {
       showToast('URL ou domaine invalide', 'error');
+      return;
+    }
+    if (isDuplicatePair(newPair.keyword, url)) {
+      showToast('Ce couple (mot-clé / URL) existe déjà.', 'error');
       return;
     }
     try {
@@ -123,6 +151,45 @@ export default function DashboardPage() {
         setPairs((prev) => [...(result.items || []), ...prev]);
         setNewPair({ keyword: '', url: '' });
         showToast('Couple ajouté', 'success');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
+      }
+    } catch {
+      showToast("Erreur lors de l'ajout", 'error');
+    }
+  };
+
+  const addMultiplePairs = async () => {
+    const url = multiAddUrl.trim();
+    if (!url || url.length < 3) {
+      showToast('Saisissez une URL ou un domaine', 'error');
+      return;
+    }
+    const keywords = multiAddKeywords.map((k) => k.trim()).filter(Boolean);
+    const seen = new Set<string>();
+    const toCreate: { keyword: string; url: string }[] = [];
+    for (const kw of keywords) {
+      const key = `${kw.toLowerCase()}|${normalizeUrlForCompare(url)}`;
+      if (seen.has(key) || isDuplicatePair(kw, url)) continue;
+      seen.add(key);
+      toCreate.push({ keyword: kw, url });
+    }
+    if (toCreate.length === 0) {
+      showToast('Aucun nouveau mot-clé à ajouter (vides ou déjà présents)', 'error');
+      return;
+    }
+    try {
+      const response = await fetch('/api/v1/pairs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pairs: toCreate }),
+      });
+      if (response.ok) {
+        const result = await response.json();
+        setPairs((prev) => [...(result.items || []), ...prev]);
+        setMultiAddKeywords(['']);
+        showToast(`${toCreate.length} couple(s) ajouté(s)`, 'success');
       } else {
         const errorData = await response.json().catch(() => ({}));
         showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
@@ -241,6 +308,7 @@ export default function DashboardPage() {
       });
       const result = await response.json();
       if (response.ok) {
+        const day = result.checked_at?.slice(0, 10);
         setPairs((prev) =>
           prev.map((p) =>
             p.pair_id === pairId
@@ -249,6 +317,9 @@ export default function DashboardPage() {
                   last_position: result.position,
                   last_checked_at: result.checked_at,
                   last_matched_url: result.matched_url ?? p.last_matched_url,
+                  history_by_date: day
+                    ? { ...(p.history_by_date || {}), [day]: result.position }
+                    : p.history_by_date,
                 }
               : p
           )
@@ -289,12 +360,17 @@ export default function DashboardPage() {
         setPairs((prev) =>
           prev.map((pair) => {
             const updated = result.results?.find((r: any) => r.pair_id === pair.pair_id);
-            if (updated)
+            if (updated) {
+              const day = updated.checked_at?.slice(0, 10);
               return {
                 ...pair,
                 last_position: updated.position,
                 last_checked_at: updated.checked_at,
+                history_by_date: day
+                  ? { ...(pair.history_by_date || {}), [day]: updated.position }
+                  : pair.history_by_date,
               };
+            }
             return pair;
           })
         );
@@ -396,12 +472,12 @@ export default function DashboardPage() {
             <li>Collez-la dans <strong>Paramètres</strong> (bouton ci‑dessous) puis enregistrez.</li>
           </ol>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <Link href="/settings" className="btn btn-primary" style={{ fontSize: '1rem', padding: '0.6rem 1.2rem' }}>
-              Aller configurer ma clé →
-            </Link>
-            <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
+            <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ fontSize: '1rem', padding: '0.6rem 1.2rem' }}>
               Obtenir ma clé (gratuit)
             </a>
+            <Link href="/settings" className="btn btn-secondary">
+              Aller configurer ma clé →
+            </Link>
           </div>
         </div>
       )}
@@ -412,8 +488,8 @@ export default function DashboardPage() {
             Pour mesurer les positions, ajoutez votre clé dans Paramètres.
           </p>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <Link href="/settings" className="btn btn-primary">Aller aux paramètres</Link>
-            <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-secondary">Obtenir une clé (gratuit)</a>
+            <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-primary">Obtenir ma clé (gratuit)</a>
+            <Link href="/settings" className="btn btn-secondary">Aller aux paramètres</Link>
             <button type="button" className="btn btn-secondary" onClick={() => setShowNoKeyBanner(false)}>Fermer</button>
           </div>
         </div>
@@ -474,7 +550,7 @@ export default function DashboardPage() {
         <div className="pairs-header">
           <h2>Couples Mot-clé / URL ({pairs.length})</h2>
           <div className="pairs-actions">
-            <label className="btn btn-primary" style={{ cursor: 'pointer', margin: 0 }}>
+            <label className="btn btn-secondary" style={{ cursor: 'pointer', margin: 0 }}>
               <input
                 type="file"
                 accept=".csv"
@@ -487,17 +563,19 @@ export default function DashboardPage() {
                 }}
                 style={{ display: 'none' }}
               />
-              Import CSV
+              Import
             </label>
-            <button className="btn btn-secondary" onClick={trackAll} disabled={saving || pairs.length === 0}>
-              Mesurer tout
-            </button>
-            <button className="btn btn-success" onClick={() => exportData('csv')}>
-              Export CSV
-            </button>
-            <button className="btn btn-success" onClick={() => exportData('xlsx')}>
-              Export XLSX
-            </button>
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setExportMenuOpen((v) => !v)}>
+                Export {exportMenuOpen ? '▾' : '▸'}
+              </button>
+              {exportMenuOpen && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 2, background: '#fff', border: '1px solid #ddd', borderRadius: 6, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', zIndex: 10, minWidth: 120 }}>
+                  <button type="button" style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer' }} onClick={() => { exportData('csv'); setExportMenuOpen(false); }}>CSV</button>
+                  <button type="button" style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer' }} onClick={() => { exportData('xlsx'); setExportMenuOpen(false); }}>Excel (XLSX)</button>
+                </div>
+              )}
+            </div>
             <button
               className="btn btn-danger"
               onClick={deleteAllPairs}
@@ -505,6 +583,39 @@ export default function DashboardPage() {
               style={{ marginLeft: '10px' }}
             >
               Supprimer tout
+            </button>
+          </div>
+        </div>
+
+        <div style={{ padding: '0.75rem 1rem', background: '#f8f9fa', borderRadius: 8, marginBottom: '1rem' }}>
+          <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Ajouter plusieurs mots-clés (même URL)</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+            <input
+              type="text"
+              value={multiAddUrl}
+              onChange={(e) => setMultiAddUrl(e.target.value)}
+              placeholder="URL ou domaine (ex: example.com)"
+              style={{ minWidth: 180 }}
+            />
+            {multiAddKeywords.map((kw, i) => (
+              <input
+                key={i}
+                type="text"
+                value={kw}
+                onChange={(e) => {
+                  const next = [...multiAddKeywords];
+                  next[i] = e.target.value;
+                  setMultiAddKeywords(next);
+                }}
+                placeholder="Mot-clé"
+                style={{ width: 120 }}
+              />
+            ))}
+            <button type="button" className="btn btn-secondary" onClick={() => setMultiAddKeywords((prev) => [...prev, ''])} title="Ajouter un mot-clé">
+              +
+            </button>
+            <button type="button" className="btn btn-primary" onClick={addMultiplePairs}>
+              Ajouter tout
             </button>
           </div>
         </div>
@@ -544,9 +655,12 @@ export default function DashboardPage() {
                 <td>-</td>
                 <td>-</td>
                 <td>-</td>
-                <td>
+                <td style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <button type="button" className="btn btn-primary" onClick={addPair}>
                     Ajouter
+                  </button>
+                  <button type="button" className="btn btn-primary" onClick={trackAll} disabled={saving || pairs.length === 0}>
+                    Mesurer tout
                   </button>
                 </td>
               </tr>
@@ -693,6 +807,36 @@ export default function DashboardPage() {
             </tbody>
           </table>
         </div>
+
+        {historyDates.length > 0 && (
+          <div style={{ marginTop: '1.5rem' }}>
+            <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem' }}>Évolution par jour (position)</h3>
+            <div className="table-container" style={{ overflowX: 'auto' }}>
+              <table className="pairs-table" style={{ fontSize: '0.9rem' }}>
+                <thead>
+                  <tr>
+                    <th>Mot-clé</th>
+                    <th>URL</th>
+                    {historyDates.map((d) => (
+                      <th key={d} style={{ whiteSpace: 'nowrap' }}>{new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pairs.map((pair) => (
+                    <tr key={pair.pair_id}>
+                      <td>{pair.keyword}</td>
+                      <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>{pair.url}</td>
+                      {historyDates.map((date) => (
+                        <td key={date}>{pair.history_by_date?.[date] != null ? pair.history_by_date[date] : '-'}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       {toasts.map((toast) => (

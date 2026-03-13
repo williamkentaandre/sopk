@@ -14,19 +14,32 @@ export async function GET(request: NextRequest) {
   }
 
   const searchQuery = request.nextUrl.searchParams.get('q')?.toLowerCase();
+  const includeHistory = request.nextUrl.searchParams.get('includeHistory') === '1';
   const pairs = await prisma.pair.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: 'desc' },
+    include: includeHistory ? { history: { orderBy: { checkedAt: 'asc' } } } : undefined,
   });
 
-  let items = pairs.map((p) => ({
-    pair_id: p.id,
-    keyword: p.keyword,
-    url: p.rawUrl,
-    last_position: p.lastPosition,
-    last_checked_at: p.lastCheckedAt?.toISOString() ?? null,
-    last_matched_url: p.lastMatchedUrl,
-  }));
+  let items = pairs.map((p) => {
+    const base: Record<string, unknown> = {
+      pair_id: p.id,
+      keyword: p.keyword,
+      url: p.rawUrl,
+      last_position: p.lastPosition,
+      last_checked_at: p.lastCheckedAt?.toISOString() ?? null,
+      last_matched_url: p.lastMatchedUrl,
+    };
+    if (includeHistory && 'history' in p && Array.isArray(p.history)) {
+      const byDay = new Map<string, number | null>();
+      for (const h of p.history) {
+        const day = h.checkedAt.toISOString().slice(0, 10);
+        byDay.set(day, h.position);
+      }
+      base.history_by_date = Object.fromEntries(byDay);
+    }
+    return base;
+  });
 
   if (searchQuery) {
     items = items.filter(
