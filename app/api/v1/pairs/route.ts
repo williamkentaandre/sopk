@@ -21,8 +21,18 @@ export async function GET(request: NextRequest) {
     include: includeHistory ? { history: { orderBy: { checkedAt: 'asc' } } } : undefined,
   });
 
-  let items = pairs.map((p) => {
-    const base: Record<string, unknown> = {
+  type PairItem = {
+    pair_id: string;
+    keyword: string;
+    url: string;
+    last_position: number | null;
+    last_checked_at: string | null;
+    last_matched_url: string | null;
+    history_by_date?: Record<string, number | null>;
+  };
+
+  let items: PairItem[] = pairs.map((p) => {
+    const base: PairItem = {
       pair_id: p.id,
       keyword: p.keyword,
       url: p.rawUrl,
