@@ -63,7 +63,8 @@ body {
 
 @media (max-width: 600px) {
   .nav-with-lang-switcher {
-    padding-right: calc(var(--lang-switcher-width) + var(--lang-switcher-offset) + 1.25rem) !important;
+    /* Large gap so "Créer un compte" never touches the flags */
+    padding-right: 8rem !important;
   }
 }
 
