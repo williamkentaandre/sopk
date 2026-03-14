@@ -73,7 +73,7 @@ function LoginForm() {
             />
           </div>
           <div className="form-group">
-            <label>Mot de passe</label>
+            <label>{t('auth.password')}</label>
             <input
               type="password"
               value={password}
@@ -82,6 +82,11 @@ function LoginForm() {
               autoComplete="current-password"
             />
           </div>
+          <p style={{ marginBottom: '1rem', fontSize: '0.9rem' }}>
+            <Link href="/forgot-password" style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+              {t('auth.forgotPassword')}
+            </Link>
+          </p>
           {error && <p className="auth-error">{error}</p>}
           <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? t('auth.submitLoginLoading') : t('auth.submitLogin')}

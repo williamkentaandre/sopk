@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useLocale } from '@/app/LocaleContext';
 
 export default function SignupPage() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -20,7 +20,7 @@ export default function SignupPage() {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, locale: locale === 'fr' ? 'fr' : 'en' }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {

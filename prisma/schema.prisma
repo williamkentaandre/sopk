@@ -21,6 +21,19 @@ model User {
   createdAt            DateTime @default(now())
 
   pairs                Pair[]
+  passwordResetTokens  PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   // hash of the token sent by email
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenHash])
 }
 
 model Pair {

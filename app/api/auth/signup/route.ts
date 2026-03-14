@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { sendWelcomeEmail } from '@/lib/email';
 
 const signupSchema = z.object({
   email: z.string().email(),
@@ -36,6 +37,12 @@ export async function POST(request: NextRequest) {
         stripePaymentStatus: 'pending',
       },
     });
+
+    // Send welcome email (fire-and-forget; don't block response)
+    const locale = (body.locale === 'fr' ? 'fr' : 'en') as 'en' | 'fr';
+    sendWelcomeEmail(user.email, locale).catch((err) =>
+      console.error('[signup] Welcome email failed:', err)
+    );
 
     return NextResponse.json({
       userId: user.id,
