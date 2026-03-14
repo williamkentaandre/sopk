@@ -12,7 +12,7 @@ export default function HomePage() {
   return (
     <div style={{ background: '#fafafa', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       {/* Nav */}
-      <nav style={{ padding: '1.25rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 1100, margin: '0 auto' }}>
+      <nav className="nav-with-lang-switcher" style={{ padding: '1.25rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 1100, margin: '0 auto' }}>
         <span style={{ fontWeight: 700, fontSize: '1.25rem', color: '#111' }}>SEO Ranker</span>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <Link href="/login" style={{ padding: '0.5rem 1rem', color: '#555', textDecoration: 'none', fontWeight: 500 }}>{t('landing.nav.login')}</Link>
@@ -93,7 +93,8 @@ export default function HomePage() {
               <span style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', background: '#e8f0fe', color: '#1a73e8', borderRadius: 4 }}>{t('landing.preview.measureAll')}</span>
               <span style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', background: '#e0e7ff', color: '#4338ca', borderRadius: 4 }}>{t('landing.preview.export')}</span>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', minWidth: 420, borderCollapse: 'collapse', fontSize: '0.9rem' }}>
               <thead>
                 <tr style={{ background: '#f1f5f9' }}>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>{t('landing.preview.keyword')}</th>
@@ -123,6 +124,7 @@ export default function HomePage() {
                 </tr>
               </tbody>
             </table>
+            </div>
             <div style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: '#94a3b8', borderTop: '1px solid #e5e7eb' }}>{t('landing.preview.footer')}</div>
           </div>
         </div>

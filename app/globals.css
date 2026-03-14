@@ -22,6 +22,8 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
   --transition: 0.15s ease;
+  --lang-switcher-width: 4.5rem;
+  --lang-switcher-offset: 0.75rem;
 }
 
 * {
@@ -39,11 +41,11 @@ body {
   line-height: 1.5;
 }
 
-/* Language switcher — top right, all pages */
+/* Language switcher — top right, fixed; reserve this space in nav/header so buttons stay visible */
 .language-switcher {
   position: fixed;
-  top: 0.75rem;
-  right: 0.75rem;
+  top: var(--lang-switcher-offset);
+  right: var(--lang-switcher-offset);
   z-index: 9999;
   display: flex;
   gap: 0.25rem;
@@ -52,6 +54,11 @@ body {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-md);
+}
+
+/* Nav/header that must not be covered by the language switcher (e.g. Login / Signup) */
+.nav-with-lang-switcher {
+  padding-right: calc(var(--lang-switcher-width) + var(--lang-switcher-offset) + 0.5rem) !important;
 }
 
 .language-switcher button {
