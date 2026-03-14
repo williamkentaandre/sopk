@@ -1,10 +1,22 @@
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+
+const hasGoogle = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 
 export const authOptions: NextAuthOptions = {
   providers: [
+    ...(hasGoogle
+      ? [
+          GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID!,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+          }),
+        ]
+      : []),
     CredentialsProvider({
       name: 'credentials',
       credentials: {
@@ -28,10 +40,28 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
-        token.id = user.id;
-        token.stripePaymentStatus = (user as any).stripePaymentStatus;
+        // Credentials: user already has id + stripePaymentStatus from authorize()
+        if ((user as any).stripePaymentStatus !== undefined) {
+          token.id = user.id;
+          token.stripePaymentStatus = (user as any).stripePaymentStatus;
+          return token;
+        }
+        // OAuth (Google): find or create Prisma user by email
+        if (user.email) {
+          const dbUser = await prisma.user.upsert({
+            where: { email: user.email },
+            create: {
+              email: user.email,
+              passwordHash: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12),
+              stripePaymentStatus: 'pending',
+            },
+            update: {},
+          });
+          token.id = dbUser.id;
+          token.stripePaymentStatus = dbUser.stripePaymentStatus;
+        }
       }
       return token;
     },

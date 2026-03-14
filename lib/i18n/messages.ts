@@ -177,6 +177,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'auth.resetSuccess': 'Password updated. You can now log in.',
     'auth.resetErrorInvalid': 'Invalid or expired link. Please request a new reset.',
     'auth.backToLogin': 'Back to login',
+    'auth.loginWithGoogle': 'Continue with Google',
 
     // Payment
     'payment.required.title': 'Payment required',
@@ -397,6 +398,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'auth.resetSuccess': 'Mot de passe mis à jour. Vous pouvez vous connecter.',
     'auth.resetErrorInvalid': 'Lien invalide ou expiré. Demandez un nouveau lien.',
     'auth.backToLogin': 'Retour à la connexion',
+    'auth.loginWithGoogle': 'Continuer avec Google',
 
     'payment.required.title': 'Paiement requis',
     'payment.required.hello': 'Bonjour',

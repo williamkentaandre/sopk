@@ -75,7 +75,11 @@ function ResetPasswordForm() {
           <h1>{t('auth.resetPasswordTitle')}</h1>
           <div className="auth-success">{t('auth.resetSuccess')}</div>
           <p className="auth-footer" style={{ marginTop: '1rem' }}>
-            <Link href="/login" className="btn btn-primary" style={{ display: 'inline-block', textDecoration: 'none' }}>
+            <Link
+              href="/login"
+              className="btn btn-primary"
+              style={{ display: 'inline-block', textDecoration: 'none', color: '#fff' }}
+            >
               {t('auth.backToLogin')}
             </Link>
           </p>
