@@ -82,8 +82,15 @@ function LoginForm() {
               autoComplete="current-password"
             />
           </div>
-          <p style={{ marginBottom: '1rem', fontSize: '0.9rem' }}>
-            <Link href="/forgot-password" style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+          <p style={{ marginTop: '0.25rem', marginBottom: '1rem', fontSize: '0.9rem' }}>
+            <Link
+              href="/forgot-password"
+              style={{
+                color: 'var(--primary)',
+                textDecoration: 'none',
+                fontWeight: 500,
+              }}
+            >
               {t('auth.forgotPassword')}
             </Link>
           </p>
