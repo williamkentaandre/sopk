@@ -61,6 +61,12 @@ body {
   padding-right: calc(var(--lang-switcher-width) + var(--lang-switcher-offset) + 0.5rem) !important;
 }
 
+@media (max-width: 600px) {
+  .nav-with-lang-switcher {
+    padding-right: calc(var(--lang-switcher-width) + var(--lang-switcher-offset) + 1.25rem) !important;
+  }
+}
+
 .language-switcher button {
   padding: 0.35rem 0.5rem;
   border: none;
