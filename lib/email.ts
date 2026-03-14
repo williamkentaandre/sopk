@@ -9,11 +9,20 @@ import { Resend } from 'resend';
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'SEO Ranker <onboarding@resend.dev>';
 
+/**
+ * Base URL for links in emails (reset password, welcome). Prefer APP_URL so
+ * links always point to your production domain (e.g. https://googlerank.app).
+ * Set APP_URL in Vercel → Environment Variables.
+ */
 function getBaseUrl(): string {
+  const explicit = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+  if (explicit) {
+    return explicit.replace(/\/$/, '');
+  }
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
-  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  return 'http://localhost:3000';
 }
 
 function getResend(): Resend | null {
