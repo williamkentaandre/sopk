@@ -1,8 +1,13 @@
 import { Resend } from 'resend';
 
+/**
+ * Resend: onboarding@resend.dev can only send to YOUR Resend account email.
+ * To send to any user (e.g. password reset, welcome), verify a domain in Resend
+ * (Dashboard → Domains) then set RESEND_FROM_EMAIL in Vercel, e.g.:
+ *   RESEND_FROM_EMAIL = "SEO Ranker <noreply@yourdomain.com>"
+ */
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'SEO Ranker <onboarding@resend.dev>';
-const FROM_NAME = 'SEO Ranker';
 
 function getBaseUrl(): string {
   if (process.env.VERCEL_URL) {
