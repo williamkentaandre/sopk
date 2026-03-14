@@ -68,8 +68,8 @@ const resetContent: Record<EmailLocale, { subject: string; html: (baseUrl: strin
 export async function sendWelcomeEmail(to: string, locale: EmailLocale = 'en'): Promise<{ ok: boolean; error?: string }> {
   const resend = getResend();
   if (!resend) {
-    console.warn('[email] RESEND_API_KEY not set, skipping welcome email');
-    return { ok: true };
+    console.error('[email] RESEND_API_KEY is missing. Welcome email NOT sent.');
+    return { ok: true }; // don't block signup
   }
   const baseUrl = getBaseUrl();
   const content = welcomeContent[locale];
@@ -101,23 +101,24 @@ export async function sendPasswordResetEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const resend = getResend();
   if (!resend) {
-    console.warn('[email] RESEND_API_KEY not set, skipping password reset email');
-    return { ok: true };
+    console.error('[email] RESEND_API_KEY is missing. Password reset email NOT sent. Add RESEND_API_KEY in Vercel → Settings → Environment Variables.');
+    return { ok: false, error: 'RESEND_API_KEY not configured' };
   }
   const baseUrl = getBaseUrl();
   const resetUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
   const content = resetContent[locale];
   try {
-    const { error } = await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: [to],
       subject: content.subject,
       html: content.html(baseUrl, resetUrl),
     });
     if (error) {
-      console.error('[email] Reset send error:', error);
+      console.error('[email] Reset send error:', JSON.stringify(error));
       return { ok: false, error: error.message };
     }
+    console.log('[email] Password reset email sent to', to, 'id:', data?.id);
     return { ok: true };
   } catch (e) {
     console.error('[email] Reset send exception:', e);

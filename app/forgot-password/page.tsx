@@ -41,12 +41,7 @@ export default function ForgotPasswordPage() {
         <h1>{t('auth.forgotPasswordTitle')}</h1>
         <p>{t('auth.forgotPasswordDesc')}</p>
         {sent ? (
-          <>
-            <div className="auth-success">{t('auth.forgotPasswordSuccess')}</div>
-            <p className="auth-footer" style={{ marginTop: '1rem' }}>
-              <Link href="/login">{t('auth.backToLogin')}</Link>
-            </p>
-          </>
+          <div className="auth-success">{t('auth.forgotPasswordSuccess')}</div>
         ) : (
           <form onSubmit={handleSubmit}>
             <div className="form-group">
