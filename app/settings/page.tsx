@@ -56,20 +56,20 @@ export default function SettingsPage() {
   const paid = (session?.user as any)?.stripePaymentStatus === 'paid';
 
   return (
-    <div className="container">
-      <div className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <Link href="/dashboard" className="btn btn-secondary">
-          ← Retour au dashboard
-        </Link>
-        <div style={{ flex: 1 }}>
-          <h1>Paramètres</h1>
-          <p>Gérez votre compte et votre clé de recherche</p>
+    <div className="app-shell">
+      <div className="container">
+        <div className="header">
+          <Link href="/dashboard" className="btn btn-secondary">
+            ← Retour au dashboard
+          </Link>
+          <div style={{ flex: 1 }}>
+            <h1>Paramètres</h1>
+            <p>Gérez votre compte et votre clé de recherche</p>
+          </div>
         </div>
-      </div>
 
-      {/* Bloc clé en premier pour les débutants */}
-      <div className="settings-card" style={!hasSerpApiKey ? { border: '2px solid #4caf50', background: 'linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%)', marginBottom: '1.5rem' } : undefined}>
-        <h2 style={!hasSerpApiKey ? { color: '#2e7d32' } : undefined}>
+        <div className={!hasSerpApiKey ? 'card-onboarding' : 'settings-card'}>
+        <h2 style={!hasSerpApiKey ? { color: '#166534' } : undefined}>
           {hasSerpApiKey ? 'Clé de recherche Google' : 'Première étape : votre clé de recherche Google'}
         </h2>
         {!hasSerpApiKey && (
@@ -127,19 +127,20 @@ export default function SettingsPage() {
             {message.text}
           </p>
         )}
-      </div>
+        </div>
 
-      <div className="settings-card">
-        <h2>Compte</h2>
-        <p>
-          <strong>Email :</strong> {session?.user?.email ?? '-'}
-        </p>
-        <p>
-          <strong>Paiement :</strong>{' '}
-          <span className={paid ? 'status-badge success' : 'status-badge pending'}>
-            {paid ? 'Payé' : 'En attente'}
-          </span>
-        </p>
+        <div className="settings-card">
+          <h2>Compte</h2>
+          <p>
+            <strong>Email :</strong> {session?.user?.email ?? '-'}
+          </p>
+          <p>
+            <strong>Paiement :</strong>{' '}
+            <span className={paid ? 'status-badge success' : 'status-badge pending'}>
+              {paid ? 'Payé' : 'En attente'}
+            </span>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -431,37 +431,40 @@ export default function DashboardPage() {
 
   if (loading && pairs.length === 0) {
     return (
-      <div className="container">
-        <p>Chargement...</p>
+      <div className="app-shell">
+        <div className="container" style={{ paddingTop: '4rem', textAlign: 'center' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Chargement...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container">
-      <div className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div>
-          <h1>SEO Ranker</h1>
-          <p>Suivi de positions Google par couple mot-clé / URL</p>
-          <p style={{ marginTop: '0.35rem', fontSize: '0.9rem' }}>
-            <Link href="/settings" style={{ color: '#1976d2', fontWeight: 500 }}>
-              → Configurer ma clé de recherche (SerpAPI, gratuit)
+    <div className="app-shell">
+      <div className="container">
+        <div className="header">
+          <div>
+            <h1>SEO Ranker</h1>
+            <p>Suivi de positions Google par couple mot-clé / URL</p>
+            <p style={{ marginTop: '0.35rem', fontSize: '0.9rem' }}>
+              <Link href="/settings">
+                → Configurer ma clé de recherche (SerpAPI, gratuit)
+              </Link>
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <Link href="/settings" className="btn btn-secondary">
+              Paramètres
             </Link>
-          </p>
+            <button type="button" className="btn btn-secondary" onClick={() => signOut({ callbackUrl: '/' })}>
+              Déconnexion
+            </button>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <Link href="/settings" className="btn btn-primary" style={{ border: '2px solid #2e7d32', background: '#e8f5e9', color: '#2e7d32' }}>
-            Paramètres (clé)
-          </Link>
-          <button type="button" className="btn btn-secondary" onClick={() => signOut({ callbackUrl: '/' })}>
-            Déconnexion
-          </button>
-        </div>
-      </div>
 
       {(hasSerpApiKey !== true) && (
-        <div className="settings-card" style={{ background: 'linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%)', border: '2px solid #4caf50', marginBottom: '1.5rem', padding: '1.5rem', maxWidth: '36rem' }}>
-          <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.25rem', color: '#2e7d32' }}>
+        <div className="card-onboarding">
+          <h2>
             Commencer : configurez votre clé en 2 minutes
           </h2>
           <p style={{ margin: '0 0 1rem', color: '#333', lineHeight: 1.5 }}>
@@ -484,7 +487,7 @@ export default function DashboardPage() {
       )}
 
       {hasSerpApiKey !== false && showNoKeyBanner && (
-        <div className="settings-card" style={{ background: '#fff3cd', border: '1px solid #ffc107', marginBottom: '1rem', padding: '1rem' }}>
+        <div className="card-warning">
           <p style={{ margin: 0, marginBottom: '0.75rem', fontWeight: 500 }}>
             Pour mesurer les positions, ajoutez votre clé dans Paramètres.
           </p>
@@ -571,9 +574,9 @@ export default function DashboardPage() {
                 Export {exportMenuOpen ? '▾' : '▸'}
               </button>
               {exportMenuOpen && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 2, background: '#fff', border: '1px solid #ddd', borderRadius: 6, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', zIndex: 10, minWidth: 120 }}>
-                  <button type="button" style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer' }} onClick={() => { exportData('csv'); setExportMenuOpen(false); }}>CSV</button>
-                  <button type="button" style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer' }} onClick={() => { exportData('xlsx'); setExportMenuOpen(false); }}>Excel (XLSX)</button>
+                <div className="dropdown-menu">
+                  <button type="button" onClick={() => { exportData('csv'); setExportMenuOpen(false); }}>CSV</button>
+                  <button type="button" onClick={() => { exportData('xlsx'); setExportMenuOpen(false); }}>Excel (XLSX)</button>
                 </div>
               )}
             </div>
@@ -588,8 +591,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div style={{ padding: '0.75rem 1rem', background: '#f8f9fa', borderRadius: 8, marginBottom: '1rem' }}>
-          <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Ajouter plusieurs mots-clés (même URL)</p>
+        <div className="multi-add-block">
+          <p>Ajouter plusieurs mots-clés (même URL)</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
             <input
               type="text"
@@ -838,6 +841,8 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+      </div>
+
       </div>
 
       {toasts.map((toast) => (
