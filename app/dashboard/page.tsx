@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
+import ExcelJS from 'exceljs';
 import { getParisDateString } from '@/lib/date-utils';
 
 interface Settings {
@@ -254,11 +255,31 @@ export default function DashboardPage() {
   const importCSV = async (file: File) => {
     try {
       setLoading(true);
-      const text = await file.text();
+      let csvData: string;
+      const isExcel = /\.xlsx?$/i.test(file.name);
+      if (isExcel) {
+        const buf = await file.arrayBuffer();
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.load(buf);
+        const sheet = wb.worksheets[0];
+        if (!sheet) {
+          showToast('Fichier Excel vide', 'error');
+          setLoading(false);
+          return;
+        }
+        const rows: string[][] = [];
+        sheet.eachRow((row) => {
+          const values = (row.values as (string | number | undefined)[])?.slice(1) ?? [];
+          rows.push(values.map((v) => String(v ?? '').trim()));
+        });
+        csvData = rows.map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+      } else {
+        csvData = await file.text();
+      }
       const response = await fetch('/api/v1/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ csvData: text }),
+        body: JSON.stringify({ csvData }),
       });
       if (response.ok) {
         const result = await response.json();
@@ -554,10 +575,10 @@ export default function DashboardPage() {
         <div className="pairs-header">
           <h2>Couples Mot-clé / URL ({pairs.length})</h2>
           <div className="pairs-actions">
-            <label className="btn btn-secondary" style={{ cursor: 'pointer', margin: 0 }} title="CSV : 1re colonne = mots-clés, 2e = URLs (noms des colonnes libres)">
+            <label className="btn btn-secondary" style={{ cursor: 'pointer', margin: 0 }} title="1re colonne = mots-clés, 2e = URLs (noms des colonnes libres)">
               <input
                 type="file"
-                accept=".csv"
+                accept=".csv,.xlsx"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
@@ -567,7 +588,7 @@ export default function DashboardPage() {
                 }}
                 style={{ display: 'none' }}
               />
-              Import
+              Import (CSV, Excel)
             </label>
             <div style={{ position: 'relative', display: 'inline-block' }}>
               <button type="button" className="btn btn-secondary" onClick={() => setExportMenuOpen((v) => !v)}>
