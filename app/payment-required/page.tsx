@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { useLocale } from '@/app/LocaleContext';
 
 export default function PaymentRequiredPage() {
+  const { t } = useLocale();
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
 
@@ -23,19 +25,19 @@ export default function PaymentRequiredPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1>Paiement requis</h1>
+        <h1>{t('payment.required.title')}</h1>
         <p>
-          Bonjour {session?.user?.email}. Pour utiliser SEO Ranker, effectuez un paiement unique.
+          {t('payment.required.hello')} {session?.user?.email}. {t('payment.required.desc')}
         </p>
         <button
           className="btn btn-primary"
           onClick={goToCheckout}
           disabled={loading}
         >
-          {loading ? 'Redirection...' : 'Payer et accéder à l\'app'}
+          {loading ? t('payment.required.redirecting') : t('payment.required.button')}
         </button>
         <p className="auth-footer">
-          <Link href="/dashboard">Retour</Link>
+          <Link href="/dashboard">{t('payment.required.back')}</Link>
         </p>
       </div>
     </div>

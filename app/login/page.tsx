@@ -4,8 +4,21 @@ import { useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useLocale } from '@/app/LocaleContext';
+
+function LoginFallback() {
+  const { t } = useLocale();
+  return (
+    <div className="auth-page">
+      <div className="auth-card">
+        <p>{t('auth.loading')}</p>
+      </div>
+    </div>
+  );
+}
 
 function LoginForm() {
+  const { t } = useLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -26,13 +39,13 @@ function LoginForm() {
         redirect: false,
       });
       if (res?.error) {
-        setError('Email ou mot de passe incorrect');
+        setError(t('auth.errorBadCredentials'));
         setLoading(false);
         return;
       }
       window.location.href = callbackUrl;
     } catch {
-      setError('Erreur de connexion');
+      setError(t('auth.errorConnection'));
       setLoading(false);
     }
   }
@@ -40,17 +53,17 @@ function LoginForm() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1>Connexion</h1>
-        <p>SEO Ranker - Suivi de positions Google</p>
+        <h1>{t('auth.login')}</h1>
+        <p>SEO Ranker - {t('auth.tagline')}</p>
         {paymentSuccess && (
-          <div className="auth-success">Paiement réussi. Connectez-vous pour accéder à votre espace.</div>
+          <div className="auth-success">{t('auth.paymentSuccess')}</div>
         )}
         {registered && (
-          <div className="auth-success">Compte créé. Connectez-vous puis effectuez le paiement pour activer l&apos;accès.</div>
+          <div className="auth-success">{t('auth.registered')}</div>
         )}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Email</label>
+            <label>{t('auth.email')}</label>
             <input
               type="email"
               value={email}
@@ -71,11 +84,11 @@ function LoginForm() {
           </div>
           {error && <p className="auth-error">{error}</p>}
           <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? 'Connexion...' : 'Se connecter'}
+            {loading ? t('auth.submitLoginLoading') : t('auth.submitLogin')}
           </button>
         </form>
         <p className="auth-footer">
-          Pas de compte ? <Link href="/signup">S&apos;inscrire</Link>
+          {t('auth.noAccount')} <Link href="/signup">{t('auth.signup')}</Link>
         </p>
       </div>
     </div>
@@ -84,7 +97,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="auth-page"><div className="auth-card"><p>Chargement...</p></div></div>}>
+    <Suspense fallback={<LoginFallback />}>
       <LoginForm />
     </Suspense>
   );

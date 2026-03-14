@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useLocale } from '@/app/LocaleContext';
 
 const POLL_INTERVAL_MS = 2000;
 const MAX_ATTEMPTS = 30; // 1 minute max
 
 export default function PaymentSuccessPage() {
+  const { t } = useLocale();
   const [status, setStatus] = useState<'waiting' | 'paid' | 'error'>('waiting');
 
   useEffect(() => {
@@ -46,23 +48,19 @@ export default function PaymentSuccessPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1>Paiement reçu</h1>
+        <h1>{t('payment.success.title')}</h1>
         {status === 'waiting' && (
-          <p>
-            Vérification en cours… Reconnectez-vous dans quelques secondes pour accéder à votre espace.
-          </p>
+          <p>{t('payment.success.waiting')}</p>
         )}
         {status === 'paid' && (
-          <p>Accès activé. Redirection vers la page de connexion…</p>
+          <p>{t('payment.success.paid')}</p>
         )}
         {status === 'error' && (
-          <p>
-            La vérification a pris trop de temps. Vous pouvez vous connecter : si le paiement a bien été enregistré, vous aurez accès au dashboard.
-          </p>
+          <p>{t('payment.success.error')}</p>
         )}
         {status !== 'paid' && (
           <a href="/login?payment=success" className="btn btn-primary" style={{ marginTop: '1rem', display: 'inline-block' }}>
-            Aller à la connexion
+            {t('payment.success.goLogin')}
           </a>
         )}
       </div>

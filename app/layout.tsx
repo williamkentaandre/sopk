@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
+import { LocaleProvider } from './LocaleContext'
+import { LanguageSwitcher } from './components/LanguageSwitcher'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
@@ -23,9 +25,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="fr" className={inter.variable}>
+    <html lang="en" className={inter.variable}>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <LocaleProvider>
+            <LanguageSwitcher />
+            {children}
+          </LocaleProvider>
+        </Providers>
       </body>
     </html>
   )

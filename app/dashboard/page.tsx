@@ -5,6 +5,7 @@ import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import ExcelJS from 'exceljs';
 import { getParisDateString } from '@/lib/date-utils';
+import { useLocale } from '@/app/LocaleContext';
 
 interface Settings {
   hl: string;
@@ -28,6 +29,8 @@ interface Toast {
 }
 
 export default function DashboardPage() {
+  const { t, locale } = useLocale();
+  const dateLocale = locale === 'fr' ? 'fr-FR' : 'en-GB';
   const [settings, setSettings] = useState<Settings>({ hl: 'fr', gl: 'fr' });
   const [pairs, setPairs] = useState<Pair[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,13 +103,13 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
       });
-      if (response.ok) showToast('Paramètres sauvegardés', 'success');
+      if (response.ok) showToast(t('dashboard.toast.settingsSaved'), 'success');
       else {
         const errorData = await response.json().catch(() => ({}));
-        showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
+        showToast(`${t('dashboard.toast.error')}: ${errorData.error?.message || t('dashboard.toast.unknownError')}`, 'error');
       }
     } catch {
-      showToast('Erreur lors de la sauvegarde', 'error');
+      showToast(t('dashboard.toast.saveError'), 'error');
     } finally {
       setSaving(false);
     }
@@ -128,16 +131,16 @@ export default function DashboardPage() {
 
   const addPair = async () => {
     if (!newPair.keyword.trim() || !newPair.url.trim()) {
-      showToast('Veuillez remplir tous les champs', 'error');
+      showToast(t('dashboard.toast.fillFields'), 'error');
       return;
     }
     const url = newPair.url.trim();
     if (!url || url.length < 3) {
-      showToast('URL ou domaine invalide', 'error');
+      showToast(t('dashboard.toast.invalidUrl'), 'error');
       return;
     }
     if (isDuplicatePair(newPair.keyword, url)) {
-      showToast('Ce couple (mot-clé / URL) existe déjà.', 'error');
+      showToast(t('dashboard.toast.duplicatePair'), 'error');
       return;
     }
     try {
@@ -152,20 +155,20 @@ export default function DashboardPage() {
         const result = await response.json();
         setPairs((prev) => [...(result.items || []), ...prev]);
         setNewPair({ keyword: '', url: '' });
-        showToast('Couple ajouté', 'success');
+        showToast(t('dashboard.toast.pairAdded'), 'success');
       } else {
         const errorData = await response.json().catch(() => ({}));
-        showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
+        showToast(`${t('dashboard.toast.error')}: ${errorData.error?.message || t('dashboard.toast.unknownError')}`, 'error');
       }
     } catch {
-      showToast("Erreur lors de l'ajout", 'error');
+      showToast(t('dashboard.toast.addError'), 'error');
     }
   };
 
   const addMultiplePairs = async () => {
     const url = multiAddUrl.trim();
     if (!url || url.length < 3) {
-      showToast('Saisissez une URL ou un domaine', 'error');
+      showToast(t('dashboard.toast.enterUrl'), 'error');
       return;
     }
     const keywords = multiAddKeywords.map((k) => k.trim()).filter(Boolean);
@@ -178,7 +181,7 @@ export default function DashboardPage() {
       toCreate.push({ keyword: kw, url });
     }
     if (toCreate.length === 0) {
-      showToast('Aucun nouveau mot-clé à ajouter (vides ou déjà présents)', 'error');
+      showToast(t('dashboard.toast.noNewKeywords'), 'error');
       return;
     }
     try {
@@ -191,13 +194,13 @@ export default function DashboardPage() {
         const result = await response.json();
         setPairs((prev) => [...(result.items || []), ...prev]);
         setMultiAddKeywords(['']);
-        showToast(`${toCreate.length} couple(s) ajouté(s)`, 'success');
+        showToast(`${toCreate.length} ${t('dashboard.toast.pairsAdded')}`, 'success');
       } else {
         const errorData = await response.json().catch(() => ({}));
-        showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
+        showToast(`${t('dashboard.toast.error')}: ${errorData.error?.message || t('dashboard.toast.unknownError')}`, 'error');
       }
     } catch {
-      showToast("Erreur lors de l'ajout", 'error');
+      showToast(t('dashboard.toast.addError'), 'error');
     }
   };
 
@@ -227,28 +230,28 @@ export default function DashboardPage() {
           )
         );
         setEditingPair(null);
-        showToast('Couple modifié', 'success');
+        showToast(t('dashboard.toast.pairUpdated'), 'success');
       } else {
         const errorData = await response.json().catch(() => ({}));
-        showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
+        showToast(`${t('dashboard.toast.error')}: ${errorData.error?.message || t('dashboard.toast.unknownError')}`, 'error');
       }
     } catch {
-      showToast('Erreur lors de la modification', 'error');
+      showToast(t('dashboard.toast.editError'), 'error');
     }
   };
 
   const deletePair = async (pairId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce couple ?')) return;
+    if (!confirm(t('dashboard.confirm.deletePair'))) return;
     try {
       const response = await fetch(`/api/v1/pairs/${pairId}`, { method: 'DELETE' });
       if (response.ok) {
         setPairs((prev) => prev.filter((p) => p.pair_id !== pairId));
-        showToast('Couple supprimé', 'success');
+        showToast(t('dashboard.toast.pairDeleted'), 'success');
       } else {
-        showToast('Erreur lors de la suppression', 'error');
+        showToast(t('dashboard.toast.deleteError'), 'error');
       }
     } catch {
-      showToast('Erreur lors de la suppression', 'error');
+      showToast(t('dashboard.toast.deleteError'), 'error');
     }
   };
 
@@ -263,7 +266,7 @@ export default function DashboardPage() {
         await wb.xlsx.load(buf);
         const sheet = wb.worksheets[0];
         if (!sheet) {
-          showToast('Fichier Excel vide', 'error');
+          showToast(t('dashboard.toast.emptyExcel'), 'error');
           setLoading(false);
           return;
         }
@@ -284,37 +287,37 @@ export default function DashboardPage() {
       if (response.ok) {
         const result = await response.json();
         showToast(
-          `${result.imported} couples importés${result.failed > 0 ? `, ${result.failed} échoués` : ''}`,
+          `${result.imported} ${t('dashboard.toast.imported')}${result.failed > 0 ? `, ${result.failed} ${t('dashboard.toast.failed')}` : ''}`,
           'success'
         );
         loadData();
       } else {
         const errorData = await response.json().catch(() => ({}));
-        showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
+        showToast(`${t('dashboard.toast.error')}: ${errorData.error?.message || t('dashboard.toast.unknownError')}`, 'error');
       }
     } catch {
-      showToast("Erreur lors de l'import", 'error');
+      showToast(t('dashboard.toast.importError'), 'error');
     } finally {
       setLoading(false);
     }
   };
 
   const deleteAllPairs = async () => {
-    if (!confirm(`Supprimer TOUS les ${pairs.length} couples ? Cette action est irréversible.`)) return;
-    if (!confirm('Dernière confirmation : Supprimer tous les couples et leur historique ?')) return;
+    if (!confirm(t('dashboard.confirm.deleteAll'))) return;
+    if (!confirm(t('dashboard.confirm.deleteAllConfirm'))) return;
     try {
       setLoading(true);
       const response = await fetch('/api/v1/pairs/delete-all', { method: 'DELETE' });
       if (response.ok) {
         const result = await response.json();
-        showToast(`${result.deleted} couples supprimés`, 'success');
+        showToast(`${result.deleted} ${t('dashboard.toast.pairsDeleted')}`, 'success');
         setPairs([]);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        showToast(`Erreur: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
+        showToast(`${t('dashboard.toast.error')}: ${errorData.error?.message || t('dashboard.toast.unknownError')}`, 'error');
       }
     } catch {
-      showToast("Erreur lors de la suppression", 'error');
+      showToast(t('dashboard.toast.deleteError'), 'error');
     } finally {
       setLoading(false);
     }
@@ -346,19 +349,19 @@ export default function DashboardPage() {
               : p
           )
         );
-        const positionText = result.position != null ? `Position: ${result.position}` : 'Non trouvé';
-        showToast(`Mesure effectuée - ${positionText}`, 'success');
+        const positionText = result.position != null ? `${t('dashboard.toast.position')}: ${result.position}` : t('dashboard.toast.notFound');
+        showToast(`${t('dashboard.toast.measureDone')} - ${positionText}`, 'success');
       } else {
         const errMsg = result.error?.message || '';
         if (isNoSerpKeyError(errMsg)) {
           setShowNoKeyBanner(true);
-          showToast('Ajoutez votre clé dans Paramètres pour mesurer.', 'error');
+          showToast(t('dashboard.toast.addKeyInSettings'), 'error');
         } else {
-          showToast(`Erreur: ${errMsg || 'Erreur inconnue'}`, 'error');
+          showToast(`${t('dashboard.toast.error')}: ${errMsg || t('dashboard.toast.unknownError')}`, 'error');
         }
       }
     } catch {
-      showToast('Erreur lors de la mesure SerpAPI', 'error');
+      showToast(t('dashboard.toast.serpError'), 'error');
     } finally {
       setTracking((prev) => {
         const next = new Set(prev);
@@ -369,7 +372,7 @@ export default function DashboardPage() {
   };
 
   const trackAll = async () => {
-    if (!confirm('Mesurer tous les couples ? Cela peut prendre du temps.')) return;
+    if (!confirm(t('dashboard.confirm.measureAll'))) return;
     setSaving(true);
     try {
       const response = await fetch('/api/v1/track', {
@@ -396,19 +399,19 @@ export default function DashboardPage() {
             return pair;
           })
         );
-        showToast('Mesures effectuées', 'success');
+        showToast(t('dashboard.toast.measurementsDone'), 'success');
       } else {
         const errorData = await response.json().catch(() => ({}));
         const errMsg = errorData.error?.message || '';
         if (isNoSerpKeyError(errMsg)) {
           setShowNoKeyBanner(true);
-          showToast('Ajoutez votre clé dans Paramètres pour mesurer.', 'error');
+          showToast(t('dashboard.toast.addKeyInSettings'), 'error');
         } else {
-          showToast(`Erreur: ${errMsg || 'Erreur inconnue'}`, 'error');
+          showToast(`${t('dashboard.toast.error')}: ${errMsg || t('dashboard.toast.unknownError')}`, 'error');
         }
       }
     } catch {
-      showToast('Erreur lors des mesures SerpAPI', 'error');
+      showToast(t('dashboard.toast.serpError'), 'error');
     } finally {
       setSaving(false);
     }
@@ -443,10 +446,10 @@ export default function DashboardPage() {
         // Pas de toast "réussi" : le fichier n'est pas encore enregistré (dialogue "Enregistrer sous")
       } else {
         const errorData = await response.json().catch(() => ({}));
-        showToast(`Erreur export: ${errorData.error?.message || 'Erreur inconnue'}`, 'error');
+        showToast(`${t('dashboard.toast.exportError')}: ${errorData.error?.message || t('dashboard.toast.unknownError')}`, 'error');
       }
     } catch {
-      showToast(`Erreur lors de l'export`, 'error');
+      showToast(t('dashboard.toast.exportError'), 'error');
     }
   };
 
@@ -454,7 +457,7 @@ export default function DashboardPage() {
     return (
       <div className="app-shell">
         <div className="container" style={{ paddingTop: '4rem', textAlign: 'center' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Chargement...</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>{t('dashboard.loading')}</p>
         </div>
       </div>
     );
@@ -465,43 +468,41 @@ export default function DashboardPage() {
       <div className="container">
         <div className="header">
           <div>
-            <h1>SEO Ranker</h1>
-            <p>Suivi de positions Google par couple mot-clé / URL</p>
+            <h1>{t('dashboard.title')}</h1>
+            <p>{t('dashboard.subtitle')}</p>
             <p style={{ marginTop: '0.35rem', fontSize: '0.9rem' }}>
               <Link href="/settings">
-                → Configurer ma clé de recherche (SerpAPI, gratuit)
+                {t('dashboard.settingsKey')}
               </Link>
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <Link href="/settings" className="btn btn-secondary">
-              Paramètres
+              {t('dashboard.settings')}
             </Link>
             <button type="button" className="btn btn-secondary" onClick={() => signOut({ callbackUrl: '/' })}>
-              Déconnexion
+              {t('dashboard.signOut')}
             </button>
           </div>
         </div>
 
       {(hasSerpApiKey !== true) && (
         <div className="card-onboarding">
-          <h2>
-            Commencer : configurez votre clé en 2 minutes
-          </h2>
+          <h2>{t('dashboard.onboarding.title')}</h2>
           <p style={{ margin: '0 0 1rem', color: '#333', lineHeight: 1.5 }}>
-            Pour suivre vos positions Google, l’application a besoin d’une clé fournie <strong>gratuitement</strong> par SerpAPI. Sans elle, les mesures ne peuvent pas fonctionner.
+            {t('dashboard.onboarding.desc')}
           </p>
           <ol style={{ margin: '0 0 1.25rem', paddingLeft: '1.25rem', color: '#333', lineHeight: 1.7 }}>
-            <li>Cliquez sur <strong>« Obtenir ma clé »</strong> (ouverture de SerpAPI dans un nouvel onglet). Créez un compte gratuit si besoin.</li>
-            <li>Sur SerpAPI, <strong>copiez votre clé</strong> (API Key).</li>
-            <li>Collez-la dans <strong>Paramètres</strong> (bouton ci‑dessous) puis enregistrez.</li>
+            <li>{t("dashboard.onboarding.step1")}</li>
+            <li>{t("dashboard.onboarding.step2")}</li>
+            <li>{t("dashboard.onboarding.step3")}</li>
           </ol>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ fontSize: '1rem', padding: '0.6rem 1.2rem' }}>
-              Obtenir ma clé (gratuit)
+              {t('dashboard.onboarding.getKey')}
             </a>
             <Link href="/settings" className="btn btn-secondary">
-              Aller configurer ma clé →
+              {t('dashboard.onboarding.goSettings')}
             </Link>
           </div>
         </div>
@@ -509,71 +510,69 @@ export default function DashboardPage() {
 
       {hasSerpApiKey !== false && showNoKeyBanner && (
         <div className="card-warning">
-          <p style={{ margin: 0, marginBottom: '0.75rem', fontWeight: 500 }}>
-            Pour mesurer les positions, ajoutez votre clé dans Paramètres.
-          </p>
+          <p style={{ margin: 0, marginBottom: '0.75rem', fontWeight: 500 }}>{t('dashboard.warning.title')}</p>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-primary">Obtenir ma clé (gratuit)</a>
-            <Link href="/settings" className="btn btn-secondary">Aller aux paramètres</Link>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowNoKeyBanner(false)}>Fermer</button>
+            <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-primary">{t('dashboard.warning.getKey')}</a>
+            <Link href="/settings" className="btn btn-secondary">{t('dashboard.warning.goSettings')}</Link>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowNoKeyBanner(false)}>{t('dashboard.warning.close')}</button>
           </div>
         </div>
       )}
 
       <div className="settings-card">
-        <h2>Paramètres de recherche</h2>
+        <h2>{t('dashboard.searchSettings.title')}</h2>
         <div className="settings-form">
           <div className="form-group">
-            <label>Langue (hl)</label>
+            <label>{t('dashboard.searchSettings.language')}</label>
             <select value={settings.hl} onChange={(e) => setSettings({ ...settings, hl: e.target.value })}>
-              <option value="fr">Français</option>
-              <option value="en">Anglais</option>
-              <option value="es">Espagnol</option>
-              <option value="de">Allemand</option>
-              <option value="it">Italien</option>
-              <option value="pt">Portugais</option>
-              <option value="nl">Néerlandais</option>
-              <option value="pl">Polonais</option>
-              <option value="ru">Russe</option>
-              <option value="ja">Japonais</option>
-              <option value="zh">Chinois</option>
-              <option value="ar">Arabe</option>
+              <option value="fr">{t('opt.french')}</option>
+              <option value="en">{t('opt.english')}</option>
+              <option value="es">{t('opt.spanish')}</option>
+              <option value="de">{t('opt.german')}</option>
+              <option value="it">{t('opt.italian')}</option>
+              <option value="pt">{t('opt.portuguese')}</option>
+              <option value="nl">{t('opt.dutch')}</option>
+              <option value="pl">{t('opt.polish')}</option>
+              <option value="ru">{t('opt.russian')}</option>
+              <option value="ja">{t('opt.japanese')}</option>
+              <option value="zh">{t('opt.chinese')}</option>
+              <option value="ar">{t('opt.arabic')}</option>
             </select>
           </div>
           <div className="form-group">
-            <label>Emplacement (gl)</label>
+            <label>{t('dashboard.searchSettings.location')}</label>
             <select value={settings.gl} onChange={(e) => setSettings({ ...settings, gl: e.target.value })}>
-              <option value="fr">France</option>
-              <option value="be">Belgique</option>
-              <option value="ch">Suisse</option>
-              <option value="ca">Canada</option>
-              <option value="us">États-Unis</option>
-              <option value="uk">Royaume-Uni</option>
-              <option value="de">Allemagne</option>
-              <option value="es">Espagne</option>
-              <option value="it">Italie</option>
-              <option value="pt">Portugal</option>
-              <option value="nl">Pays-Bas</option>
-              <option value="pl">Pologne</option>
-              <option value="ru">Russie</option>
-              <option value="jp">Japon</option>
-              <option value="cn">Chine</option>
-              <option value="au">Australie</option>
-              <option value="br">Brésil</option>
-              <option value="mx">Mexique</option>
-              <option value="in">Inde</option>
-              <option value="sg">Singapour</option>
+              <option value="fr">{t('opt.france')}</option>
+              <option value="be">{t('opt.belgium')}</option>
+              <option value="ch">{t('opt.switzerland')}</option>
+              <option value="ca">{t('opt.canada')}</option>
+              <option value="us">{t('opt.unitedStates')}</option>
+              <option value="uk">{t('opt.unitedKingdom')}</option>
+              <option value="de">{t('opt.germany')}</option>
+              <option value="es">{t('opt.spain')}</option>
+              <option value="it">{t('opt.italy')}</option>
+              <option value="pt">{t('opt.portugal')}</option>
+              <option value="nl">{t('opt.netherlands')}</option>
+              <option value="pl">{t('opt.poland')}</option>
+              <option value="ru">{t('opt.russia')}</option>
+              <option value="jp">{t('opt.japan')}</option>
+              <option value="cn">{t('opt.china')}</option>
+              <option value="au">{t('opt.australia')}</option>
+              <option value="br">{t('opt.brazil')}</option>
+              <option value="mx">{t('opt.mexico')}</option>
+              <option value="in">{t('opt.india')}</option>
+              <option value="sg">{t('opt.singapore')}</option>
             </select>
           </div>
           <button className="btn btn-primary" onClick={saveSettings} disabled={saving}>
-            {saving ? <span className="loading" /> : 'Sauvegarder'}
+            {saving ? <span className="loading" /> : t('dashboard.searchSettings.save')}
           </button>
         </div>
       </div>
 
       <div className="pairs-card">
         <div className="pairs-header">
-          <h2>Couples Mot-clé / URL ({pairs.length})</h2>
+          <h2>{t('dashboard.pairs.title')} ({pairs.length})</h2>
           <div className="pairs-actions">
             <label className="btn btn-secondary" style={{ cursor: 'pointer', margin: 0 }} title="1re colonne = mots-clés, 2e = URLs (noms des colonnes libres)">
               <input
@@ -588,11 +587,11 @@ export default function DashboardPage() {
                 }}
                 style={{ display: 'none' }}
               />
-              Import (CSV, Excel)
+              {t('dashboard.pairs.import')}
             </label>
             <div style={{ position: 'relative', display: 'inline-block' }}>
               <button type="button" className="btn btn-secondary" onClick={() => setExportMenuOpen((v) => !v)}>
-                Export {exportMenuOpen ? '▾' : '▸'}
+                {t('dashboard.pairs.export')} {exportMenuOpen ? '▾' : '▸'}
               </button>
               {exportMenuOpen && (
                 <div className="dropdown-menu">
@@ -607,19 +606,19 @@ export default function DashboardPage() {
               disabled={loading || pairs.length === 0}
               style={{ marginLeft: '10px' }}
             >
-              Supprimer tout
+              {t('dashboard.pairs.deleteAll')}
             </button>
           </div>
         </div>
 
         <div className="multi-add-block">
-          <p>Ajouter plusieurs mots-clés (même URL)</p>
+          <p>{t('dashboard.pairs.multiAdd')}</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
             <input
               type="text"
               value={multiAddUrl}
               onChange={(e) => setMultiAddUrl(e.target.value)}
-              placeholder="ex: example.com"
+              placeholder={t('dashboard.pairs.placeholderUrl')}
               title="URL ou domaine (ex: example.com)"
               style={{ minWidth: 220 }}
             />
@@ -633,15 +632,15 @@ export default function DashboardPage() {
                   next[i] = e.target.value;
                   setMultiAddKeywords(next);
                 }}
-                placeholder="Mot-clé"
+                placeholder={t('dashboard.pairs.placeholderKeyword')}
                 style={{ width: 120 }}
               />
             ))}
-            <button type="button" className="btn btn-secondary" onClick={() => setMultiAddKeywords((prev) => [...prev, ''])} title="Ajouter un mot-clé">
+            <button type="button" className="btn btn-secondary" onClick={() => setMultiAddKeywords((prev) => [...prev, ''])} title="+">
               +
             </button>
             <button type="button" className="btn btn-primary" onClick={addMultiplePairs}>
-              Ajouter tout
+              {t('dashboard.pairs.addAll')}
             </button>
           </div>
         </div>
@@ -650,12 +649,12 @@ export default function DashboardPage() {
           <table className="pairs-table">
             <thead>
               <tr>
-                <th style={{ width: '20%' }}>Mot-clé</th>
-                <th style={{ width: '22%' }}>URL</th>
-                <th style={{ width: '22%' }}>URL trouvée</th>
-                <th style={{ width: '8%' }}>Position</th>
-                <th style={{ width: '13%', minWidth: '7rem' }}>Dernière mesure</th>
-                <th style={{ width: '10%' }}>Actions</th>
+                <th style={{ width: '20%' }}>{t('dashboard.table.keyword')}</th>
+                <th style={{ width: '22%' }}>{t('dashboard.table.url')}</th>
+                <th style={{ width: '22%' }}>{t('dashboard.table.matchedUrl')}</th>
+                <th style={{ width: '8%' }}>{t('dashboard.table.position')}</th>
+                <th style={{ width: '13%', minWidth: '7rem' }}>{t('dashboard.table.lastMeasure')}</th>
+                <th style={{ width: '10%' }}>{t('dashboard.table.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -666,7 +665,7 @@ export default function DashboardPage() {
                     value={newPair.keyword}
                     onChange={(e) => setNewPair({ ...newPair, keyword: e.target.value })}
                     onKeyDown={(e) => e.key === 'Enter' && addPair()}
-                    placeholder="Nouveau mot-clé"
+                    placeholder={t('dashboard.table.newKeyword')}
                   />
                 </td>
                 <td>
@@ -675,7 +674,7 @@ export default function DashboardPage() {
                     value={newPair.url}
                     onChange={(e) => setNewPair({ ...newPair, url: e.target.value })}
                     onKeyDown={(e) => e.key === 'Enter' && addPair()}
-                    placeholder="ex: example.com"
+                    placeholder={t('dashboard.pairs.placeholderUrl')}
                   />
                 </td>
                 <td>-</td>
@@ -683,17 +682,17 @@ export default function DashboardPage() {
                 <td>-</td>
                 <td style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <button type="button" className="btn btn-primary" onClick={addPair}>
-                    Ajouter
+                    {t('dashboard.table.add')}
                   </button>
                   <button type="button" className="btn btn-primary" onClick={trackAll} disabled={saving || pairs.length === 0}>
-                    Mesurer tout
+                    {t('dashboard.table.measureAll')}
                   </button>
                 </td>
               </tr>
               {pairs.length === 0 && (
                 <tr>
                   <td colSpan={6} className="empty-state">
-                    <p>Aucun couple ajouté. Commencez par ajouter un mot-clé et une URL.</p>
+                    <p>{t('dashboard.table.empty')}</p>
                   </td>
                 </tr>
               )}
@@ -731,7 +730,7 @@ export default function DashboardPage() {
                                 marginRight: '4px',
                               }}
                             >
-                              🌐 Domaine
+                              🌐 {t('dashboard.table.domain')}
                             </span>
                             <a
                               href={`https://${pair.url.replace(/^www\./, '')}`}
@@ -771,7 +770,7 @@ export default function DashboardPage() {
                   </td>
                   <td>
                     {pair.last_checked_at
-                      ? new Date(pair.last_checked_at).toLocaleString('fr-FR', {
+                      ? new Date(pair.last_checked_at).toLocaleString(dateLocale, {
                           timeZone: 'Europe/Paris',
                           year: 'numeric',
                           month: '2-digit',
@@ -836,15 +835,15 @@ export default function DashboardPage() {
 
         {historyDates.length > 0 && (
           <div style={{ marginTop: '1.5rem' }}>
-            <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem' }}>Évolution par jour (position)</h3>
+            <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem' }}>{t('dashboard.evolution.title')}</h3>
             <div className="table-container" style={{ overflowX: 'auto' }}>
               <table className="pairs-table" style={{ fontSize: '0.9rem' }}>
                 <thead>
                   <tr>
-                    <th>Mot-clé</th>
-                    <th>URL</th>
+                    <th>{t('dashboard.table.keyword')}</th>
+                    <th>{t('dashboard.table.url')}</th>
                     {historyDates.map((d) => (
-                      <th key={d} style={{ whiteSpace: 'nowrap' }}>{new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: '2-digit' })}</th>
+                      <th key={d} style={{ whiteSpace: 'nowrap' }}>{new Date(d + 'T12:00:00').toLocaleDateString(dateLocale, { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: '2-digit' })}</th>
                     ))}
                   </tr>
                 </thead>

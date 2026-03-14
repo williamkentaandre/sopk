@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
+import { useLocale } from '@/app/LocaleContext';
 
 export default function SignupPage() {
+  const { t } = useLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -22,7 +24,7 @@ export default function SignupPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error?.message || 'Erreur lors de l\'inscription');
+        setError(data.error?.message || t('auth.errorSignup'));
         setLoading(false);
         return;
       }
@@ -32,13 +34,13 @@ export default function SignupPage() {
         redirect: false,
       });
       if (signInResult?.error) {
-        setError('Compte créé. Veuillez vous connecter.');
+        setError(t('auth.accountCreatedLogin'));
         setLoading(false);
         return;
       }
       window.location.href = '/dashboard';
     } catch {
-      setError('Erreur réseau');
+      setError(t('auth.errorNetwork'));
       setLoading(false);
     }
   }
@@ -46,11 +48,11 @@ export default function SignupPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1>Inscription</h1>
-        <p>Créez votre compte puis payez une fois pour débloquer l&apos;accès.</p>
+        <h1>{t('auth.signup')}</h1>
+        <p>{t('auth.signupDesc')}</p>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Email</label>
+            <label>{t('auth.email')}</label>
             <input
               type="email"
               value={email}
@@ -60,7 +62,7 @@ export default function SignupPage() {
             />
           </div>
           <div className="form-group">
-            <label>Mot de passe (min. 8 caractères)</label>
+            <label>{t('auth.passwordMin')}</label>
             <input
               type="password"
               value={password}
@@ -72,11 +74,11 @@ export default function SignupPage() {
           </div>
           {error && <p className="auth-error">{error}</p>}
           <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? 'Création...' : 'Créer mon compte'}
+            {loading ? t('auth.submitSignupLoading') : t('auth.submitSignup')}
           </button>
         </form>
         <p className="auth-footer">
-          Déjà inscrit ? <Link href="/login">Se connecter</Link>
+          {t('auth.hasAccount')} <Link href="/login">{t('auth.submitLogin')}</Link>
         </p>
       </div>
     </div>
