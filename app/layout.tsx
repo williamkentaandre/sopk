@@ -4,7 +4,7 @@ import { Providers } from './providers'
 
 export const metadata: Metadata = {
   title: 'SEO Ranker - Suivi de positions Google',
-  description: 'Mini web app de suivi de positions Google par couple mot-clé / URL',
+  description: 'Outil minimal pour suivre le classement de vos mots-clés dans le temps. Simple, rapide, sans les coûts des suites SEO.',
 }
 
 export const viewport: Viewport = {
