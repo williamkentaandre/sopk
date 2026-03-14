@@ -487,23 +487,32 @@ export default function DashboardPage() {
         </div>
 
       {(hasSerpApiKey !== true) && (
-        <div className="card-onboarding">
-          <h2>{t('dashboard.onboarding.title')}</h2>
-          <p style={{ margin: '0 0 1rem', color: '#333', lineHeight: 1.5 }}>
-            {t('dashboard.onboarding.desc')}
-          </p>
-          <ol style={{ margin: '0 0 1.25rem', paddingLeft: '1.25rem', color: '#333', lineHeight: 1.7 }}>
-            <li>{t("dashboard.onboarding.step1")}</li>
-            <li>{t("dashboard.onboarding.step2")}</li>
-            <li>{t("dashboard.onboarding.step3")}</li>
-          </ol>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ fontSize: '1rem', padding: '0.6rem 1.2rem' }}>
-              {t('dashboard.onboarding.getKey')}
-            </a>
-            <Link href="/settings" className="btn btn-secondary">
-              {t('dashboard.onboarding.goSettings')}
-            </Link>
+        <div className="onboarding-with-image" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+          <div className="card-onboarding" style={{ flex: '1 1 20rem', maxWidth: '36rem' }}>
+            <h2>{t('dashboard.onboarding.title')}</h2>
+            <p style={{ margin: '0 0 1rem', color: '#333', lineHeight: 1.5 }}>
+              {t('dashboard.onboarding.desc')}
+            </p>
+            <ol style={{ margin: '0 0 1.25rem', paddingLeft: '1.25rem', color: '#333', lineHeight: 1.7 }}>
+              <li>{t("dashboard.onboarding.step1")}</li>
+              <li>{t("dashboard.onboarding.step2")}</li>
+              <li>{t("dashboard.onboarding.step3")}</li>
+            </ol>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ fontSize: '1rem', padding: '0.6rem 1.2rem' }}>
+                {t('dashboard.onboarding.getKey')}
+              </a>
+              <Link href="/settings" className="btn btn-secondary">
+                {t('dashboard.onboarding.goSettings')}
+              </Link>
+            </div>
+          </div>
+          <div style={{ flex: '0 0 auto', width: 'min(280px, 100%)' }}>
+            <img
+              src="/images/serpapi-onboarding.svg"
+              alt=""
+              style={{ width: '100%', height: 'auto', borderRadius: 'var(--radius)', display: 'block' }}
+            />
           </div>
         </div>
       )}
