@@ -598,8 +598,9 @@ export default function DashboardPage() {
               type="text"
               value={multiAddUrl}
               onChange={(e) => setMultiAddUrl(e.target.value)}
-              placeholder="URL ou domaine (ex: example.com)"
-              style={{ minWidth: 180 }}
+              placeholder="ex: example.com"
+              title="URL ou domaine (ex: example.com)"
+              style={{ minWidth: 220 }}
             />
             {multiAddKeywords.map((kw, i) => (
               <input
@@ -629,10 +630,10 @@ export default function DashboardPage() {
             <thead>
               <tr>
                 <th style={{ width: '20%' }}>Mot-clé</th>
-                <th style={{ width: '25%' }}>URL</th>
-                <th style={{ width: '25%' }}>URL trouvée</th>
+                <th style={{ width: '22%' }}>URL</th>
+                <th style={{ width: '22%' }}>URL trouvée</th>
                 <th style={{ width: '8%' }}>Position</th>
-                <th style={{ width: '12%' }}>Dernière mesure</th>
+                <th style={{ width: '13%', minWidth: '7rem' }}>Dernière mesure</th>
                 <th style={{ width: '10%' }}>Actions</th>
               </tr>
             </thead>
@@ -653,7 +654,7 @@ export default function DashboardPage() {
                     value={newPair.url}
                     onChange={(e) => setNewPair({ ...newPair, url: e.target.value })}
                     onKeyDown={(e) => e.key === 'Enter' && addPair()}
-                    placeholder="URL ou domaine (ex: example.com)"
+                    placeholder="ex: example.com"
                   />
                 </td>
                 <td>-</td>
