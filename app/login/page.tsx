@@ -119,7 +119,10 @@ function LoginForm() {
           </button>
         </form>
         <p className="auth-footer">
-          {t('auth.noAccount')} <Link href="/signup">{t('auth.signup')}</Link>
+          {t('auth.noAccount')}{' '}
+          <Link href={email ? `/signup?email=${encodeURIComponent(email)}` : '/signup'}>
+            {t('auth.signup')}
+          </Link>
         </p>
       </div>
     </div>

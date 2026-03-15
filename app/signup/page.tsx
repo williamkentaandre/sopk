@@ -1,16 +1,27 @@
 'use client';
 
-import { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { useState, useEffect } from 'react';
+import { signIn, useSession } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLocale } from '@/app/LocaleContext';
 
 export default function SignupPage() {
   const { t, locale } = useLocale();
+  const searchParams = useSearchParams();
+  const { data: session } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Pré-remplir l'email : URL (?email=...) ou session (ex. déjà connecté avec Google)
+  useEffect(() => {
+    const fromUrl = searchParams.get('email');
+    const fromSession = session?.user?.email;
+    const initial = fromUrl || fromSession || '';
+    if (initial) setEmail((prev) => prev || initial);
+  }, [searchParams, session?.user?.email]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
