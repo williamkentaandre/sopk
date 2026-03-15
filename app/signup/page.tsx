@@ -1,12 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLocale } from '@/app/LocaleContext';
 
-export default function SignupPage() {
+function SignupFallback() {
+  const { t } = useLocale();
+  return (
+    <div className="auth-page">
+      <div className="auth-card">
+        <p>{t('auth.loading')}</p>
+      </div>
+    </div>
+  );
+}
+
+function SignupForm() {
   const { t, locale } = useLocale();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
@@ -112,5 +123,13 @@ export default function SignupPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<SignupFallback />}>
+      <SignupForm />
+    </Suspense>
   );
 }
