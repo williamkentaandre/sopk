@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: { code: 401, message: 'Non connecté' } }, { status: 401 });
   }
   return NextResponse.json({
-    hl: user.hl ?? 'fr',
-    gl: user.gl ?? 'fr',
+    hl: user.hl ?? null,
+    gl: user.gl ?? null,
     hasSerpApiKey: !!user.serpApiKey,
   });
 }
@@ -58,15 +58,15 @@ export async function PUT(request: NextRequest) {
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        hl,
-        gl,
+        hl: hl ?? null,
+        gl: gl ?? null,
         ...(hasSerpApiKeyField && { serpApiKey }),
       },
     });
 
     return NextResponse.json({
-      hl,
-      gl,
+      hl: hl ?? null,
+      gl: gl ?? null,
       hasSerpApiKey: hasSerpApiKeyField ? !!serpApiKey : !!user.serpApiKey,
     });
   } catch (e) {

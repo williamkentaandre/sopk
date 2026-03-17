@@ -14,7 +14,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showReplaceKey, setShowReplaceKey] = useState(false);
-  const [searchSettings, setSearchSettings] = useState({ hl: 'fr', gl: 'fr' });
+  const [searchSettings, setSearchSettings] = useState<{ hl: string | null; gl: string | null }>({ hl: null, gl: null });
   const [savingSearchSettings, setSavingSearchSettings] = useState(false);
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
   const [newEmail, setNewEmail] = useState('');
@@ -163,8 +163,38 @@ export default function SettingsPage() {
         body: JSON.stringify({ hl: searchSettings.hl, gl: searchSettings.gl }),
       });
       if (response.ok) {
-        if (typeof window !== 'undefined') window.localStorage.setItem('seo-ranker-search-settings-done', '1');
+        const configured = !!searchSettings.hl && !!searchSettings.gl;
+        if (typeof window !== 'undefined') {
+          if (configured) window.localStorage.setItem('seo-ranker-search-settings-done', '1');
+          else window.localStorage.removeItem('seo-ranker-search-settings-done');
+        }
         setMessage({ type: 'success', text: t('dashboard.toast.settingsSaved') });
+      } else {
+        const err = await response.json().catch(() => ({}));
+        setMessage({ type: 'error', text: err.error?.message || t('dashboard.toast.error') });
+      }
+    } catch {
+      setMessage({ type: 'error', text: t('auth.errorNetwork') });
+    } finally {
+      setSavingSearchSettings(false);
+    }
+  };
+
+  const handleRemoveSearchSettings = async () => {
+    setMessage(null);
+    setSavingSearchSettings(true);
+    try {
+      const settingsRes = await fetch('/api/v1/settings');
+      const current = await settingsRes.json().catch(() => ({}));
+      const response = await fetch('/api/v1/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hl: null, gl: null, serpApiKey: current.hasSerpApiKey ? undefined : null }),
+      });
+      if (response.ok) {
+        if (typeof window !== 'undefined') window.localStorage.removeItem('seo-ranker-search-settings-done');
+        setSearchSettings({ hl: null, gl: null });
+        setMessage({ type: 'success', text: t('dashboard.searchSettings.removed') });
       } else {
         const err = await response.json().catch(() => ({}));
         setMessage({ type: 'error', text: err.error?.message || t('dashboard.toast.error') });
@@ -192,8 +222,11 @@ export default function SettingsPage() {
         </div>
 
         <div style={!hasSerpApiKey ? { display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: '1.5rem' } : undefined}>
-        <div className={!hasSerpApiKey ? 'card-onboarding' : 'settings-card'} style={!hasSerpApiKey ? { flex: '1 1 20rem', maxWidth: '36rem' } : undefined}>
-        <h2 style={!hasSerpApiKey ? { color: '#166534' } : undefined}>
+        <div
+          className={!hasSerpApiKey ? 'card-onboarding' : 'settings-card'}
+          style={!hasSerpApiKey ? { flex: '1 1 20rem', maxWidth: '36rem', borderColor: '#fecaca', background: '#fef2f2' } : { borderColor: '#86efac', background: '#f0fdf4' }}
+        >
+        <h2 style={{ color: hasSerpApiKey ? '#166534' : '#991b1b' }}>
           {hasSerpApiKey ? t('settings.key.title') : t('settings.key.firstTitle')}
         </h2>
         {!hasSerpApiKey && (
@@ -208,6 +241,11 @@ export default function SettingsPage() {
             <li>{t("settings.key.step3")}</li>
           </ol>
         )}
+        <p style={{ marginTop: '0.5rem', marginBottom: '0.75rem' }}>
+          <span className={`status-badge ${hasSerpApiKey ? 'success' : 'pending'}`}>
+            {hasSerpApiKey ? t('settings.key.configured') : t('settings.key.notConfigured')}
+          </span>
+        </p>
         {hasSerpApiKey && !serpApiKey && !showReplaceKey ? (
           <p style={{ marginBottom: '1rem', color: '#666' }}>
             <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ display: 'inline-block', marginTop: '0.25rem' }}>{t('settings.key.getKey')}</a>
@@ -256,18 +294,24 @@ export default function SettingsPage() {
         {!hasSerpApiKey && <SerpApiOnboardingIllustration variant="settings" />}
         </div>
 
-        <div className="settings-card">
-          <h2>{t('dashboard.searchSettings.title')}</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
-            {t('dashboard.searchSettings.helper')}
+        <div className="settings-card" style={{ borderColor: searchSettings.hl && searchSettings.gl ? '#86efac' : '#fecaca', background: searchSettings.hl && searchSettings.gl ? '#f0fdf4' : '#fef2f2' }}>
+          <h2 style={{ color: searchSettings.hl && searchSettings.gl ? '#166534' : '#991b1b' }}>{t('dashboard.searchSettings.title')}</h2>
+          <p style={{ color: searchSettings.hl && searchSettings.gl ? '#14532d' : '#7f1d1d', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
+            {searchSettings.hl && searchSettings.gl ? t('dashboard.searchSettings.current') : t('dashboard.searchSettings.missing')}
+          </p>
+          <p style={{ marginBottom: '0.75rem' }}>
+            <span className={`status-badge ${searchSettings.hl && searchSettings.gl ? 'success' : 'pending'}`}>
+              {searchSettings.hl && searchSettings.gl ? `${searchSettings.hl.toUpperCase()} / ${searchSettings.gl.toUpperCase()}` : t('dashboard.searchSettings.none')}
+            </span>
           </p>
           <div className="settings-form">
             <div className="form-group">
               <label>{t('dashboard.searchSettings.language')}</label>
               <select
-                value={searchSettings.hl}
-                onChange={(e) => setSearchSettings((s) => ({ ...s, hl: e.target.value }))}
+                value={searchSettings.hl ?? ''}
+                onChange={(e) => setSearchSettings((s) => ({ ...s, hl: e.target.value || null }))}
               >
+                <option value="">{t('dashboard.searchSettings.none')}</option>
                 <option value="fr">{t('opt.french')}</option>
                 <option value="en">{t('opt.english')}</option>
                 <option value="es">{t('opt.spanish')}</option>
@@ -285,9 +329,10 @@ export default function SettingsPage() {
             <div className="form-group">
               <label>{t('dashboard.searchSettings.location')}</label>
               <select
-                value={searchSettings.gl}
-                onChange={(e) => setSearchSettings((s) => ({ ...s, gl: e.target.value }))}
+                value={searchSettings.gl ?? ''}
+                onChange={(e) => setSearchSettings((s) => ({ ...s, gl: e.target.value || null }))}
               >
+                <option value="">{t('dashboard.searchSettings.none')}</option>
                 <option value="fr">{t('opt.france')}</option>
                 <option value="be">{t('opt.belgium')}</option>
                 <option value="ch">{t('opt.switzerland')}</option>
@@ -317,6 +362,14 @@ export default function SettingsPage() {
               disabled={savingSearchSettings}
             >
               {savingSearchSettings ? <span className="loading" /> : t('dashboard.searchSettings.save')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleRemoveSearchSettings}
+              disabled={savingSearchSettings || (!searchSettings.hl && !searchSettings.gl)}
+            >
+              {t('dashboard.searchSettings.remove')}
             </button>
           </div>
         </div>

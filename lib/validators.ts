@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 export const settingsSchema = z.object({
-  hl: z.string().min(1).max(5).default('fr'),
-  gl: z.string().min(1).max(5).default('fr'),
+  hl: z.string().min(1).max(5).nullable().optional(),
+  gl: z.string().min(1).max(5).nullable().optional(),
 });
 
 export const pairSchema = z.object({
