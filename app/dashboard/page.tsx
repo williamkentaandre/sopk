@@ -49,6 +49,7 @@ export default function DashboardPage() {
   const [hasSerpApiKey, setHasSerpApiKey] = useState<boolean | null>(null);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [searchSettingsDone, setSearchSettingsDone] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement | null>(null);
 
   const historyDates = useMemo(() => {
     const set = new Set<string>();
@@ -105,6 +106,17 @@ export default function DashboardPage() {
     const stored = window.localStorage.getItem('seo-ranker-search-settings-done');
     if (stored === '1') setSearchSettingsDone(true);
   }, []);
+
+  useEffect(() => {
+    if (!exportMenuOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setExportMenuOpen(false);
+      }
+    };
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
+  }, [exportMenuOpen]);
 
   const loadData = async () => {
     try {
@@ -705,7 +717,7 @@ export default function DashboardPage() {
               />
               {t('dashboard.pairs.import')}
             </label>
-            <div style={{ position: 'relative', display: 'inline-block' }}>
+            <div ref={exportMenuRef} style={{ position: 'relative', display: 'inline-block' }}>
               <button type="button" className="btn btn-secondary" onClick={() => setExportMenuOpen((v) => !v)}>
                 {t('dashboard.pairs.export')} {exportMenuOpen ? '▾' : '▸'}
               </button>
