@@ -642,12 +642,12 @@ export default function DashboardPage() {
 
       {(hasSerpApiKey !== true) && (
         <div className="onboarding-with-image" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-          <div className="card-onboarding" style={{ flex: '1 1 20rem', maxWidth: '36rem' }}>
-            <h2>{t('dashboard.onboarding.title')}</h2>
-            <p style={{ margin: '0 0 1rem', color: '#333', lineHeight: 1.5 }}>
+          <div className="card-onboarding" style={{ flex: '1 1 20rem', maxWidth: '36rem', borderColor: '#fecaca', background: '#fef2f2' }}>
+            <h2 style={{ color: '#991b1b' }}>{t('dashboard.onboarding.title')}</h2>
+            <p style={{ margin: '0 0 1rem', color: '#7f1d1d', lineHeight: 1.5 }}>
               {t('dashboard.onboarding.desc')}
             </p>
-            <ol style={{ margin: '0 0 1.25rem', paddingLeft: '1.25rem', color: '#333', lineHeight: 1.7 }}>
+            <ol style={{ margin: '0 0 1.25rem', paddingLeft: '1.25rem', color: '#7f1d1d', lineHeight: 1.7 }}>
               <li>{t("dashboard.onboarding.step1")}</li>
               <li>{t("dashboard.onboarding.step2")}</li>
               <li>{t("dashboard.onboarding.step3")}</li>
