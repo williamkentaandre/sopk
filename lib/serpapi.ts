@@ -214,7 +214,6 @@ export async function trackKeyword(
   const MAX_RESULTS = 100;
   const PAGE_SIZE = 10;
   let lastResponse: SerpApiResponse | null = null;
-  let best: MatchResult | null = null;
 
   for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
     const serpResponse = await callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start }, options);
@@ -226,19 +225,9 @@ export async function trackKeyword(
       // SerpAPI page positions are often 1..PAGE_SIZE, so adjust to absolute rank
       const absolutePosition =
         start > 0 && matchResult.position <= PAGE_SIZE ? start + matchResult.position : matchResult.position;
-      const adjusted: MatchResult = { ...matchResult, position: absolutePosition };
-
-      if (adjusted.matchType === 'exact') {
-        best = adjusted;
-        break;
-      }
-      // Keep the first domain match but continue searching for an exact match
-      if (!best && adjusted.matchType === 'domain') {
-        best = adjusted;
-      } else if (adjusted.matchType !== 'none') {
-        best = adjusted;
-        break;
-      }
+      // Priority rule: only look at page 2+ if page 1 had no match.
+      // Therefore as soon as we find a match on the current page, return it.
+      return { ...matchResult, position: absolutePosition, serpLink: serpResponse.search_metadata?.id ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}` : undefined };
     }
     // If API returns no organic results, don't keep paging
     if (organicResults.length === 0) break;
@@ -250,7 +239,9 @@ export async function trackKeyword(
     : undefined;
 
   return {
-    ...(best || { position: null, matchedUrl: null, matchType: 'none' }),
+    position: null,
+    matchedUrl: null,
+    matchType: 'none',
     serpLink,
   };
 }

@@ -38,7 +38,6 @@ export default function DashboardPage() {
   const [saving, setSaving] = useState(false);
   const [tracking, setTracking] = useState<Set<string>>(new Set());
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [newPair, setNewPair] = useState({ keyword: '', url: '' });
   const [multiAddUrl, setMultiAddUrl] = useState('');
   const [bulkKeywordText, setBulkKeywordText] = useState('');
   const [bulkAddedKeywords, setBulkAddedKeywords] = useState<string[]>([]);
@@ -163,127 +162,126 @@ export default function DashboardPage() {
     return withoutProtocol.replace(/\/$/, '');
   };
 
+  const toDomainOnly = (input: string) => {
+    const raw = (input || '').trim();
+    if (!raw) return '';
+    try {
+      const withProto = raw.startsWith('http://') || raw.startsWith('https://') ? raw : `https://${raw}`;
+      const u = new URL(withProto);
+      return u.hostname.replace(/^www\./, '').toLowerCase();
+    } catch {
+      return raw
+        .replace(/^https?:\/\//i, '')
+        .replace(/^www\./i, '')
+        .split(/[/?#]/)[0]
+        .toLowerCase();
+    }
+  };
+
   const isDuplicatePair = (keyword: string, url: string) =>
+  const getDomainBadgeStyle = (domain: string) => {
+    // Stable color per domain (hash -> HSL)
+    const d = domain.replace(/^www\./, '').replace(/\/$/, '').toLowerCase();
+    let hash = 0;
+    for (let i = 0; i < d.length; i++) hash = (hash * 31 + d.charCodeAt(i)) | 0;
+    const hue = Math.abs(hash) % 360;
+    return {
+      background: `hsl(${hue} 85% 94%)`,
+      border: `1px solid hsl(${hue} 70% 78%)`,
+      color: `hsl(${hue} 45% 28%)`,
+    } as const;
+  };
+
     pairs.some(
       (p) =>
         p.keyword.trim().toLowerCase() === keyword.trim().toLowerCase() &&
         normalizeUrlForCompare(p.url) === normalizeUrlForCompare(url)
     );
 
-  const addPair = async () => {
-    if (!newPair.keyword.trim() || !newPair.url.trim()) {
-      showToast(t('dashboard.toast.fillFields'), 'error');
-      return;
-    }
-    const url = newPair.url.trim();
+  const addBulkKeywords = async (keywordsRaw: string[]) => {
+    const url = toDomainOnly(multiAddUrl);
     if (!url || url.length < 3) {
-      showToast(t('dashboard.toast.invalidUrl'), 'error');
+      showToast(t('dashboard.toast.enterUrl'), 'error');
       return;
     }
-    if (isDuplicatePair(newPair.keyword, url)) {
-      showToast(t('dashboard.toast.duplicatePair'), 'error');
+    const keywords = keywordsRaw.map((k) => k.trim()).filter(Boolean);
+    if (keywords.length === 0) return;
+
+    const seen = new Set<string>();
+    const toCreate: { keyword: string; url: string }[] = [];
+    for (const kw of keywords) {
+      const key = `${kw.toLowerCase()}|${normalizeUrlForCompare(url)}`;
+      if (seen.has(key) || isDuplicatePair(kw, url)) continue;
+      seen.add(key);
+      toCreate.push({ keyword: kw, url });
+    }
+    if (toCreate.length === 0) {
+      showToast(t('dashboard.toast.noNewKeywords'), 'error');
       return;
     }
+
+    // Optimistic rows for immediate UI
+    const tempPairs: Pair[] = toCreate.map((p) => ({
+      pair_id: `temp_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      keyword: p.keyword,
+      url: p.url,
+      last_position: null,
+      last_checked_at: null,
+      last_matched_url: null,
+    }));
+    setPairs((prev) => [...tempPairs, ...prev]);
+    setBulkAddedKeywords((prev) => [...toCreate.map((p) => p.keyword), ...prev].slice(0, 50));
+
     try {
       const response = await fetch('/api/v1/pairs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pairs: [{ keyword: newPair.keyword.trim(), url }],
-        }),
+        body: JSON.stringify({ pairs: toCreate }),
       });
-      if (response.ok) {
-        const result = await response.json();
-        const createdItems = (result.items || []) as Pair[];
-        const created = createdItems?.[0];
-        if (hasSerpApiKey === true && created?.pair_id) {
-          const measured = await measureCreatedPair(created);
-          setPairs((prev) => [measured, ...prev]);
-        } else {
-          setPairs((prev) => [...createdItems, ...prev]);
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        // rollback optimistic
+        const tempIds = new Set(tempPairs.map((p) => p.pair_id));
+        setPairs((prev) => prev.filter((p) => !tempIds.has(p.pair_id)));
+        showToast(`${t('dashboard.toast.error')}: ${result?.error?.message || t('dashboard.toast.unknownError')}`, 'error');
+        return;
+      }
+
+      const createdItems = (result.items || []) as Pair[];
+      // Replace optimistic rows with created rows in the same order (best-effort)
+      setPairs((prev) => {
+        const tempIds = new Set(tempPairs.map((p) => p.pair_id));
+        const rest = prev.filter((p) => !tempIds.has(p.pair_id));
+        return [...createdItems, ...rest];
+      });
+      showToast(`${createdItems.length} ${t('dashboard.toast.pairsAdded')}`, 'success');
+
+      if (hasSerpApiKey === true) {
+        // measure each created pair in background
+        for (const created of createdItems) {
+          setTracking((prev) => new Set(prev).add(created.pair_id));
+          measureCreatedPair(created)
+            .then((measured) => {
+              setPairs((prev) => prev.map((p) => (p.pair_id === created.pair_id ? measured : p)));
+            })
+            .finally(() => {
+              setTracking((prev) => {
+                const next = new Set(prev);
+                next.delete(created.pair_id);
+                return next;
+              });
+            });
         }
-        setNewPair({ keyword: '', url: '' });
-        showToast(t('dashboard.toast.pairAdded'), 'success');
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        showToast(`${t('dashboard.toast.error')}: ${errorData.error?.message || t('dashboard.toast.unknownError')}`, 'error');
       }
     } catch {
+      const tempIds = new Set(tempPairs.map((p) => p.pair_id));
+      setPairs((prev) => prev.filter((p) => !tempIds.has(p.pair_id)));
       showToast(t('dashboard.toast.addError'), 'error');
     }
   };
 
   const addBulkKeyword = async (keywordRaw: string) => {
-    const url = multiAddUrl.trim();
-    const keyword = (keywordRaw || '').trim();
-    if (!url || url.length < 3) {
-      showToast(t('dashboard.toast.enterUrl'), 'error');
-      return;
-    }
-    if (!keyword) return;
-    if (isDuplicatePair(keyword, url)) {
-      showToast(t('dashboard.toast.duplicatePair'), 'error');
-      return;
-    }
-    // Optimistic UI: add immediately, measure in background
-    const tempId = `temp_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-    const optimistic: Pair = {
-      pair_id: tempId,
-      keyword,
-      url,
-      last_position: null,
-      last_checked_at: null,
-      last_matched_url: null,
-    };
-    setPairs((prev) => [optimistic, ...prev]);
-    setBulkAddedKeywords((prev) => [keyword, ...prev].slice(0, 50));
-    requestAnimationFrame(() => {
-      tableTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-
-    try {
-      const response = await fetch('/api/v1/pairs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pairs: [{ keyword, url }] }),
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setPairs((prev) => prev.filter((p) => p.pair_id !== tempId));
-        showToast(`${t('dashboard.toast.error')}: ${result?.error?.message || t('dashboard.toast.unknownError')}`, 'error');
-        return;
-      }
-
-      const created = ((result.items || []) as Pair[])[0];
-      if (!created?.pair_id) {
-        setPairs((prev) => prev.filter((p) => p.pair_id !== tempId));
-        showToast(t('dashboard.toast.unknownError'), 'error');
-        return;
-      }
-
-      // Replace optimistic row with real row
-      setPairs((prev) => prev.map((p) => (p.pair_id === tempId ? created : p)));
-      showToast(t('dashboard.toast.pairAdded'), 'success');
-
-      // Measure asynchronously; update in-place when done
-      if (hasSerpApiKey === true) {
-        setTracking((prev) => new Set(prev).add(created.pair_id));
-        measureCreatedPair(created)
-          .then((measured) => {
-            setPairs((prev) => prev.map((p) => (p.pair_id === created.pair_id ? measured : p)));
-          })
-          .finally(() => {
-            setTracking((prev) => {
-              const next = new Set(prev);
-              next.delete(created.pair_id);
-              return next;
-            });
-          });
-      }
-    } catch {
-      setPairs((prev) => prev.filter((p) => p.pair_id !== tempId));
-      showToast(t('dashboard.toast.addError'), 'error');
-    }
+    return addBulkKeywords([keywordRaw]);
   };
 
   const startEdit = (pair: Pair) => {
@@ -705,6 +703,7 @@ export default function DashboardPage() {
               type="text"
               value={multiAddUrl}
               onChange={(e) => setMultiAddUrl(e.target.value)}
+              onBlur={() => setMultiAddUrl((v) => toDomainOnly(v))}
               placeholder={t('dashboard.pairs.placeholderUrl')}
               title="URL ou domaine (ex: example.com)"
               style={{ minWidth: 220 }}
@@ -719,35 +718,18 @@ export default function DashboardPage() {
                   e.preventDefault();
                   const el = e.currentTarget;
                   const text = el.value || '';
-                  const caret = el.selectionStart ?? text.length;
-                  const lineStart = text.lastIndexOf('\n', Math.max(0, caret - 1)) + 1;
-                  const lineEnd = (() => {
-                    const idx = text.indexOf('\n', caret);
-                    return idx === -1 ? text.length : idx;
-                  })();
-                  const line = text.slice(lineStart, lineEnd).trim();
-                  if (!line) {
-                    // just add a new line
-                    const updated = text.slice(0, caret) + '\n' + text.slice(caret);
-                    setBulkKeywordText(updated);
-                    requestAnimationFrame(() => {
-                      const pos = caret + 1;
-                      bulkTextareaRef.current?.setSelectionRange(pos, pos);
-                    });
+                  const lines = text
+                    .split('\n')
+                    .map((l) => l.trim())
+                    .filter(Boolean);
+                  if (lines.length === 0) {
+                    setBulkKeywordText(text + '\n');
                     return;
                   }
-
-                  addBulkKeyword(line);
-
-                  // remove the line content and keep an empty line to continue typing
-                  const before = text.slice(0, lineStart);
-                  const after = text.slice(lineEnd);
-                  const updated = before + (after.startsWith('\n') ? '' : '\n') + after;
-                  setBulkKeywordText(updated);
+                  addBulkKeywords(lines);
+                  setBulkKeywordText('');
                   requestAnimationFrame(() => {
-                    const pos = before.length + 1;
                     bulkTextareaRef.current?.focus();
-                    bulkTextareaRef.current?.setSelectionRange(pos, pos);
                   });
                 }}
                 placeholder={t('dashboard.pairs.placeholderKeyword')}
@@ -780,31 +762,7 @@ export default function DashboardPage() {
             </thead>
             <tbody>
               <tr>
-                <td>
-                  <input
-                    type="text"
-                    value={newPair.keyword}
-                    onChange={(e) => setNewPair({ ...newPair, keyword: e.target.value })}
-                    onKeyDown={(e) => e.key === 'Enter' && addPair()}
-                    placeholder={t('dashboard.table.newKeyword')}
-                  />
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    value={newPair.url}
-                    onChange={(e) => setNewPair({ ...newPair, url: e.target.value })}
-                    onKeyDown={(e) => e.key === 'Enter' && addPair()}
-                    placeholder={t('dashboard.pairs.placeholderUrl')}
-                  />
-                </td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <button type="button" className="btn btn-primary" onClick={addPair}>
-                    {t('dashboard.table.add')}
-                  </button>
+                <td colSpan={6} style={{ textAlign: 'right', padding: '0.5rem 0.75rem' }}>
                   <button type="button" className="btn btn-primary" onClick={trackAll} disabled={saving || pairs.length === 0}>
                     {t('dashboard.table.measureAll')}
                   </button>
@@ -844,7 +802,7 @@ export default function DashboardPage() {
                           <span title={`Tracking de domaine : ${pair.url.replace(/\/$/, '')}`}>
                             <span
                               style={{
-                                background: '#e8f4f8',
+                                ...getDomainBadgeStyle(pair.url),
                                 padding: '2px 6px',
                                 borderRadius: '4px',
                                 fontSize: '11px',
