@@ -464,13 +464,20 @@ export default function DashboardPage() {
         const result = await response.json();
         setPairs((prev) =>
           prev.map((pair) => {
-            const updated = result.results?.find((r: any) => r.pair_id === pair.pair_id);
+            const updated =
+              result.results?.find((r: any) => r.pair_id === pair.pair_id) ||
+              result.results?.find(
+                (r: any) =>
+                  r.keyword?.toLowerCase() === pair.keyword.toLowerCase() &&
+                  normalizeUrlForCompare(r.url || '') === normalizeUrlForCompare(pair.url || '')
+              );
             if (updated) {
               const day = updated.checked_at ? getParisDateString(updated.checked_at) : null;
               return {
                 ...pair,
                 last_position: updated.position,
                 last_checked_at: updated.checked_at,
+                last_matched_url: updated.matched_url ?? pair.last_matched_url ?? null,
                 history_by_date: day
                   ? { ...(pair.history_by_date || {}), [day]: updated.position }
                   : pair.history_by_date,

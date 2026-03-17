@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth-server';
 import { prisma } from '@/lib/prisma';
 import { settingsSchema } from '@/lib/validators';
+import { callSerpApi } from '@/lib/serpapi';
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser(request);
@@ -34,15 +35,32 @@ export async function PUT(request: NextRequest) {
     }
     const { hl, gl } = validationResult.data;
     const hasSerpApiKeyField = Object.prototype.hasOwnProperty.call(body, 'serpApiKey');
-    const serpApiKey =
-      body.serpApiKey === null ? null : typeof body.serpApiKey === 'string' ? body.serpApiKey : undefined;
+    const serpApiKeyRaw =
+      body.serpApiKey === null ? null : typeof body.serpApiKey === 'string' ? body.serpApiKey.trim() : undefined;
+    const serpApiKey = serpApiKeyRaw || null;
+
+    // If user is trying to set a non-empty key, validate it against SerpAPI before saving
+    if (hasSerpApiKeyField && serpApiKey) {
+      try {
+        await callSerpApi(
+          { keyword: 'google', hl, gl, num: 1 },
+          { apiKey: serpApiKey }
+        );
+      } catch (err: any) {
+        const message = typeof err?.message === 'string' ? err.message : 'Clé SerpAPI invalide.';
+        return NextResponse.json(
+          { error: { code: 400, message } },
+          { status: 400 }
+        );
+      }
+    }
 
     await prisma.user.update({
       where: { id: user.id },
       data: {
         hl,
         gl,
-        ...(hasSerpApiKeyField && { serpApiKey: serpApiKey ? serpApiKey : null }),
+        ...(hasSerpApiKeyField && { serpApiKey }),
       },
     });
 
