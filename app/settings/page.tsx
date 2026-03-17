@@ -14,6 +14,8 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showReplaceKey, setShowReplaceKey] = useState(false);
+  const [searchSettings, setSearchSettings] = useState({ hl: 'fr', gl: 'fr' });
+  const [savingSearchSettings, setSavingSearchSettings] = useState(false);
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
   const [newEmail, setNewEmail] = useState('');
   const [emailActionLoading, setEmailActionLoading] = useState(false);
@@ -53,7 +55,10 @@ export default function SettingsPage() {
     fetch('/api/v1/settings')
       .then((res) => res.ok && res.json())
       .then((data) => {
-        if (data) setHasSerpApiKey(!!data.hasSerpApiKey);
+        if (data) {
+          setHasSerpApiKey(!!data.hasSerpApiKey);
+          setSearchSettings({ hl: data.hl ?? 'fr', gl: data.gl ?? 'fr' });
+        }
       })
       .catch(() => {});
   }, []);
@@ -146,6 +151,31 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSaveSearchSettings = async () => {
+    setMessage(null);
+    setSavingSearchSettings(true);
+    try {
+      const settingsRes = await fetch('/api/v1/settings');
+      const current = await settingsRes.json().catch(() => ({}));
+      const response = await fetch('/api/v1/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hl: searchSettings.hl, gl: searchSettings.gl }),
+      });
+      if (response.ok) {
+        if (typeof window !== 'undefined') window.localStorage.setItem('seo-ranker-search-settings-done', '1');
+        setMessage({ type: 'success', text: t('dashboard.toast.settingsSaved') });
+      } else {
+        const err = await response.json().catch(() => ({}));
+        setMessage({ type: 'error', text: err.error?.message || t('dashboard.toast.error') });
+      }
+    } catch {
+      setMessage({ type: 'error', text: t('auth.errorNetwork') });
+    } finally {
+      setSavingSearchSettings(false);
+    }
+  };
+
   const paid = (session?.user as any)?.stripePaymentStatus === 'paid';
 
   return (
@@ -224,6 +254,71 @@ export default function SettingsPage() {
         )}
         </div>
         {!hasSerpApiKey && <SerpApiOnboardingIllustration variant="settings" />}
+        </div>
+
+        <div className="settings-card">
+          <h2>{t('dashboard.searchSettings.title')}</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
+            {t('dashboard.searchSettings.helper')}
+          </p>
+          <div className="settings-form">
+            <div className="form-group">
+              <label>{t('dashboard.searchSettings.language')}</label>
+              <select
+                value={searchSettings.hl}
+                onChange={(e) => setSearchSettings((s) => ({ ...s, hl: e.target.value }))}
+              >
+                <option value="fr">{t('opt.french')}</option>
+                <option value="en">{t('opt.english')}</option>
+                <option value="es">{t('opt.spanish')}</option>
+                <option value="de">{t('opt.german')}</option>
+                <option value="it">{t('opt.italian')}</option>
+                <option value="pt">{t('opt.portuguese')}</option>
+                <option value="nl">{t('opt.dutch')}</option>
+                <option value="pl">{t('opt.polish')}</option>
+                <option value="ru">{t('opt.russian')}</option>
+                <option value="ja">{t('opt.japanese')}</option>
+                <option value="zh">{t('opt.chinese')}</option>
+                <option value="ar">{t('opt.arabic')}</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>{t('dashboard.searchSettings.location')}</label>
+              <select
+                value={searchSettings.gl}
+                onChange={(e) => setSearchSettings((s) => ({ ...s, gl: e.target.value }))}
+              >
+                <option value="fr">{t('opt.france')}</option>
+                <option value="be">{t('opt.belgium')}</option>
+                <option value="ch">{t('opt.switzerland')}</option>
+                <option value="ca">{t('opt.canada')}</option>
+                <option value="us">{t('opt.unitedStates')}</option>
+                <option value="uk">{t('opt.unitedKingdom')}</option>
+                <option value="de">{t('opt.germany')}</option>
+                <option value="es">{t('opt.spain')}</option>
+                <option value="it">{t('opt.italy')}</option>
+                <option value="pt">{t('opt.portugal')}</option>
+                <option value="nl">{t('opt.netherlands')}</option>
+                <option value="pl">{t('opt.poland')}</option>
+                <option value="ru">{t('opt.russia')}</option>
+                <option value="jp">{t('opt.japan')}</option>
+                <option value="cn">{t('opt.china')}</option>
+                <option value="au">{t('opt.australia')}</option>
+                <option value="br">{t('opt.brazil')}</option>
+                <option value="mx">{t('opt.mexico')}</option>
+                <option value="in">{t('opt.india')}</option>
+                <option value="sg">{t('opt.singapore')}</option>
+              </select>
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleSaveSearchSettings}
+              disabled={savingSearchSettings}
+            >
+              {savingSearchSettings ? <span className="loading" /> : t('dashboard.searchSettings.save')}
+            </button>
+          </div>
         </div>
 
         <div className="settings-card">

@@ -53,7 +53,6 @@ export default function DashboardPage() {
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const onboardingRef1 = useRef<HTMLAnchorElement | null>(null);
-  const onboardingRef2 = useRef<HTMLDivElement | null>(null);
   const onboardingRef3 = useRef<HTMLDivElement | null>(null);
   const onboardingRef4 = useRef<HTMLSpanElement | null>(null);
 
@@ -183,30 +182,6 @@ export default function DashboardPage() {
     const id = Date.now();
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
-  };
-
-  const saveSettings = async () => {
-    setSaving(true);
-    try {
-      const response = await fetch('/api/v1/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
-      });
-      if (response.ok) showToast(t('dashboard.toast.settingsSaved'), 'success');
-      else {
-        const errorData = await response.json().catch(() => ({}));
-        showToast(`${t('dashboard.toast.error')}: ${errorData.error?.message || t('dashboard.toast.unknownError')}`, 'error');
-      }
-    } catch {
-      showToast(t('dashboard.toast.saveError'), 'error');
-    } finally {
-      setSaving(false);
-    }
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('seo-ranker-search-settings-done', '1');
-    }
-    setSearchSettingsDone(true);
   };
 
   const normalizeUrlForCompare = (u: string) => {
@@ -673,62 +648,15 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {!searchSettingsDone && (
-        <div ref={onboardingRef2} className="settings-card">
+      {hasSerpApiKey === true && !searchSettingsDone && (
+        <div className="settings-card" style={{ marginBottom: '1.5rem' }}>
           <h2>{t('dashboard.searchSettings.title')}</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
-            {t('dashboard.searchSettings.helper')}
-          </p>
-          <div className="settings-form">
-            <div className="form-group">
-              <label>{t('dashboard.searchSettings.language')}</label>
-              <select value={settings.hl} onChange={(e) => setSettings({ ...settings, hl: e.target.value })}>
-                <option value="fr">{t('opt.french')}</option>
-                <option value="en">{t('opt.english')}</option>
-                <option value="es">{t('opt.spanish')}</option>
-                <option value="de">{t('opt.german')}</option>
-                <option value="it">{t('opt.italian')}</option>
-                <option value="pt">{t('opt.portuguese')}</option>
-                <option value="nl">{t('opt.dutch')}</option>
-                <option value="pl">{t('opt.polish')}</option>
-                <option value="ru">{t('opt.russian')}</option>
-                <option value="ja">{t('opt.japanese')}</option>
-                <option value="zh">{t('opt.chinese')}</option>
-                <option value="ar">{t('opt.arabic')}</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>{t('dashboard.searchSettings.location')}</label>
-              <select value={settings.gl} onChange={(e) => setSettings({ ...settings, gl: e.target.value })}>
-                <option value="fr">{t('opt.france')}</option>
-                <option value="be">{t('opt.belgium')}</option>
-                <option value="ch">{t('opt.switzerland')}</option>
-                <option value="ca">{t('opt.canada')}</option>
-                <option value="us">{t('opt.unitedStates')}</option>
-                <option value="uk">{t('opt.unitedKingdom')}</option>
-                <option value="de">{t('opt.germany')}</option>
-                <option value="es">{t('opt.spain')}</option>
-                <option value="it">{t('opt.italy')}</option>
-                <option value="pt">{t('opt.portugal')}</option>
-                <option value="nl">{t('opt.netherlands')}</option>
-                <option value="pl">{t('opt.poland')}</option>
-                <option value="ru">{t('opt.russia')}</option>
-                <option value="jp">{t('opt.japan')}</option>
-                <option value="cn">{t('opt.china')}</option>
-                <option value="au">{t('opt.australia')}</option>
-                <option value="br">{t('opt.brazil')}</option>
-                <option value="mx">{t('opt.mexico')}</option>
-                <option value="in">{t('opt.india')}</option>
-                <option value="sg">{t('opt.singapore')}</option>
-              </select>
-            </div>
-            <button className="btn btn-primary" onClick={saveSettings} disabled={saving}>
-              {saving ? <span className="loading" /> : t('dashboard.searchSettings.save')}
-            </button>
-          </div>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '0.75rem' }}>{t('dashboard.searchSettings.goToSettings')}</p>
+          <Link href="/settings" className="btn btn-primary">{t('dashboard.settings')}</Link>
         </div>
       )}
 
+      {hasSerpApiKey === true && searchSettingsDone && (
       <div className="pairs-card">
         <div className="pairs-header">
           <h2>{t('dashboard.pairs.title')} ({pairs.length})</h2>
@@ -987,6 +915,7 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+      )}
 
       </div>
 
@@ -1000,7 +929,7 @@ export default function DashboardPage() {
       )}
       {onboardingStep === 2 && (
         <OnboardingSpotlight
-          targetRef={onboardingRef2}
+          targetRef={onboardingRef1 as React.RefObject<HTMLElement | null>}
           label={t('dashboard.onboarding.spotlight.step2')}
           skipLabel={t('dashboard.onboarding.skip')}
           onDismiss={dismissOnboarding}
