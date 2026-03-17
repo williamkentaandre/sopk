@@ -33,21 +33,23 @@ export async function PUT(request: NextRequest) {
       );
     }
     const { hl, gl } = validationResult.data;
-    const serpApiKey = typeof body.serpApiKey === 'string' ? body.serpApiKey : undefined;
+    const hasSerpApiKeyField = Object.prototype.hasOwnProperty.call(body, 'serpApiKey');
+    const serpApiKey =
+      body.serpApiKey === null ? null : typeof body.serpApiKey === 'string' ? body.serpApiKey : undefined;
 
     await prisma.user.update({
       where: { id: user.id },
       data: {
         hl,
         gl,
-        ...(serpApiKey !== undefined && { serpApiKey: serpApiKey || null }),
+        ...(hasSerpApiKeyField && { serpApiKey: serpApiKey ? serpApiKey : null }),
       },
     });
 
     return NextResponse.json({
       hl,
       gl,
-      hasSerpApiKey: serpApiKey !== undefined ? !!serpApiKey : !!user.serpApiKey,
+      hasSerpApiKey: hasSerpApiKeyField ? !!serpApiKey : !!user.serpApiKey,
     });
   } catch (e) {
     console.error('Settings update error:', e);
