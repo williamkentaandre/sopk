@@ -126,21 +126,25 @@ export default function HomePage() {
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', textAlign: 'center', marginBottom: '0.5rem' }}>{t('landing.compare.title')}</h2>
           <p style={{ fontSize: '0.95rem', color: '#555', textAlign: 'center', marginBottom: '2rem', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' }}>{t('landing.compare.subtitle')}</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
-            <div style={{ padding: '1.25rem', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#374151', marginBottom: '0.5rem' }}>{t('landing.compare.big.title')}</h3>
-              <p style={{ fontSize: '0.875rem', color: '#555', lineHeight: 1.5, margin: 0 }}>{t('landing.compare.big.desc')}</p>
+            <div style={{ padding: '1.25rem', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca' }}>
+              <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }} title="Expensive">💰</div>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#991b1b', marginBottom: '0.5rem' }}>{t('landing.compare.big.title')}</h3>
+              <p style={{ fontSize: '0.875rem', color: '#7f1d1d', lineHeight: 1.5, margin: 0 }}>{t('landing.compare.big.desc')}</p>
             </div>
-            <div style={{ padding: '1.25rem', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#374151', marginBottom: '0.5rem' }}>{t('landing.compare.gsc.title')}</h3>
-              <p style={{ fontSize: '0.875rem', color: '#555', lineHeight: 1.5, margin: 0 }}>{t('landing.compare.gsc.desc')}</p>
+            <div style={{ padding: '1.25rem', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca' }}>
+              <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }} title="Limited">🔒</div>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#991b1b', marginBottom: '0.5rem' }}>{t('landing.compare.gsc.title')}</h3>
+              <p style={{ fontSize: '0.875rem', color: '#7f1d1d', lineHeight: 1.5, margin: 0 }}>{t('landing.compare.gsc.desc')}</p>
             </div>
-            <div style={{ padding: '1.25rem', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#374151', marginBottom: '0.5rem' }}>{t('landing.compare.api.title')}</h3>
-              <p style={{ fontSize: '0.875rem', color: '#555', lineHeight: 1.5, margin: 0 }}>{t('landing.compare.api.desc')}</p>
+            <div style={{ padding: '1.25rem', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca' }}>
+              <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }} title="Higher cost">📅</div>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#991b1b', marginBottom: '0.5rem' }}>{t('landing.compare.api.title')}</h3>
+              <p style={{ fontSize: '0.875rem', color: '#7f1d1d', lineHeight: 1.5, margin: 0 }}>{t('landing.compare.api.desc')}</p>
             </div>
-            <div style={{ padding: '1.25rem', background: '#eff6ff', borderRadius: 8, border: '1px solid #93c5fd' }}>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e40af', marginBottom: '0.5rem' }}>{t('landing.compare.us.title')}</h3>
-              <p style={{ fontSize: '0.875rem', color: '#1e3a8a', lineHeight: 1.55, margin: 0 }}>{t('landing.compare.us.desc')}</p>
+            <div style={{ padding: '1.25rem', background: '#f0fdf4', borderRadius: 8, border: '1px solid #86efac' }}>
+              <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }} title="Best value">✅</div>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#166534', marginBottom: '0.5rem' }}>{t('landing.compare.us.title')}</h3>
+              <p style={{ fontSize: '0.875rem', color: '#14532d', lineHeight: 1.55, margin: 0 }}>{t('landing.compare.us.desc')}</p>
             </div>
           </div>
         </div>
