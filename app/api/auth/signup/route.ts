@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import crypto from 'crypto';
-import { sendWelcomeEmail, sendEmailVerificationEmail } from '@/lib/email';
+import { sendEmailVerificationEmail } from '@/lib/email';
 
 const TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24h
 function hashToken(token: string): string {
@@ -46,11 +46,6 @@ export async function POST(request: NextRequest) {
 
     const locale = (body.locale === 'fr' ? 'fr' : 'en') as 'en' | 'fr';
 
-    // Send welcome email (fire-and-forget; don't block response)
-    sendWelcomeEmail(user.email, locale).catch((err) =>
-      console.error('[signup] Welcome email failed:', err)
-    );
-
     // Send email verification (token stored hashed)
     const rawToken = crypto.randomBytes(32).toString('hex');
     await prisma.emailVerificationToken.create({
@@ -67,7 +62,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       userId: user.id,
       email: user.email,
-      message: 'Compte créé. Redirigez vers le paiement.',
+      message: 'Verification email sent.',
     });
   } catch (e) {
     console.error('Signup error:', e);

@@ -25,6 +25,7 @@ function SignupForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
 
   // Pré-remplir l'email : URL (?email=...) ou session (ex. déjà connecté avec Google)
   useEffect(() => {
@@ -50,19 +51,10 @@ function SignupForm() {
         setLoading(false);
         return;
       }
-      const signInResult = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      });
-      if (signInResult?.error) {
-        setError(t('auth.accountCreatedLogin'));
-        setLoading(false);
-        return;
-      }
-      window.location.href = '/dashboard';
+      setSent(true);
     } catch {
       setError(t('auth.errorNetwork'));
+    } finally {
       setLoading(false);
     }
   }
@@ -91,6 +83,14 @@ function SignupForm() {
             — {t('auth.orEmailPassword').toLowerCase()} —
           </p>
         </div>
+        {sent ? (
+          <div className="auth-success">
+            {t('auth.verifyEmail.sent')}
+            <p style={{ marginTop: '0.75rem' }}>
+              <Link href="/login">{t('auth.backToLogin')}</Link>
+            </p>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>{t('auth.email')}</label>
@@ -118,6 +118,7 @@ function SignupForm() {
             {loading ? t('auth.submitSignupLoading') : t('auth.submitSignup')}
           </button>
         </form>
+        )}
         <p className="auth-footer">
           {t('auth.hasAccount')} <Link href="/login">{t('auth.submitLogin')}</Link>
         </p>

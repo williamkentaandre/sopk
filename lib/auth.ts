@@ -6,6 +6,8 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 
 const hasGoogle = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+const OAUTH_DUMMY_PASSWORD_HASH =
+  '$2b$10$8EMbFLw2HaCGtr2nEpiYzOiWraafpiIGPk7Ku0Bb6aj5v87aLaEfK';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -34,6 +36,7 @@ export const authOptions: NextAuthOptions = {
           where: { email: credentials.email },
         });
         if (!user) return null;
+        if (!user.emailVerified) return null;
         const ok = await bcrypt.compare(credentials.password, user.passwordHash);
         if (!ok) return null;
         return {
@@ -59,7 +62,9 @@ export const authOptions: NextAuthOptions = {
             where: { email: user.email },
             create: {
               email: user.email,
-              passwordHash: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12),
+              // Avoid expensive bcrypt during OAuth creation (serverless latency).
+              // Credentials sign-in will never use this for OAuth-created users.
+              passwordHash: OAUTH_DUMMY_PASSWORD_HASH,
               stripePaymentStatus: 'pending',
               emailVerified: new Date(),
             },

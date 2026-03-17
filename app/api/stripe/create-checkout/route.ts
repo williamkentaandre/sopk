@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getToken } from 'next-auth/jwt';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,6 +14,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: { code: 401, message: 'Non connecté' } },
         { status: 401 }
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { emailVerified: true },
+    });
+    if (!user?.emailVerified) {
+      return NextResponse.json(
+        { error: { code: 403, message: 'Email non vérifié' } },
+        { status: 403 }
       );
     }
 

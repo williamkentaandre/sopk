@@ -36,6 +36,12 @@ function VerifyEmailInner() {
       }).catch(() => null);
       if (cancelled) return;
       setStatus(res?.ok ? 'ok' : 'error');
+      if (res?.ok) {
+        // After verifying, user can proceed to login then payment
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 900);
+      }
     })();
     return () => {
       cancelled = true;
@@ -50,7 +56,7 @@ function VerifyEmailInner() {
         {status === 'ok' && <div className="auth-success">{t('settings.email.verifySuccess')}</div>}
         {status === 'error' && <div className="auth-error">{t('settings.email.verifyError')}</div>}
         <p className="auth-footer" style={{ marginTop: '1rem' }}>
-          <Link href="/settings">{t('settings.title')}</Link>
+          <Link href="/login">{t('auth.login')}</Link>
         </p>
       </div>
     </div>

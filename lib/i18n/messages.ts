@@ -209,6 +209,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'auth.backToLogin': 'Back to login',
     'auth.loginWithGoogle': 'Continue with Google',
     'auth.orEmailPassword': 'Or email / password',
+    'auth.verifyEmail.sent': 'We sent you a verification email. Click the link to continue.',
 
     // Payment
     'payment.required.title': 'Payment required',
@@ -461,6 +462,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'auth.backToLogin': 'Retour à la connexion',
     'auth.loginWithGoogle': 'Continuer avec Google',
     'auth.orEmailPassword': 'Ou email / mot de passe',
+    'auth.verifyEmail.sent': "Nous t'avons envoyé un email de vérification. Clique sur le lien pour continuer.",
 
     'payment.required.title': 'Paiement requis',
     'payment.required.hello': 'Bonjour',
