@@ -108,6 +108,44 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Pricing */}
+      <section style={{ padding: '4rem 2rem', background: '#fff', borderTop: '1px solid #eee' }}>
+        <div style={{ maxWidth: 560, margin: '0 auto' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', textAlign: 'center', marginBottom: '1.5rem' }}>{t('landing.pricing.title')}</h2>
+          <div style={{ padding: '1.5rem 1.75rem', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+            <p style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111', marginBottom: '0.75rem' }}>{t('landing.pricing.price')}</p>
+            <p style={{ fontSize: '0.95rem', color: '#555', lineHeight: 1.55, marginBottom: '0.75rem' }}>{t('landing.pricing.earlyAdopter')}</p>
+            <p style={{ fontSize: '0.95rem', color: '#555', lineHeight: 1.55, margin: 0 }}>{t('landing.pricing.limit')}</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Compare to competitors */}
+      <section style={{ padding: '4rem 2rem', background: '#fafafa', borderTop: '1px solid #eee' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', textAlign: 'center', marginBottom: '0.5rem' }}>{t('landing.compare.title')}</h2>
+          <p style={{ fontSize: '0.95rem', color: '#555', textAlign: 'center', marginBottom: '2rem', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' }}>{t('landing.compare.subtitle')}</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
+            <div style={{ padding: '1.25rem', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#374151', marginBottom: '0.5rem' }}>{t('landing.compare.big.title')}</h3>
+              <p style={{ fontSize: '0.875rem', color: '#555', lineHeight: 1.5, margin: 0 }}>{t('landing.compare.big.desc')}</p>
+            </div>
+            <div style={{ padding: '1.25rem', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#374151', marginBottom: '0.5rem' }}>{t('landing.compare.gsc.title')}</h3>
+              <p style={{ fontSize: '0.875rem', color: '#555', lineHeight: 1.5, margin: 0 }}>{t('landing.compare.gsc.desc')}</p>
+            </div>
+            <div style={{ padding: '1.25rem', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#374151', marginBottom: '0.5rem' }}>{t('landing.compare.api.title')}</h3>
+              <p style={{ fontSize: '0.875rem', color: '#555', lineHeight: 1.5, margin: 0 }}>{t('landing.compare.api.desc')}</p>
+            </div>
+            <div style={{ padding: '1.25rem', background: '#eff6ff', borderRadius: 8, border: '1px solid #93c5fd' }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e40af', marginBottom: '0.5rem' }}>{t('landing.compare.us.title')}</h3>
+              <p style={{ fontSize: '0.875rem', color: '#1e3a8a', lineHeight: 1.55, margin: 0 }}>{t('landing.compare.us.desc')}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Product preview */}
       <section style={{ padding: '4rem 2rem', background: '#fff', borderTop: '1px solid #eee' }}>
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
@@ -152,6 +190,27 @@ export default function HomePage() {
             </table>
             </div>
             <div style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: '#94a3b8', borderTop: '1px solid #e5e7eb' }}>{t('landing.preview.footer')}</div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section style={{ padding: '4rem 2rem', background: '#fafafa', borderTop: '1px solid #eee' }}>
+        <div style={{ maxWidth: 640, margin: '0 auto' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', textAlign: 'center', marginBottom: '2rem' }}>{t('landing.faq.title')}</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ padding: '1rem 1.25rem', background: '#fff', borderRadius: 8, border: '1px solid #eee' }}>
+              <p style={{ fontWeight: 600, color: '#111', marginBottom: '0.5rem', fontSize: '0.95rem' }}>{t('landing.faq.q1')}</p>
+              <p style={{ fontSize: '0.9rem', color: '#555', lineHeight: 1.55, margin: 0 }}>{t('landing.faq.a1')}</p>
+            </div>
+            <div style={{ padding: '1rem 1.25rem', background: '#fff', borderRadius: 8, border: '1px solid #eee' }}>
+              <p style={{ fontWeight: 600, color: '#111', marginBottom: '0.5rem', fontSize: '0.95rem' }}>{t('landing.faq.q2')}</p>
+              <p style={{ fontSize: '0.9rem', color: '#555', lineHeight: 1.55, margin: 0 }}>{t('landing.faq.a2')}</p>
+            </div>
+            <div style={{ padding: '1rem 1.25rem', background: '#fff', borderRadius: 8, border: '1px solid #eee' }}>
+              <p style={{ fontWeight: 600, color: '#111', marginBottom: '0.5rem', fontSize: '0.95rem' }}>{t('landing.faq.q3')}</p>
+              <p style={{ fontSize: '0.9rem', color: '#555', lineHeight: 1.55, margin: 0 }}>{t('landing.faq.a3')}</p>
+            </div>
           </div>
         </div>
       </section>
