@@ -43,7 +43,7 @@ export async function PUT(request: NextRequest) {
     if (hasSerpApiKeyField && serpApiKey) {
       try {
         await callSerpApi(
-          { keyword: 'google', hl, gl, num: 1 },
+          { keyword: 'google', hl: hl ?? 'fr', gl: gl ?? 'fr', num: 1 },
           { apiKey: serpApiKey }
         );
       } catch (err: any) {
