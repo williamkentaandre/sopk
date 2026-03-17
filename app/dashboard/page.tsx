@@ -40,8 +40,10 @@ export default function DashboardPage() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [newPair, setNewPair] = useState({ keyword: '', url: '' });
   const [multiAddUrl, setMultiAddUrl] = useState('');
-  const [multiAddKeywords, setMultiAddKeywords] = useState<string[]>(['']);
-  const multiKeywordRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const [bulkKeywordText, setBulkKeywordText] = useState('');
+  const [bulkAddedKeywords, setBulkAddedKeywords] = useState<string[]>([]);
+  const bulkTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const tableTopRef = useRef<HTMLDivElement | null>(null);
   const [editingPair, setEditingPair] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<{ keyword: string; url: string }>({ keyword: '', url: '' });
   const [showNoKeyBanner, setShowNoKeyBanner] = useState(false);
@@ -211,48 +213,9 @@ export default function DashboardPage() {
     }
   };
 
-  const addMultiplePairs = async () => {
+  const addBulkKeyword = async (keywordRaw: string) => {
     const url = multiAddUrl.trim();
-    if (!url || url.length < 3) {
-      showToast(t('dashboard.toast.enterUrl'), 'error');
-      return;
-    }
-    const keywords = multiAddKeywords.map((k) => k.trim()).filter(Boolean);
-    const seen = new Set<string>();
-    const toCreate: { keyword: string; url: string }[] = [];
-    for (const kw of keywords) {
-      const key = `${kw.toLowerCase()}|${normalizeUrlForCompare(url)}`;
-      if (seen.has(key) || isDuplicatePair(kw, url)) continue;
-      seen.add(key);
-      toCreate.push({ keyword: kw, url });
-    }
-    if (toCreate.length === 0) {
-      showToast(t('dashboard.toast.noNewKeywords'), 'error');
-      return;
-    }
-    try {
-      const response = await fetch('/api/v1/pairs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pairs: toCreate }),
-      });
-      if (response.ok) {
-        const result = await response.json();
-        setPairs((prev) => [...(result.items || []), ...prev]);
-        setMultiAddKeywords(['']);
-        showToast(`${toCreate.length} ${t('dashboard.toast.pairsAdded')}`, 'success');
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        showToast(`${t('dashboard.toast.error')}: ${errorData.error?.message || t('dashboard.toast.unknownError')}`, 'error');
-      }
-    } catch {
-      showToast(t('dashboard.toast.addError'), 'error');
-    }
-  };
-
-  const addSingleMultiPair = async (index: number) => {
-    const url = multiAddUrl.trim();
-    const keyword = (multiAddKeywords[index] || '').trim();
+    const keyword = (keywordRaw || '').trim();
     if (!url || url.length < 3) {
       showToast(t('dashboard.toast.enterUrl'), 'error');
       return;
@@ -273,18 +236,9 @@ export default function DashboardPage() {
       last_matched_url: null,
     };
     setPairs((prev) => [optimistic, ...prev]);
-
-    setMultiAddKeywords((prev) => {
-      const next = [...prev];
-      next[index] = '';
-      if (index === prev.length - 1) next.push('');
-      return next;
-    });
-
-    // Focus next field right away
+    setBulkAddedKeywords((prev) => [keyword, ...prev].slice(0, 50));
     requestAnimationFrame(() => {
-      const nextIndex = Math.min(index + 1, multiKeywordRefs.current.length - 1);
-      multiKeywordRefs.current[nextIndex]?.focus();
+      tableTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
     try {
@@ -746,7 +700,7 @@ export default function DashboardPage() {
 
         <div className="multi-add-block">
           <p>{t('dashboard.pairs.multiAdd')}</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'flex-start' }}>
             <input
               type="text"
               value={multiAddUrl}
@@ -755,38 +709,63 @@ export default function DashboardPage() {
               title="URL ou domaine (ex: example.com)"
               style={{ minWidth: 220 }}
             />
-            {multiAddKeywords.map((kw, i) => (
-              <input
-                key={i}
-                ref={(el) => {
-                  multiKeywordRefs.current[i] = el;
-                }}
-                type="text"
-                value={kw}
-                onChange={(e) => {
-                  const next = [...multiAddKeywords];
-                  next[i] = e.target.value;
-                  setMultiAddKeywords(next);
-                }}
+            <div style={{ flex: '1 1 320px', minWidth: 260 }}>
+              <textarea
+                ref={bulkTextareaRef}
+                value={bulkKeywordText}
+                onChange={(e) => setBulkKeywordText(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addSingleMultiPair(i);
+                  if (e.key !== 'Enter' || e.shiftKey) return;
+                  e.preventDefault();
+                  const el = e.currentTarget;
+                  const text = el.value || '';
+                  const caret = el.selectionStart ?? text.length;
+                  const lineStart = text.lastIndexOf('\n', Math.max(0, caret - 1)) + 1;
+                  const lineEnd = (() => {
+                    const idx = text.indexOf('\n', caret);
+                    return idx === -1 ? text.length : idx;
+                  })();
+                  const line = text.slice(lineStart, lineEnd).trim();
+                  if (!line) {
+                    // just add a new line
+                    const updated = text.slice(0, caret) + '\n' + text.slice(caret);
+                    setBulkKeywordText(updated);
+                    requestAnimationFrame(() => {
+                      const pos = caret + 1;
+                      bulkTextareaRef.current?.setSelectionRange(pos, pos);
+                    });
+                    return;
                   }
+
+                  addBulkKeyword(line);
+
+                  // remove the line content and keep an empty line to continue typing
+                  const before = text.slice(0, lineStart);
+                  const after = text.slice(lineEnd);
+                  const updated = before + (after.startsWith('\n') ? '' : '\n') + after;
+                  setBulkKeywordText(updated);
+                  requestAnimationFrame(() => {
+                    const pos = before.length + 1;
+                    bulkTextareaRef.current?.focus();
+                    bulkTextareaRef.current?.setSelectionRange(pos, pos);
+                  });
                 }}
                 placeholder={t('dashboard.pairs.placeholderKeyword')}
-                style={{ width: 120 }}
+                rows={3}
+                style={{ width: '100%', resize: 'vertical', minHeight: '3.25rem' }}
               />
-            ))}
-            <button type="button" className="btn btn-secondary" onClick={() => setMultiAddKeywords((prev) => [...prev, ''])} title="+">
-              +
-            </button>
-            <button type="button" className="btn btn-primary" onClick={addMultiplePairs}>
-              {t('dashboard.pairs.addAll')}
-            </button>
+              {bulkAddedKeywords.length > 0 && (
+                <div style={{ marginTop: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  {bulkAddedKeywords.slice(0, 8).map((k, idx) => (
+                    <div key={`${k}-${idx}`}>• {k}</div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
+        <div ref={tableTopRef} />
         <div className="table-container">
           <table className="pairs-table">
             <thead>
