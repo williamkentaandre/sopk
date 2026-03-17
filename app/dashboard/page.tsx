@@ -182,6 +182,7 @@ export default function DashboardPage() {
         const pairsData = await pairsRes.json();
         setSettings({ hl: settingsData.hl ?? 'fr', gl: settingsData.gl ?? 'fr' });
         setHasSerpApiKey(!!settingsData.hasSerpApiKey);
+        setSearchSettingsDone(!!(settingsData.hl && settingsData.gl));
         setPairs(pairsData.items || []);
       } else {
         if (settingsRes.status === 401 || pairsRes.status === 401) {
@@ -190,11 +191,13 @@ export default function DashboardPage() {
         }
         setSettings({ hl: 'fr', gl: 'fr' });
         setHasSerpApiKey(null);
+        setSearchSettingsDone(false);
         setPairs([]);
       }
     } catch {
       setSettings({ hl: 'fr', gl: 'fr' });
       setHasSerpApiKey(null);
+      setSearchSettingsDone(false);
       setPairs([]);
     } finally {
       setLoading(false);

@@ -57,7 +57,7 @@ export default function SettingsPage() {
       .then((data) => {
         if (data) {
           setHasSerpApiKey(!!data.hasSerpApiKey);
-          setSearchSettings({ hl: data.hl ?? 'fr', gl: data.gl ?? 'fr' });
+          setSearchSettings({ hl: data.hl || null, gl: data.gl || null });
         }
       })
       .catch(() => {});
@@ -189,7 +189,7 @@ export default function SettingsPage() {
       const response = await fetch('/api/v1/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hl: null, gl: null, serpApiKey: current.hasSerpApiKey ? undefined : null }),
+        body: JSON.stringify({ hl: null, gl: null, serpApiKey: current.hasSerpApiKey ? current.serpApiKey ?? undefined : null }),
       });
       if (response.ok) {
         if (typeof window !== 'undefined') window.localStorage.removeItem('seo-ranker-search-settings-done');
