@@ -61,6 +61,7 @@ export const authOptions: NextAuthOptions = {
               email: user.email,
               passwordHash: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12),
               stripePaymentStatus: 'pending',
+              emailVerified: new Date(),
             },
             update: {},
           });

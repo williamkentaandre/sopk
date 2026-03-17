@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { sendWelcomeEmail } from '@/lib/email';
+import crypto from 'crypto';
+import { sendWelcomeEmail, sendEmailVerificationEmail } from '@/lib/email';
+
+const TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24h
+function hashToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
 
 const signupSchema = z.object({
   email: z.string().email(),
@@ -38,10 +44,24 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send welcome email (fire-and-forget; don't block response)
     const locale = (body.locale === 'fr' ? 'fr' : 'en') as 'en' | 'fr';
+
+    // Send welcome email (fire-and-forget; don't block response)
     sendWelcomeEmail(user.email, locale).catch((err) =>
       console.error('[signup] Welcome email failed:', err)
+    );
+
+    // Send email verification (token stored hashed)
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    await prisma.emailVerificationToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashToken(rawToken),
+        expiresAt: new Date(Date.now() + TOKEN_EXPIRY_MS),
+      },
+    });
+    sendEmailVerificationEmail(user.email, rawToken, locale).catch((err) =>
+      console.error('[signup] Verification email failed:', err)
     );
 
     return NextResponse.json({

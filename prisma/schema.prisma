@@ -13,6 +13,7 @@ datasource db {
 model User {
   id                   String   @id @default(cuid())
   email                String   @unique
+  emailVerified        DateTime?
   passwordHash         String
   serpApiKey           String?
   stripePaymentStatus   String   @default("pending") // "pending" | "paid"
@@ -22,6 +23,8 @@ model User {
 
   pairs                Pair[]
   passwordResetTokens  PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  emailChangeTokens        EmailChangeToken[]
 }
 
 model PasswordResetToken {
@@ -33,6 +36,32 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
 
   @@index([userId])
+  @@index([tokenHash])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+model EmailChangeToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  newEmail  String
+  tokenHash String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([newEmail])
   @@index([tokenHash])
 }
 

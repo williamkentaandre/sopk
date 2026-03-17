@@ -7,13 +7,16 @@ import { useLocale } from '@/app/LocaleContext';
 import { SerpApiOnboardingIllustration } from '@/app/components/SerpApiOnboardingIllustration';
 
 export default function SettingsPage() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const { data: session } = useSession();
   const [serpApiKey, setSerpApiKey] = useState('');
   const [hasSerpApiKey, setHasSerpApiKey] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showReplaceKey, setShowReplaceKey] = useState(false);
+  const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
+  const [newEmail, setNewEmail] = useState('');
+  const [emailActionLoading, setEmailActionLoading] = useState(false);
 
   const handleRemoveSerpKey = async () => {
     setMessage(null);
@@ -54,6 +57,62 @@ export default function SettingsPage() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.authenticated) setEmailVerified(!!data.emailVerified);
+      })
+      .catch(() => {});
+  }, []);
+
+  const requestEmailVerification = async () => {
+    setMessage(null);
+    setEmailActionLoading(true);
+    try {
+      const res = await fetch('/api/auth/request-email-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locale: locale === 'fr' ? 'fr' : 'en' }),
+      });
+      if (res.ok) {
+        setMessage({ type: 'success', text: t('settings.email.verificationSent') });
+      } else {
+        setMessage({ type: 'error', text: t('settings.email.verificationError') });
+      }
+    } catch {
+      setMessage({ type: 'error', text: t('auth.errorNetwork') });
+    } finally {
+      setEmailActionLoading(false);
+    }
+  };
+
+  const requestEmailChange = async () => {
+    setMessage(null);
+    setEmailActionLoading(true);
+    try {
+      const res = await fetch('/api/auth/request-email-change', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newEmail: newEmail.trim(), locale: locale === 'fr' ? 'fr' : 'en' }),
+      });
+      if (res.ok) {
+        setNewEmail('');
+        setMessage({ type: 'success', text: t('settings.email.changeSent') });
+      } else if (res.status === 403) {
+        setMessage({ type: 'error', text: t('settings.email.mustVerifyFirst') });
+      } else if (res.status === 409) {
+        setMessage({ type: 'error', text: t('settings.email.inUse') });
+      } else {
+        setMessage({ type: 'error', text: t('settings.email.changeError') });
+      }
+    } catch {
+      setMessage({ type: 'error', text: t('auth.errorNetwork') });
+    } finally {
+      setEmailActionLoading(false);
+    }
+  };
 
   const handleSaveSerpKey = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,6 +231,28 @@ export default function SettingsPage() {
           <p>
             <strong>{t('settings.account.email')} :</strong> {session?.user?.email ?? '-'}
           </p>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center', marginTop: '0.25rem', marginBottom: '0.75rem' }}>
+            <span className={emailVerified ? 'status-badge success' : 'status-badge pending'}>
+              {emailVerified ? t('settings.email.verified') : t('settings.email.notVerified')}
+            </span>
+            {!emailVerified && (
+              <button type="button" className="btn btn-secondary" onClick={requestEmailVerification} disabled={emailActionLoading}>
+                {emailActionLoading ? t('settings.email.sending') : t('settings.email.resend')}
+              </button>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <input
+              type="email"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder={t('settings.email.newPlaceholder')}
+              style={{ minHeight: '2.5rem', width: '100%', maxWidth: '22rem' }}
+            />
+            <button type="button" className="btn btn-secondary" onClick={requestEmailChange} disabled={emailActionLoading || !newEmail.trim()}>
+              {emailActionLoading ? t('settings.email.sending') : t('settings.email.change')}
+            </button>
+          </div>
           <p>
             <strong>{t('settings.account.payment')} :</strong>{' '}
             <span className={paid ? 'status-badge success' : 'status-badge pending'}>

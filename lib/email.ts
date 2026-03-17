@@ -76,6 +76,48 @@ const resetContent: Record<EmailLocale, { subject: string; html: (baseUrl: strin
   },
 };
 
+const verifyContent: Record<EmailLocale, { subject: string; html: (verifyUrl: string) => string }> = {
+  en: {
+    subject: 'Verify your email - SEO Ranker',
+    html: (verifyUrl) => `
+      <p>Confirm your email to secure your account.</p>
+      <p><a href="${verifyUrl}">Verify my email</a></p>
+      <p>This link is valid for 24 hours.</p>
+      <p>— SEO Ranker</p>
+    `,
+  },
+  fr: {
+    subject: 'Vérifiez votre email - SEO Ranker',
+    html: (verifyUrl) => `
+      <p>Confirmez votre email pour sécuriser votre compte.</p>
+      <p><a href="${verifyUrl}">Vérifier mon email</a></p>
+      <p>Ce lien est valide 24 heures.</p>
+      <p>— SEO Ranker</p>
+    `,
+  },
+};
+
+const changeEmailContent: Record<EmailLocale, { subject: string; html: (confirmUrl: string) => string }> = {
+  en: {
+    subject: 'Confirm your new email - SEO Ranker',
+    html: (confirmUrl) => `
+      <p>You requested to change your email.</p>
+      <p><a href="${confirmUrl}">Confirm my new email</a></p>
+      <p>This link is valid for 24 hours.</p>
+      <p>— SEO Ranker</p>
+    `,
+  },
+  fr: {
+    subject: 'Confirmez votre nouvel email - SEO Ranker',
+    html: (confirmUrl) => `
+      <p>Vous avez demandé à changer votre email.</p>
+      <p><a href="${confirmUrl}">Confirmer mon nouvel email</a></p>
+      <p>Ce lien est valide 24 heures.</p>
+      <p>— SEO Ranker</p>
+    `,
+  },
+};
+
 /**
  * Sends a welcome email after signup. No-op if RESEND_API_KEY is not set.
  */
@@ -136,6 +178,70 @@ export async function sendPasswordResetEmail(
     return { ok: true };
   } catch (e) {
     console.error('[email] Reset send exception:', e);
+    return { ok: false, error: String(e) };
+  }
+}
+
+export async function sendEmailVerificationEmail(
+  to: string,
+  token: string,
+  locale: EmailLocale = 'en'
+): Promise<{ ok: boolean; error?: string }> {
+  const resend = getResend();
+  if (!resend) {
+    console.error('[email] RESEND_API_KEY is missing. Email verification NOT sent.');
+    return { ok: false, error: 'RESEND_API_KEY not configured' };
+  }
+  const baseUrl = getBaseUrl();
+  const verifyUrl = `${baseUrl}/verify-email?token=${encodeURIComponent(token)}`;
+  const content = verifyContent[locale];
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: [to],
+      subject: content.subject,
+      html: content.html(verifyUrl),
+    });
+    if (error) {
+      console.error('[email] Verify send error:', JSON.stringify(error));
+      return { ok: false, error: error.message };
+    }
+    console.log('[email] Verification email sent to', to, 'id:', data?.id);
+    return { ok: true };
+  } catch (e) {
+    console.error('[email] Verify send exception:', e);
+    return { ok: false, error: String(e) };
+  }
+}
+
+export async function sendEmailChangeConfirmationEmail(
+  to: string,
+  token: string,
+  locale: EmailLocale = 'en'
+): Promise<{ ok: boolean; error?: string }> {
+  const resend = getResend();
+  if (!resend) {
+    console.error('[email] RESEND_API_KEY is missing. Email change confirmation NOT sent.');
+    return { ok: false, error: 'RESEND_API_KEY not configured' };
+  }
+  const baseUrl = getBaseUrl();
+  const confirmUrl = `${baseUrl}/confirm-email-change?token=${encodeURIComponent(token)}`;
+  const content = changeEmailContent[locale];
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: [to],
+      subject: content.subject,
+      html: content.html(confirmUrl),
+    });
+    if (error) {
+      console.error('[email] Email change send error:', JSON.stringify(error));
+      return { ok: false, error: error.message };
+    }
+    console.log('[email] Email change confirmation sent to', to, 'id:', data?.id);
+    return { ok: true };
+  } catch (e) {
+    console.error('[email] Email change send exception:', e);
     return { ok: false, error: String(e) };
   }
 }
