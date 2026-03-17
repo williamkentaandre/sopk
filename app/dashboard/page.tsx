@@ -48,6 +48,7 @@ export default function DashboardPage() {
   const [showNoKeyBanner, setShowNoKeyBanner] = useState(false);
   const [hasSerpApiKey, setHasSerpApiKey] = useState<boolean | null>(null);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [searchSettingsDone, setSearchSettingsDone] = useState(false);
 
   const historyDates = useMemo(() => {
     const set = new Set<string>();
@@ -97,6 +98,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem('seo-ranker-search-settings-done');
+    if (stored === '1') setSearchSettingsDone(true);
   }, []);
 
   const loadData = async () => {
@@ -153,6 +160,10 @@ export default function DashboardPage() {
     } finally {
       setSaving(false);
     }
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('seo-ranker-search-settings-done', '1');
+    }
+    setSearchSettingsDone(true);
   };
 
   const normalizeUrlForCompare = (u: string) => {
@@ -404,6 +415,10 @@ export default function DashboardPage() {
   };
 
   const trackPair = async (pairId: string) => {
+    if (!searchSettingsDone) {
+      showToast(t('dashboard.toast.completeSearchSettings'), 'error');
+      return;
+    }
     setTracking((prev) => new Set(prev).add(pairId));
     try {
       const response = await fetch(`/api/v1/pairs/${pairId}/track`, {
@@ -452,6 +467,10 @@ export default function DashboardPage() {
   };
 
   const trackAll = async () => {
+    if (!searchSettingsDone) {
+      showToast(t('dashboard.toast.completeSearchSettings'), 'error');
+      return;
+    }
     if (!confirm(t('dashboard.confirm.measureAll'))) return;
     setSaving(true);
     try {
@@ -611,56 +630,61 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="settings-card">
-        <h2>{t('dashboard.searchSettings.title')}</h2>
-        <div className="settings-form">
-          <div className="form-group">
-            <label>{t('dashboard.searchSettings.language')}</label>
-            <select value={settings.hl} onChange={(e) => setSettings({ ...settings, hl: e.target.value })}>
-              <option value="fr">{t('opt.french')}</option>
-              <option value="en">{t('opt.english')}</option>
-              <option value="es">{t('opt.spanish')}</option>
-              <option value="de">{t('opt.german')}</option>
-              <option value="it">{t('opt.italian')}</option>
-              <option value="pt">{t('opt.portuguese')}</option>
-              <option value="nl">{t('opt.dutch')}</option>
-              <option value="pl">{t('opt.polish')}</option>
-              <option value="ru">{t('opt.russian')}</option>
-              <option value="ja">{t('opt.japanese')}</option>
-              <option value="zh">{t('opt.chinese')}</option>
-              <option value="ar">{t('opt.arabic')}</option>
-            </select>
+      {!searchSettingsDone && (
+        <div className="settings-card">
+          <h2>{t('dashboard.searchSettings.title')}</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
+            {t('dashboard.searchSettings.helper')}
+          </p>
+          <div className="settings-form">
+            <div className="form-group">
+              <label>{t('dashboard.searchSettings.language')}</label>
+              <select value={settings.hl} onChange={(e) => setSettings({ ...settings, hl: e.target.value })}>
+                <option value="fr">{t('opt.french')}</option>
+                <option value="en">{t('opt.english')}</option>
+                <option value="es">{t('opt.spanish')}</option>
+                <option value="de">{t('opt.german')}</option>
+                <option value="it">{t('opt.italian')}</option>
+                <option value="pt">{t('opt.portuguese')}</option>
+                <option value="nl">{t('opt.dutch')}</option>
+                <option value="pl">{t('opt.polish')}</option>
+                <option value="ru">{t('opt.russian')}</option>
+                <option value="ja">{t('opt.japanese')}</option>
+                <option value="zh">{t('opt.chinese')}</option>
+                <option value="ar">{t('opt.arabic')}</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>{t('dashboard.searchSettings.location')}</label>
+              <select value={settings.gl} onChange={(e) => setSettings({ ...settings, gl: e.target.value })}>
+                <option value="fr">{t('opt.france')}</option>
+                <option value="be">{t('opt.belgium')}</option>
+                <option value="ch">{t('opt.switzerland')}</option>
+                <option value="ca">{t('opt.canada')}</option>
+                <option value="us">{t('opt.unitedStates')}</option>
+                <option value="uk">{t('opt.unitedKingdom')}</option>
+                <option value="de">{t('opt.germany')}</option>
+                <option value="es">{t('opt.spain')}</option>
+                <option value="it">{t('opt.italy')}</option>
+                <option value="pt">{t('opt.portugal')}</option>
+                <option value="nl">{t('opt.netherlands')}</option>
+                <option value="pl">{t('opt.poland')}</option>
+                <option value="ru">{t('opt.russia')}</option>
+                <option value="jp">{t('opt.japan')}</option>
+                <option value="cn">{t('opt.china')}</option>
+                <option value="au">{t('opt.australia')}</option>
+                <option value="br">{t('opt.brazil')}</option>
+                <option value="mx">{t('opt.mexico')}</option>
+                <option value="in">{t('opt.india')}</option>
+                <option value="sg">{t('opt.singapore')}</option>
+              </select>
+            </div>
+            <button className="btn btn-primary" onClick={saveSettings} disabled={saving}>
+              {saving ? <span className="loading" /> : t('dashboard.searchSettings.save')}
+            </button>
           </div>
-          <div className="form-group">
-            <label>{t('dashboard.searchSettings.location')}</label>
-            <select value={settings.gl} onChange={(e) => setSettings({ ...settings, gl: e.target.value })}>
-              <option value="fr">{t('opt.france')}</option>
-              <option value="be">{t('opt.belgium')}</option>
-              <option value="ch">{t('opt.switzerland')}</option>
-              <option value="ca">{t('opt.canada')}</option>
-              <option value="us">{t('opt.unitedStates')}</option>
-              <option value="uk">{t('opt.unitedKingdom')}</option>
-              <option value="de">{t('opt.germany')}</option>
-              <option value="es">{t('opt.spain')}</option>
-              <option value="it">{t('opt.italy')}</option>
-              <option value="pt">{t('opt.portugal')}</option>
-              <option value="nl">{t('opt.netherlands')}</option>
-              <option value="pl">{t('opt.poland')}</option>
-              <option value="ru">{t('opt.russia')}</option>
-              <option value="jp">{t('opt.japan')}</option>
-              <option value="cn">{t('opt.china')}</option>
-              <option value="au">{t('opt.australia')}</option>
-              <option value="br">{t('opt.brazil')}</option>
-              <option value="mx">{t('opt.mexico')}</option>
-              <option value="in">{t('opt.india')}</option>
-              <option value="sg">{t('opt.singapore')}</option>
-            </select>
-          </div>
-          <button className="btn btn-primary" onClick={saveSettings} disabled={saving}>
-            {saving ? <span className="loading" /> : t('dashboard.searchSettings.save')}
-          </button>
         </div>
-      </div>
+      )}
 
       <div className="pairs-card">
         <div className="pairs-header">
@@ -868,49 +892,18 @@ export default function DashboardPage() {
                   </td>
                   <td>
                     <div className="action-buttons">
-                      {editingPair === pair.pair_id ? (
-                        <>
-                          <button
-                            type="button"
-                            className="btn btn-primary"
-                            style={{ padding: '0.25rem 0.75rem', fontSize: '0.85rem' }}
-                            onClick={() => saveEdit(pair.pair_id)}
-                          >
-                            ✓
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-secondary"
-                            style={{ padding: '0.25rem 0.75rem', fontSize: '0.85rem' }}
-                            onClick={cancelEdit}
-                          >
-                            ✕
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            className="btn btn-primary"
-                            style={{ padding: '0.25rem 0.75rem', fontSize: '0.85rem' }}
-                            onClick={() => trackPair(pair.pair_id)}
-                            disabled={tracking.has(pair.pair_id)}
-                          >
-                            {tracking.has(pair.pair_id) ? <span className="loading" /> : '▶'}
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-secondary"
-                            style={{ padding: '0.25rem 0.75rem', fontSize: '0.85rem' }}
-                            onClick={() => startEdit(pair)}
-                          >
-                            ✎
-                          </button>
-                          <button type="button" className="btn btn-danger" onClick={() => deletePair(pair.pair_id)}>
-                            ✕
-                          </button>
-                        </>
-                      )}
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        style={{ padding: '0.25rem 0.75rem', fontSize: '0.85rem' }}
+                        onClick={() => trackPair(pair.pair_id)}
+                        disabled={tracking.has(pair.pair_id)}
+                      >
+                        {tracking.has(pair.pair_id) ? <span className="loading" /> : '▶'}
+                      </button>
+                      <button type="button" className="btn btn-danger" onClick={() => deletePair(pair.pair_id)}>
+                        ✕
+                      </button>
                     </div>
                   </td>
                 </tr>
