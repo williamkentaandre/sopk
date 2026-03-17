@@ -19,7 +19,7 @@ interface OnboardingSpotlightProps {
 }
 
 export function OnboardingSpotlight({ targetRef, label, skipLabel = 'Skip guide', onDismiss }: OnboardingSpotlightProps) {
-  const [box, setBox] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+  const [box, setBox] = useState<{ top: number; left: number; width: number; height: number; bottom: number } | null>(null);
   const [tooltipRect, setTooltipRect] = useState<{ top: number; left: number } | null>(null);
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export function OnboardingSpotlight({ targetRef, label, skipLabel = 'Skip guide'
         return;
       }
       const rect = el.getBoundingClientRect();
-      setBox({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+      setBox({ top: rect.top, left: rect.left, width: rect.width, height: rect.height, bottom: rect.bottom });
       // Tooltip BELOW target so it never blocks the button
       const tooltipHeight = 64;
       let left = rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2;
