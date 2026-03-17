@@ -7,6 +7,7 @@ import ExcelJS from 'exceljs';
 import { getParisDateString } from '@/lib/date-utils';
 import { useLocale } from '@/app/LocaleContext';
 import { SerpApiOnboardingIllustration } from '@/app/components/SerpApiOnboardingIllustration';
+import { OnboardingSpotlight } from '@/app/components/OnboardingSpotlight';
 
 interface Settings {
   hl: string;
@@ -50,6 +51,11 @@ export default function DashboardPage() {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [searchSettingsDone, setSearchSettingsDone] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const onboardingRef1 = useRef<HTMLAnchorElement | null>(null);
+  const onboardingRef2 = useRef<HTMLDivElement | null>(null);
+  const onboardingRef3 = useRef<HTMLDivElement | null>(null);
+  const onboardingRef4 = useRef<HTMLSpanElement | null>(null);
 
   const historyDates = useMemo(() => {
     const set = new Set<string>();
@@ -106,6 +112,31 @@ export default function DashboardPage() {
     const stored = window.localStorage.getItem('seo-ranker-search-settings-done');
     if (stored === '1') setSearchSettingsDone(true);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const dismissed = window.localStorage.getItem('seo-ranker-onboarding-dismissed');
+    if (dismissed === '1') setOnboardingDismissed(true);
+  }, []);
+
+  const dismissOnboarding = () => {
+    setOnboardingDismissed(true);
+    if (typeof window !== 'undefined') window.localStorage.setItem('seo-ranker-onboarding-dismissed', '1');
+  };
+
+  const hasAnyMeasure = useMemo(() => pairs.some((p) => p.last_checked_at != null), [pairs]);
+  const onboardingStep =
+    onboardingDismissed || loading
+      ? 0
+      : !hasSerpApiKey
+        ? 1
+        : !searchSettingsDone
+          ? 2
+          : pairs.length === 0
+            ? 3
+            : !hasAnyMeasure
+              ? 4
+              : 0;
 
   useEffect(() => {
     if (!exportMenuOpen) return;
@@ -597,7 +628,7 @@ export default function DashboardPage() {
             )}
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <Link href="/settings" className="btn btn-secondary">
+            <Link ref={onboardingRef1} href="/settings" className="btn btn-secondary">
               {t('dashboard.settings')}
             </Link>
             <button type="button" className="btn btn-secondary" onClick={() => signOut({ callbackUrl: '/' })}>
@@ -643,7 +674,7 @@ export default function DashboardPage() {
       )}
 
       {!searchSettingsDone && (
-        <div className="settings-card">
+        <div ref={onboardingRef2} className="settings-card">
           <h2>{t('dashboard.searchSettings.title')}</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
             {t('dashboard.searchSettings.helper')}
@@ -739,7 +770,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="multi-add-block">
+        <div ref={onboardingRef3} className="multi-add-block">
           <p>{t('dashboard.pairs.multiAdd')}</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'flex-start' }}>
             <input
@@ -806,9 +837,11 @@ export default function DashboardPage() {
             <tbody>
               <tr>
                 <td colSpan={6} style={{ textAlign: 'right', padding: '0.5rem 0.75rem' }}>
-                  <button type="button" className="btn btn-primary" onClick={trackAll} disabled={saving || pairs.length === 0}>
-                    {t('dashboard.table.measureAll')}
-                  </button>
+                  <span ref={onboardingRef4}>
+                    <button type="button" className="btn btn-primary" onClick={trackAll} disabled={saving || pairs.length === 0}>
+                      {t('dashboard.table.measureAll')}
+                    </button>
+                  </span>
                 </td>
               </tr>
               {pairs.length === 0 && (
@@ -956,6 +989,39 @@ export default function DashboardPage() {
       </div>
 
       </div>
+
+      {onboardingStep === 1 && (
+        <OnboardingSpotlight
+          targetRef={onboardingRef1 as React.RefObject<HTMLElement | null>}
+          label={t('dashboard.onboarding.spotlight.step1')}
+          skipLabel={t('dashboard.onboarding.skip')}
+          onDismiss={dismissOnboarding}
+        />
+      )}
+      {onboardingStep === 2 && (
+        <OnboardingSpotlight
+          targetRef={onboardingRef2}
+          label={t('dashboard.onboarding.spotlight.step2')}
+          skipLabel={t('dashboard.onboarding.skip')}
+          onDismiss={dismissOnboarding}
+        />
+      )}
+      {onboardingStep === 3 && (
+        <OnboardingSpotlight
+          targetRef={onboardingRef3}
+          label={t('dashboard.onboarding.spotlight.step3')}
+          skipLabel={t('dashboard.onboarding.skip')}
+          onDismiss={dismissOnboarding}
+        />
+      )}
+      {onboardingStep === 4 && (
+        <OnboardingSpotlight
+          targetRef={onboardingRef4 as React.RefObject<HTMLElement | null>}
+          label={t('dashboard.onboarding.spotlight.step4')}
+          skipLabel={t('dashboard.onboarding.skip')}
+          onDismiss={dismissOnboarding}
+        />
+      )}
 
       {toasts.map((toast) => (
         <div key={toast.id} className={`toast ${toast.type}`}>

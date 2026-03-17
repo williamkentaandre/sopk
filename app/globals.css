@@ -611,3 +611,9 @@ body {
   outline: none;
   border-color: var(--border-focus);
 }
+
+/* Onboarding spotlight */
+@keyframes onboarding-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
