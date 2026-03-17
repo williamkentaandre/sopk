@@ -179,6 +179,12 @@ export default function DashboardPage() {
   };
 
   const isDuplicatePair = (keyword: string, url: string) =>
+    pairs.some(
+      (p) =>
+        p.keyword.trim().toLowerCase() === keyword.trim().toLowerCase() &&
+        normalizeUrlForCompare(p.url) === normalizeUrlForCompare(url)
+    );
+
   const getDomainBadgeStyle = (domain: string) => {
     // Stable color per domain (hash -> HSL)
     const d = domain.replace(/^www\./, '').replace(/\/$/, '').toLowerCase();
@@ -191,12 +197,6 @@ export default function DashboardPage() {
       color: `hsl(${hue} 45% 28%)`,
     } as const;
   };
-
-    pairs.some(
-      (p) =>
-        p.keyword.trim().toLowerCase() === keyword.trim().toLowerCase() &&
-        normalizeUrlForCompare(p.url) === normalizeUrlForCompare(url)
-    );
 
   const addBulkKeywords = async (keywordsRaw: string[]) => {
     const url = toDomainOnly(multiAddUrl);
