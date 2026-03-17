@@ -35,8 +35,38 @@ export default function HomePage() {
         </Link>
       </section>
 
-      {/* How it works */}
+      {/* Vs Google Search Console */}
       <section style={{ padding: '4rem 2rem', background: '#fff', borderTop: '1px solid #eee' }}>
+        <div style={{ maxWidth: 720, margin: '0 auto' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', textAlign: 'center', marginBottom: '2rem' }}>{t('landing.vsGsc.title')}</h2>
+          <p style={{ fontSize: '1.1rem', color: '#111', fontWeight: 600, textAlign: 'center', lineHeight: 1.5, marginBottom: '2.5rem', padding: '1.25rem 1.5rem', background: '#eff6ff', borderRadius: 8, border: '1px solid #bfdbfe' }}>
+            {t('landing.vsGsc.punch')}
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', alignItems: 'start' }}>
+            <div style={{ padding: '1.25rem', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#991b1b', marginBottom: '0.75rem' }}>{t('landing.vsGsc.gsc.title')}</h3>
+              <p style={{ fontSize: '0.9rem', color: '#555', marginBottom: '0.75rem' }}>{t('landing.vsGsc.gsc.intro')}</p>
+              <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.9rem', color: '#555', lineHeight: 1.6 }}>
+                <li>{t('landing.vsGsc.gsc.bullet1')}</li>
+                <li>{t('landing.vsGsc.gsc.bullet2')}</li>
+                <li>{t('landing.vsGsc.gsc.bullet3')}</li>
+              </ul>
+              <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#991b1b', marginTop: '1rem', marginBottom: 0 }}>➡️ {t('landing.vsGsc.gsc.result')}</p>
+            </div>
+            <div style={{ padding: '1.25rem', background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#166534', marginBottom: '0.75rem' }}>{t('landing.vsGsc.us.title')}</h3>
+              <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.9rem', color: '#555', lineHeight: 1.6 }}>
+                <li style={{ marginBottom: '0.5rem' }}>{t('landing.vsGsc.us.real')}</li>
+                <li style={{ marginBottom: '0.5rem' }}>{t('landing.vsGsc.us.noCookies')}</li>
+                <li>{t('landing.vsGsc.us.competitors')}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section style={{ padding: '4rem 2rem', background: '#fafafa', borderTop: '1px solid #eee' }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', textAlign: 'center', marginBottom: '2.5rem' }}>{t('landing.how.title')}</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2rem' }}>
