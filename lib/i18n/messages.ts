@@ -562,7 +562,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'payment.required.back': 'Retour',
     'payment.required.error': 'Impossible de lancer le paiement. Réessaie ou contacte le support.',
     'payment.required.verifyFirst': 'Ton email doit être vérifié avant le paiement.',
-    'payment.required.noVerify': 'Un email de vérification a été envoyé à l'inscription. Si tu ne l'as pas reçu, tu peux en demander un nouveau ci-dessous.',
+    "payment.required.noVerify": "Un email de vérification a été envoyé à l'inscription. Si tu ne l'as pas reçu, tu peux en demander un nouveau ci-dessous.",
     'payment.required.backHint': 'Retourne à la connexion ou renvoie un email de vérification.',
     'emailInbox.title': 'Vérifie ta boîte mail',
     "emailInbox.desc": "Nous t'avons envoyé un email de vérification. Ouvre-le pour valider ton compte, puis reviens pour continuer.",
