@@ -222,18 +222,23 @@ export async function trackKeyword(
     const organicResults = serpResponse.organic_results || [];
     const matchResult = matchUrlInResults(url, organicResults);
 
-    if (matchResult.matchType === 'exact' && matchResult.position != null) {
-      best = matchResult;
-      break;
-    }
-    if (!best && matchResult.matchType === 'domain' && matchResult.position != null) {
-      best = matchResult;
-      // keep searching for a possible exact match in next pages
-    }
     if (matchResult.position != null) {
-      // found something (domain/exact), don't need more pages
-      best = matchResult;
-      break;
+      // SerpAPI page positions are often 1..PAGE_SIZE, so adjust to absolute rank
+      const absolutePosition =
+        start > 0 && matchResult.position <= PAGE_SIZE ? start + matchResult.position : matchResult.position;
+      const adjusted: MatchResult = { ...matchResult, position: absolutePosition };
+
+      if (adjusted.matchType === 'exact') {
+        best = adjusted;
+        break;
+      }
+      // Keep the first domain match but continue searching for an exact match
+      if (!best && adjusted.matchType === 'domain') {
+        best = adjusted;
+      } else if (adjusted.matchType !== 'none') {
+        best = adjusted;
+        break;
+      }
     }
     // If API returns no organic results, don't keep paging
     if (organicResults.length === 0) break;
