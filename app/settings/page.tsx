@@ -15,6 +15,37 @@ export default function SettingsPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showReplaceKey, setShowReplaceKey] = useState(false);
 
+  const handleRemoveSerpKey = async () => {
+    setMessage(null);
+    setSaving(true);
+    try {
+      const settingsRes = await fetch('/api/v1/settings');
+      const current = await settingsRes.json().catch(() => ({}));
+      const response = await fetch('/api/v1/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hl: current.hl ?? 'fr',
+          gl: current.gl ?? 'fr',
+          serpApiKey: null,
+        }),
+      });
+      if (response.ok) {
+        setHasSerpApiKey(false);
+        setSerpApiKey('');
+        setShowReplaceKey(false);
+        setMessage({ type: 'success', text: t('settings.key.removed') });
+      } else {
+        const err = await response.json().catch(() => ({}));
+        setMessage({ type: 'error', text: err.error?.message || t('dashboard.toast.error') });
+      }
+    } catch {
+      setMessage({ type: 'error', text: t('auth.errorNetwork') });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   useEffect(() => {
     fetch('/api/v1/settings')
       .then((res) => res.ok && res.json())
@@ -98,6 +129,9 @@ export default function SettingsPage() {
             <span style={{ fontSize: '0.9rem', color: '#34a853' }}>{t('settings.key.configured')}</span>
             <button type="button" className="btn btn-secondary" onClick={() => setShowReplaceKey(true)}>
               {t('settings.key.replace')}
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={handleRemoveSerpKey} disabled={saving}>
+              {saving ? t('settings.key.removing') : t('settings.key.remove')}
             </button>
           </div>
         ) : (

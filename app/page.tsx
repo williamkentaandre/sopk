@@ -64,10 +64,6 @@ export default function HomePage() {
         <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', textAlign: 'center', marginBottom: '2.5rem' }}>{t('landing.benefits.title')}</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
           <div style={{ padding: '1.25rem', background: '#fff', borderRadius: 8, border: '1px solid #eee' }}>
-            <div style={{ fontWeight: 700, color: '#111', marginBottom: '0.35rem' }}>{t('landing.benefits.simplicity')}</div>
-            <p style={{ fontSize: '0.9rem', color: '#555', lineHeight: 1.5 }}>{t('landing.benefits.simplicity.desc')}</p>
-          </div>
-          <div style={{ padding: '1.25rem', background: '#fff', borderRadius: 8, border: '1px solid #eee' }}>
             <div style={{ fontWeight: 700, color: '#111', marginBottom: '0.35rem' }}>{t('landing.benefits.speed')}</div>
             <p style={{ fontSize: '0.9rem', color: '#555', lineHeight: 1.5 }}>{t('landing.benefits.speed.desc')}</p>
           </div>

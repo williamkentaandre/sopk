@@ -56,6 +56,43 @@ export default function DashboardPage() {
   const isNoSerpKeyError = (msg: string) =>
     /clé|serp|paramètres/i.test(msg || '');
 
+  const measureCreatedPair = async (created: Pair): Promise<Pair> => {
+    try {
+      const response = await fetch(`/api/v1/pairs/${created.pair_id}/track`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hl: settings.hl, gl: settings.gl }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const errMsg = result?.error?.message || '';
+        if (isNoSerpKeyError(errMsg)) {
+          setShowNoKeyBanner(true);
+          showToast(t('dashboard.toast.addKeyInSettings'), 'error');
+        } else {
+          showToast(`${t('dashboard.toast.error')}: ${errMsg || t('dashboard.toast.unknownError')}`, 'error');
+        }
+        return created;
+      }
+      const day = result.checked_at ? getParisDateString(result.checked_at) : null;
+      const updated: Pair = {
+        ...created,
+        last_position: result.position ?? null,
+        last_checked_at: result.checked_at ?? null,
+        last_matched_url: result.matched_url ?? created.last_matched_url ?? null,
+        history_by_date: day
+          ? { ...(created.history_by_date || {}), [day]: result.position ?? null }
+          : created.history_by_date,
+      };
+      const positionText = result.position != null ? `${t('dashboard.toast.position')}: ${result.position}` : t('dashboard.toast.notFound');
+      showToast(`${t('dashboard.toast.measureDone')} - ${positionText}`, 'success');
+      return updated;
+    } catch {
+      showToast(t('dashboard.toast.serpError'), 'error');
+      return created;
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, []);
@@ -154,7 +191,14 @@ export default function DashboardPage() {
       });
       if (response.ok) {
         const result = await response.json();
-        setPairs((prev) => [...(result.items || []), ...prev]);
+        const createdItems = (result.items || []) as Pair[];
+        const created = createdItems?.[0];
+        if (hasSerpApiKey === true && created?.pair_id) {
+          const measured = await measureCreatedPair(created);
+          setPairs((prev) => [measured, ...prev]);
+        } else {
+          setPairs((prev) => [...createdItems, ...prev]);
+        }
         setNewPair({ keyword: '', url: '' });
         showToast(t('dashboard.toast.pairAdded'), 'success');
       } else {
@@ -196,6 +240,50 @@ export default function DashboardPage() {
         setPairs((prev) => [...(result.items || []), ...prev]);
         setMultiAddKeywords(['']);
         showToast(`${toCreate.length} ${t('dashboard.toast.pairsAdded')}`, 'success');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        showToast(`${t('dashboard.toast.error')}: ${errorData.error?.message || t('dashboard.toast.unknownError')}`, 'error');
+      }
+    } catch {
+      showToast(t('dashboard.toast.addError'), 'error');
+    }
+  };
+
+  const addSingleMultiPair = async (index: number) => {
+    const url = multiAddUrl.trim();
+    const keyword = (multiAddKeywords[index] || '').trim();
+    if (!url || url.length < 3) {
+      showToast(t('dashboard.toast.enterUrl'), 'error');
+      return;
+    }
+    if (!keyword) return;
+    if (isDuplicatePair(keyword, url)) {
+      showToast(t('dashboard.toast.duplicatePair'), 'error');
+      return;
+    }
+    try {
+      const response = await fetch('/api/v1/pairs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pairs: [{ keyword, url }] }),
+      });
+      if (response.ok) {
+        const result = await response.json();
+        const createdItems = (result.items || []) as Pair[];
+        const created = createdItems?.[0];
+        if (hasSerpApiKey === true && created?.pair_id) {
+          const measured = await measureCreatedPair(created);
+          setPairs((prev) => [measured, ...prev]);
+        } else {
+          setPairs((prev) => [...createdItems, ...prev]);
+        }
+        setMultiAddKeywords((prev) => {
+          const next = [...prev];
+          next[index] = '';
+          if (index === prev.length - 1) next.push('');
+          return next;
+        });
+        showToast(t('dashboard.toast.pairAdded'), 'success');
       } else {
         const errorData = await response.json().catch(() => ({}));
         showToast(`${t('dashboard.toast.error')}: ${errorData.error?.message || t('dashboard.toast.unknownError')}`, 'error');
@@ -471,11 +559,13 @@ export default function DashboardPage() {
           <div>
             <h1>{t('dashboard.title')}</h1>
             <p>{t('dashboard.subtitle')}</p>
-            <p style={{ marginTop: '0.35rem', fontSize: '0.9rem' }}>
-              <Link href="/settings">
-                {t('dashboard.settingsKey')}
-              </Link>
-            </p>
+            {hasSerpApiKey !== true && (
+              <p style={{ marginTop: '0.35rem', fontSize: '0.9rem' }}>
+                <Link href="/settings">
+                  {t('dashboard.settingsKey')}
+                </Link>
+              </p>
+            )}
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <Link href="/settings" className="btn btn-secondary">
@@ -635,6 +725,12 @@ export default function DashboardPage() {
                   const next = [...multiAddKeywords];
                   next[i] = e.target.value;
                   setMultiAddKeywords(next);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addSingleMultiPair(i);
+                  }
                 }}
                 placeholder={t('dashboard.pairs.placeholderKeyword')}
                 style={{ width: 120 }}
