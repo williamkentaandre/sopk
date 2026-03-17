@@ -50,6 +50,7 @@ export default function DashboardPage() {
   const [hasSerpApiKey, setHasSerpApiKey] = useState<boolean | null>(null);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [searchSettingsDone, setSearchSettingsDone] = useState(false);
+  const [searchSettingsAlertVisible, setSearchSettingsAlertVisible] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const onboardingRef1 = useRef<HTMLAnchorElement | null>(null);
@@ -113,6 +114,20 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    if (searchSettingsDone || hasSerpApiKey !== true) {
+      setSearchSettingsAlertVisible(false);
+      return;
+    }
+
+    setSearchSettingsAlertVisible(true);
+    const timeout = window.setTimeout(() => {
+      setSearchSettingsAlertVisible(false);
+    }, 7000);
+
+    return () => window.clearTimeout(timeout);
+  }, [searchSettingsDone, hasSerpApiKey]);
+
+  useEffect(() => {
     if (typeof window === 'undefined') return;
     const dismissed = window.localStorage.getItem('seo-ranker-onboarding-dismissed');
     if (dismissed === '1') setOnboardingDismissed(true);
@@ -136,6 +151,14 @@ export default function DashboardPage() {
             : !hasAnyMeasure
               ? 4
               : 0;
+
+  const showSearchSettingsAlert = () => {
+    if (hasSerpApiKey !== true || searchSettingsDone) return;
+    setSearchSettingsAlertVisible(true);
+    window.setTimeout(() => {
+      setSearchSettingsAlertVisible(false);
+    }, 7000);
+  };
 
   useEffect(() => {
     if (!exportMenuOpen) return;
@@ -434,6 +457,7 @@ export default function DashboardPage() {
 
   const trackPair = async (pairId: string) => {
     if (!searchSettingsDone) {
+      showSearchSettingsAlert();
       showToast(t('dashboard.toast.completeSearchSettings'), 'error');
       return;
     }
@@ -486,6 +510,7 @@ export default function DashboardPage() {
 
   const trackAll = async () => {
     if (!searchSettingsDone) {
+      showSearchSettingsAlert();
       showToast(t('dashboard.toast.completeSearchSettings'), 'error');
       return;
     }
@@ -648,11 +673,22 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {hasSerpApiKey === true && !searchSettingsDone && (
-        <div className="settings-card" style={{ marginBottom: '1.5rem' }}>
-          <h2>{t('dashboard.searchSettings.title')}</h2>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '0.75rem' }}>{t('dashboard.searchSettings.goToSettings')}</p>
-          <Link href="/settings" className="btn btn-primary">{t('dashboard.settings')}</Link>
+      {hasSerpApiKey === true && !searchSettingsDone && searchSettingsAlertVisible && (
+        <div
+          className="settings-card"
+          style={{
+            marginBottom: '1.5rem',
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            textAlign: 'center',
+            padding: '2rem 1.25rem',
+          }}
+        >
+          <h2 style={{ color: '#991b1b', marginBottom: '0.75rem' }}>{t('dashboard.searchSettings.title')}</h2>
+          <p style={{ color: '#7f1d1d', fontWeight: 600, fontSize: '1rem', marginBottom: '1rem' }}>
+            {t('dashboard.searchSettings.missing')}
+          </p>
+          <p style={{ color: '#7f1d1d', marginBottom: '0' }}>{t('dashboard.searchSettings.goToSettings')}</p>
         </div>
       )}
 
