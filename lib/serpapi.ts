@@ -5,6 +5,7 @@ export interface SerpApiParams {
   hl: string;
   gl: string;
   num?: number;
+  start?: number;
 }
 
 export interface OrganicResult {
@@ -54,6 +55,9 @@ export async function callSerpApi(
   url.searchParams.append('hl', params.hl);
   url.searchParams.append('gl', params.gl);
   url.searchParams.append('num', String(params.num || 100));
+  if (typeof params.start === 'number') {
+    url.searchParams.append('start', String(params.start));
+  }
   url.searchParams.append('engine', 'google');
   url.searchParams.append('api_key', apiKey);
 
@@ -206,18 +210,42 @@ export async function trackKeyword(
   gl: string,
   options?: SerpApiOptions
 ): Promise<MatchResult & { serpLink?: string }> {
-  const serpResponse = await callSerpApi({ keyword, hl, gl, num: 100 }, options);
-  
-  const organicResults = serpResponse.organic_results || [];
-  const matchResult = matchUrlInResults(url, organicResults);
+  // Some responses effectively contain ~10 results; paginate until we find a match or reach 50.
+  const MAX_RESULTS = 100;
+  const PAGE_SIZE = 10;
+  let lastResponse: SerpApiResponse | null = null;
+  let best: MatchResult | null = null;
+
+  for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
+    const serpResponse = await callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start }, options);
+    lastResponse = serpResponse;
+    const organicResults = serpResponse.organic_results || [];
+    const matchResult = matchUrlInResults(url, organicResults);
+
+    if (matchResult.matchType === 'exact' && matchResult.position != null) {
+      best = matchResult;
+      break;
+    }
+    if (!best && matchResult.matchType === 'domain' && matchResult.position != null) {
+      best = matchResult;
+      // keep searching for a possible exact match in next pages
+    }
+    if (matchResult.position != null) {
+      // found something (domain/exact), don't need more pages
+      best = matchResult;
+      break;
+    }
+    // If API returns no organic results, don't keep paging
+    if (organicResults.length === 0) break;
+  }
 
   // Add SERP viewer link if available
-  const serpLink = serpResponse.search_metadata?.id
-    ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
+  const serpLink = lastResponse?.search_metadata?.id
+    ? `https://serpapi.com/searches/${lastResponse.search_metadata.id}`
     : undefined;
 
   return {
-    ...matchResult,
+    ...(best || { position: null, matchedUrl: null, matchType: 'none' }),
     serpLink,
   };
 }

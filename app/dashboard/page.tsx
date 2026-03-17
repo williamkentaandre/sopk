@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import ExcelJS from 'exceljs';
@@ -41,6 +41,7 @@ export default function DashboardPage() {
   const [newPair, setNewPair] = useState({ keyword: '', url: '' });
   const [multiAddUrl, setMultiAddUrl] = useState('');
   const [multiAddKeywords, setMultiAddKeywords] = useState<string[]>(['']);
+  const multiKeywordRefs = useRef<Array<HTMLInputElement | null>>([]);
   const [editingPair, setEditingPair] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<{ keyword: string; url: string }>({ keyword: '', url: '' });
   const [showNoKeyBanner, setShowNoKeyBanner] = useState(false);
@@ -261,34 +262,72 @@ export default function DashboardPage() {
       showToast(t('dashboard.toast.duplicatePair'), 'error');
       return;
     }
+    // Optimistic UI: add immediately, measure in background
+    const tempId = `temp_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    const optimistic: Pair = {
+      pair_id: tempId,
+      keyword,
+      url,
+      last_position: null,
+      last_checked_at: null,
+      last_matched_url: null,
+    };
+    setPairs((prev) => [optimistic, ...prev]);
+
+    setMultiAddKeywords((prev) => {
+      const next = [...prev];
+      next[index] = '';
+      if (index === prev.length - 1) next.push('');
+      return next;
+    });
+
+    // Focus next field right away
+    requestAnimationFrame(() => {
+      const nextIndex = Math.min(index + 1, multiKeywordRefs.current.length - 1);
+      multiKeywordRefs.current[nextIndex]?.focus();
+    });
+
     try {
       const response = await fetch('/api/v1/pairs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pairs: [{ keyword, url }] }),
       });
-      if (response.ok) {
-        const result = await response.json();
-        const createdItems = (result.items || []) as Pair[];
-        const created = createdItems?.[0];
-        if (hasSerpApiKey === true && created?.pair_id) {
-          const measured = await measureCreatedPair(created);
-          setPairs((prev) => [measured, ...prev]);
-        } else {
-          setPairs((prev) => [...createdItems, ...prev]);
-        }
-        setMultiAddKeywords((prev) => {
-          const next = [...prev];
-          next[index] = '';
-          if (index === prev.length - 1) next.push('');
-          return next;
-        });
-        showToast(t('dashboard.toast.pairAdded'), 'success');
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        showToast(`${t('dashboard.toast.error')}: ${errorData.error?.message || t('dashboard.toast.unknownError')}`, 'error');
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setPairs((prev) => prev.filter((p) => p.pair_id !== tempId));
+        showToast(`${t('dashboard.toast.error')}: ${result?.error?.message || t('dashboard.toast.unknownError')}`, 'error');
+        return;
+      }
+
+      const created = ((result.items || []) as Pair[])[0];
+      if (!created?.pair_id) {
+        setPairs((prev) => prev.filter((p) => p.pair_id !== tempId));
+        showToast(t('dashboard.toast.unknownError'), 'error');
+        return;
+      }
+
+      // Replace optimistic row with real row
+      setPairs((prev) => prev.map((p) => (p.pair_id === tempId ? created : p)));
+      showToast(t('dashboard.toast.pairAdded'), 'success');
+
+      // Measure asynchronously; update in-place when done
+      if (hasSerpApiKey === true) {
+        setTracking((prev) => new Set(prev).add(created.pair_id));
+        measureCreatedPair(created)
+          .then((measured) => {
+            setPairs((prev) => prev.map((p) => (p.pair_id === created.pair_id ? measured : p)));
+          })
+          .finally(() => {
+            setTracking((prev) => {
+              const next = new Set(prev);
+              next.delete(created.pair_id);
+              return next;
+            });
+          });
       }
     } catch {
+      setPairs((prev) => prev.filter((p) => p.pair_id !== tempId));
       showToast(t('dashboard.toast.addError'), 'error');
     }
   };
@@ -719,6 +758,9 @@ export default function DashboardPage() {
             {multiAddKeywords.map((kw, i) => (
               <input
                 key={i}
+                ref={(el) => {
+                  multiKeywordRefs.current[i] = el;
+                }}
                 type="text"
                 value={kw}
                 onChange={(e) => {
