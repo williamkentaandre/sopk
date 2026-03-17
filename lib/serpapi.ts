@@ -18,7 +18,10 @@ export interface SerpApiResponse {
   organic_results?: OrganicResult[];
   search_metadata?: {
     id?: string;
+    status?: string;
+    error?: string;
   };
+  error?: string;
 }
 
 export interface MatchResult {
@@ -65,7 +68,19 @@ export async function callSerpApi(
     throw new Error(`SerpAPI error: ${response.status} ${response.statusText}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as SerpApiResponse;
+
+  // SerpAPI can return HTTP 200 with an error payload
+  const anyError =
+    (typeof data.error === 'string' && data.error) ||
+    (typeof data.search_metadata?.error === 'string' && data.search_metadata?.error) ||
+    (typeof data.search_metadata?.status === 'string' && data.search_metadata?.status !== 'Success'
+      ? `Search status: ${data.search_metadata?.status}`
+      : '');
+  if (anyError) {
+    throw new Error(`SerpAPI error: ${anyError}`);
+  }
+
   return data;
 }
 
