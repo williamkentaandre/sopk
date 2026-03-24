@@ -80,7 +80,8 @@ export async function callSerpApi(
   if (typeof params.start === 'number') {
     url.searchParams.append('start', String(params.start));
   }
-  url.searchParams.append('engine', 'google');
+  // Use Google Light for faster/stabler organic ranking responses.
+  url.searchParams.append('engine', 'google_light');
   // Include omitted/very similar results when Google provides them.
   url.searchParams.append('filter', '0');
   url.searchParams.append('api_key', apiKey);
