@@ -36,6 +36,26 @@ export interface SerpApiOptions {
   apiKey?: string | null;
 }
 
+function normalizeHostname(input: string): string {
+  try {
+    const withProto =
+      input.startsWith('http://') || input.startsWith('https://') ? input : `https://${input}`;
+    const u = new URL(withProto);
+    return u.hostname.replace(/^www\./i, '').toLowerCase();
+  } catch {
+    return input
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/^www\./, '')
+      .split(/[/?#]/)[0];
+  }
+}
+
+function isSameOrSubdomain(host: string, target: string): boolean {
+  return host === target || host.endsWith(`.${target}`);
+}
+
 /**
  * Calls SerpAPI Google Organic search.
  * Uses options.apiKey if provided, otherwise process.env.SERPAPI_API_KEY.
@@ -98,6 +118,7 @@ export function matchUrlInResults(
 ): MatchResult {
   const normalizedTarget = normalizeUrl(targetUrl);
   const targetDomain = extractDomain(targetUrl);
+  const targetHost = normalizeHostname(targetUrl);
   
   // Check if input is just a domain (no protocol = domain tracking)
   // This handles: "example.com", "www.example.com", "example.com/"
@@ -122,13 +143,14 @@ export function matchUrlInResults(
   for (const result of organicResults) {
     const normalizedResult = normalizeUrl(result.link);
     const resultDomain = extractDomain(result.link);
+    const resultHost = normalizeHostname(result.link);
     
     // If target is just a domain, only do domain matching
     if (isDomainOnly) {
       console.log(`  [Pos ${result.position}] Checking:`, result.link);
-      console.log(`    Result Domain: "${resultDomain}" vs Target Domain: "${targetDomain}"`);
+      console.log(`    Result Host: "${resultHost}" vs Target Host: "${targetHost}"`);
       
-      if (resultDomain && resultDomain === targetDomain) {
+      if (resultHost && targetHost && isSameOrSubdomain(resultHost, targetHost)) {
         // Keep track of best (lowest position) domain match
         if (!bestDomainMatch || result.position < bestDomainMatch.position) {
           console.log('  ✅ Domain match at position', result.position);
@@ -154,7 +176,10 @@ export function matchUrlInResults(
       }
 
       // Then fall back to domain match
-      if (resultDomain && resultDomain === targetDomain) {
+      if (
+        (resultHost && targetHost && isSameOrSubdomain(resultHost, targetHost)) ||
+        (resultDomain && resultDomain === targetDomain)
+      ) {
         // Keep track of best (lowest position) domain match
         if (!bestDomainMatch || result.position < bestDomainMatch.position) {
           console.log('  🔗 Domain match at position', result.position);
@@ -210,28 +235,36 @@ export async function trackKeyword(
   gl: string,
   options?: SerpApiOptions
 ): Promise<MatchResult & { serpLink?: string }> {
-  // Build an explicit absolute ranking 1..100, regardless of API "position" field quirks.
+  // Strategy:
+  // 1) Try a direct top-100 query.
+  // 2) If API effectively returns only ~10, fallback to explicit pagination.
   const MAX_RESULTS = 100;
   const PAGE_SIZE = 10;
-  const aggregated: OrganicResult[] = [];
+  let aggregated: OrganicResult[] = [];
   let lastResponse: SerpApiResponse | null = null;
 
-  for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
-    const serpResponse = await callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start }, options);
-    lastResponse = serpResponse;
-    const pageResults = serpResponse.organic_results || [];
-    if (pageResults.length === 0) break;
+  const top100Response = await callSerpApi({ keyword, hl, gl, num: MAX_RESULTS, start: 0 }, options);
+  lastResponse = top100Response;
+  const top100 = top100Response.organic_results || [];
+  aggregated = top100.map((result, idx) => ({ ...result, position: idx + 1 }));
 
-    pageResults.forEach((result, idx) => {
-      // Force absolute rank index (1..100) so detection doesn't stop at 1..10.
-      aggregated.push({
-        ...result,
-        position: start + idx + 1,
+  // Some plans/queries still return ~10 despite num=100; then paginate explicitly.
+  if (aggregated.length <= PAGE_SIZE) {
+    aggregated = [];
+    for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
+      const serpResponse = await callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start }, options);
+      lastResponse = serpResponse;
+      const pageResults = serpResponse.organic_results || [];
+
+      pageResults.forEach((result, idx) => {
+        aggregated.push({
+          ...result,
+          position: start + idx + 1,
+        });
       });
-    });
 
-    // Do not stop on short pages: page 1 can have <10 organic results
-    // while deeper pages still exist (SERP features, ads, etc.).
+      // Continue scanning even on short pages to maximize chances of reaching >10 ranks.
+    }
   }
 
   const matchResult = matchUrlInResults(url, aggregated);
