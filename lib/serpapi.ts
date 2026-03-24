@@ -224,6 +224,7 @@ export async function trackKeyword(
   let lastSerpLink: string | undefined;
   let pagesQueried = 0;
   const startedAt = Date.now();
+  let bestMatch: MatchResult | null = null;
   const toAbsolutePosition = (rawPos: number, start: number, idx: number) => {
     if (Number.isFinite(rawPos) && rawPos > 0) {
       // Case A: page-relative rank (1..10) -> convert with offset.
@@ -255,13 +256,19 @@ export async function trackKeyword(
 
     const pageMatch = matchUrlInResults(url, pageResults);
     if (pageMatch.position != null) {
-      return {
-        ...pageMatch,
-        serpLink: lastSerpLink,
-        pagesQueried,
-        elapsedMs: Date.now() - startedAt,
-      };
+      if (!bestMatch || pageMatch.position < (bestMatch.position ?? Number.POSITIVE_INFINITY)) {
+        bestMatch = pageMatch;
+      }
     }
+  }
+
+  if (bestMatch?.position != null) {
+    return {
+      ...bestMatch,
+      serpLink: lastSerpLink,
+      pagesQueried,
+      elapsedMs: Date.now() - startedAt,
+    };
   }
 
   // Fallback: some SerpAPI plans/queries can behave inconsistently with `start`.
@@ -278,8 +285,14 @@ export async function trackKeyword(
   }));
   const fallbackMatch = matchUrlInResults(url, fallbackResults);
   if (fallbackMatch.position != null) {
+    if (!bestMatch || fallbackMatch.position < (bestMatch.position ?? Number.POSITIVE_INFINITY)) {
+      bestMatch = fallbackMatch;
+    }
+  }
+
+  if (bestMatch?.position != null) {
     return {
-      ...fallbackMatch,
+      ...bestMatch,
       serpLink: lastSerpLink,
       pagesQueried,
       elapsedMs: Date.now() - startedAt,
