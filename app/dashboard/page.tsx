@@ -39,7 +39,7 @@ export default function DashboardPage() {
   const [saving, setSaving] = useState(false);
   const [tracking, setTracking] = useState<Set<string>>(new Set());
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [multiAddUrl, setMultiAddUrl] = useState('');
+  const [bulkUrlText, setBulkUrlText] = useState('');
   const [bulkKeywordText, setBulkKeywordText] = useState('');
   const [bulkAddedKeywords, setBulkAddedKeywords] = useState<string[]>([]);
   const bulkTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -62,6 +62,18 @@ export default function DashboardPage() {
     pairs.forEach((p) => Object.keys(p.history_by_date || {}).forEach((d) => set.add(d)));
     return Array.from(set).sort();
   }, [pairs]);
+
+  const splitLines = (text: string) =>
+    (text || '')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+
+  const keywordPreview = useMemo(() => splitLines(bulkKeywordText), [bulkKeywordText]);
+  const urlPreview = useMemo(
+    () => splitLines(bulkUrlText).map((u) => toDomainOnly(u)).filter((u) => !!u && u.length >= 3),
+    [bulkUrlText]
+  );
 
   const isNoSerpKeyError = (msg: string) =>
     /clé|serp|paramètres/i.test(msg || '');
@@ -217,7 +229,7 @@ export default function DashboardPage() {
     return withoutProtocol.replace(/\/$/, '');
   };
 
-  const toDomainOnly = (input: string) => {
+  function toDomainOnly(input: string) {
     const raw = (input || '').trim();
     if (!raw) return '';
     try {
@@ -231,7 +243,7 @@ export default function DashboardPage() {
         .split(/[/?#]/)[0]
         .toLowerCase();
     }
-  };
+  }
 
   const isDuplicatePair = (keyword: string, url: string) =>
     pairs.some(
@@ -253,9 +265,11 @@ export default function DashboardPage() {
     } as const;
   };
 
-  const addBulkKeywords = async (keywordsRaw: string[]) => {
-    const url = toDomainOnly(multiAddUrl);
-    if (!url || url.length < 3) {
+  const addBulkPairs = async (keywordsRaw: string[], urlsRaw: string[]) => {
+    const urls = urlsRaw
+      .map((u) => toDomainOnly(u))
+      .filter((u) => !!u && u.length >= 3);
+    if (urls.length === 0) {
       showToast(t('dashboard.toast.enterUrl'), 'error');
       return;
     }
@@ -265,10 +279,12 @@ export default function DashboardPage() {
     const seen = new Set<string>();
     const toCreate: { keyword: string; url: string }[] = [];
     for (const kw of keywords) {
-      const key = `${kw.toLowerCase()}|${normalizeUrlForCompare(url)}`;
-      if (seen.has(key) || isDuplicatePair(kw, url)) continue;
-      seen.add(key);
-      toCreate.push({ keyword: kw, url });
+      for (const url of urls) {
+        const key = `${kw.toLowerCase()}|${normalizeUrlForCompare(url)}`;
+        if (seen.has(key) || isDuplicatePair(kw, url)) continue;
+        seen.add(key);
+        toCreate.push({ keyword: kw, url });
+      }
     }
     if (toCreate.length === 0) {
       showToast(t('dashboard.toast.noNewKeywords'), 'error');
@@ -333,10 +349,6 @@ export default function DashboardPage() {
       setPairs((prev) => prev.filter((p) => !tempIds.has(p.pair_id)));
       showToast(t('dashboard.toast.addError'), 'error');
     }
-  };
-
-  const addBulkKeyword = async (keywordRaw: string) => {
-    return addBulkKeywords([keywordRaw]);
   };
 
   const startEdit = (pair: Pair) => {
@@ -739,16 +751,28 @@ export default function DashboardPage() {
 
         <div ref={onboardingRef3} className="multi-add-block">
           <p>{t('dashboard.pairs.multiAdd')}</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'flex-start' }}>
-            <input
-              type="text"
-              value={multiAddUrl}
-              onChange={(e) => setMultiAddUrl(e.target.value)}
-              onBlur={() => setMultiAddUrl((v) => toDomainOnly(v))}
-              placeholder={t('dashboard.pairs.placeholderUrl')}
-              title="URL ou domaine (ex: example.com)"
-              style={{ minWidth: 220 }}
-            />
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+            {t('dashboard.pairs.multiAddHelper')}
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'flex-start' }}>
+            <div style={{ flex: '1 1 320px', minWidth: 260 }}>
+              <textarea
+                value={bulkUrlText}
+                onChange={(e) => setBulkUrlText(e.target.value)}
+                placeholder={t('dashboard.pairs.placeholderUrls')}
+                rows={4}
+                style={{ width: '100%', resize: 'vertical', minHeight: '3.25rem' }}
+              />
+              {urlPreview.length > 0 && (
+                <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                  {urlPreview.slice(0, 12).map((u, idx) => (
+                    <span key={`${u}-${idx}`} style={{ fontSize: '0.8rem', padding: '0.18rem 0.45rem', borderRadius: 999, border: '1px solid #cbd5e1', background: '#fff' }}>
+                      {u}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
             <div style={{ flex: '1 1 320px', minWidth: 260 }}>
               <textarea
                 ref={bulkTextareaRef}
@@ -767,14 +791,14 @@ export default function DashboardPage() {
                     setBulkKeywordText(text + '\n');
                     return;
                   }
-                  addBulkKeywords(lines);
+                  addBulkPairs(lines, splitLines(bulkUrlText));
                   setBulkKeywordText('');
                   requestAnimationFrame(() => {
                     bulkTextareaRef.current?.focus();
                   });
                 }}
-                placeholder={t('dashboard.pairs.placeholderKeyword')}
-                rows={3}
+                placeholder={t('dashboard.pairs.placeholderKeywords')}
+                rows={4}
                 style={{ width: '100%', resize: 'vertical', minHeight: '3.25rem' }}
               />
               {bulkAddedKeywords.length > 0 && (
@@ -785,6 +809,13 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => addBulkPairs(splitLines(bulkKeywordText), splitLines(bulkUrlText))}
+            >
+              {t('dashboard.pairs.addAll')}
+            </button>
           </div>
         </div>
 

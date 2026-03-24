@@ -125,27 +125,35 @@ export default function HomePage() {
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', textAlign: 'center', marginBottom: '0.5rem' }}>{t('landing.compare.title')}</h2>
           <p style={{ fontSize: '0.95rem', color: '#555', textAlign: 'center', marginBottom: '2rem', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' }}>{t('landing.compare.subtitle')}</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
             <div style={{ padding: '1.25rem', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca' }}>
-              <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }} title="Expensive">💰</div>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#991b1b', marginBottom: '0.5rem' }}>{t('landing.compare.big.title')}</h3>
-              <p style={{ fontSize: '0.875rem', color: '#7f1d1d', lineHeight: 1.5, margin: 0 }}>{t('landing.compare.big.desc')}</p>
-            </div>
-            <div style={{ padding: '1.25rem', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca' }}>
-              <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }} title="Limited">🔒</div>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#991b1b', marginBottom: '0.5rem' }}>{t('landing.compare.gsc.title')}</h3>
-              <p style={{ fontSize: '0.875rem', color: '#7f1d1d', lineHeight: 1.5, margin: 0 }}>{t('landing.compare.gsc.desc')}</p>
-            </div>
-            <div style={{ padding: '1.25rem', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca' }}>
-              <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }} title="Higher cost">📅</div>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#991b1b', marginBottom: '0.5rem' }}>{t('landing.compare.api.title')}</h3>
-              <p style={{ fontSize: '0.875rem', color: '#7f1d1d', lineHeight: 1.5, margin: 0 }}>{t('landing.compare.api.desc')}</p>
+              <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }} title="Alternatives">⚠️</div>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#991b1b', marginBottom: '0.5rem' }}>{t('landing.compare.alts.title')}</h3>
+              <p style={{ fontSize: '0.875rem', color: '#7f1d1d', lineHeight: 1.5, margin: 0 }}>{t('landing.compare.alts.desc')}</p>
             </div>
             <div style={{ padding: '1.25rem', background: '#f0fdf4', borderRadius: 8, border: '1px solid #86efac' }}>
               <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }} title="Best value">✅</div>
               <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#166534', marginBottom: '0.5rem' }}>{t('landing.compare.us.title')}</h3>
               <p style={{ fontSize: '0.875rem', color: '#14532d', lineHeight: 1.55, margin: 0 }}>{t('landing.compare.us.desc')}</p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Demo video */}
+      <section style={{ padding: '4rem 2rem', background: '#fff', borderTop: '1px solid #eee' }}>
+        <div style={{ maxWidth: 820, margin: '0 auto' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', textAlign: 'center', marginBottom: '0.5rem' }}>{t('landing.video.title')}</h2>
+          <p style={{ fontSize: '0.95rem', color: '#555', textAlign: 'center', marginBottom: '1.5rem' }}>{t('landing.video.subtitle')}</p>
+          <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', borderRadius: 12, overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
+            <iframe
+              src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+              title="SEO Ranker demo video"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+            />
           </div>
         </div>
       </section>

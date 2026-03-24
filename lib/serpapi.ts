@@ -210,33 +210,17 @@ export async function trackKeyword(
   gl: string,
   options?: SerpApiOptions
 ): Promise<MatchResult & { serpLink?: string }> {
-  // Some responses effectively contain ~10 results; paginate until we find a match or reach 50.
-  const MAX_RESULTS = 100;
-  const PAGE_SIZE = 10;
-  let lastResponse: SerpApiResponse | null = null;
-
-  for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
-    const serpResponse = await callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start }, options);
-    lastResponse = serpResponse;
-    const organicResults = serpResponse.organic_results || [];
-    const matchResult = matchUrlInResults(url, organicResults);
-
-    if (matchResult.position != null) {
-      // SerpAPI page positions are often 1..PAGE_SIZE, so adjust to absolute rank
-      const absolutePosition =
-        start > 0 && matchResult.position <= PAGE_SIZE ? start + matchResult.position : matchResult.position;
-      // Priority rule: only look at page 2+ if page 1 had no match.
-      // Therefore as soon as we find a match on the current page, return it.
-      return { ...matchResult, position: absolutePosition, serpLink: serpResponse.search_metadata?.id ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}` : undefined };
-    }
-    // If API returns no organic results, don't keep paging
-    if (organicResults.length === 0) break;
-  }
-
-  // Add SERP viewer link if available
-  const serpLink = lastResponse?.search_metadata?.id
-    ? `https://serpapi.com/searches/${lastResponse.search_metadata.id}`
+  // Request top 100 directly so rank detection covers positions 1..100.
+  const serpResponse = await callSerpApi({ keyword, hl, gl, num: 100 }, options);
+  const organicResults = serpResponse.organic_results || [];
+  const matchResult = matchUrlInResults(url, organicResults);
+  const serpLink = serpResponse.search_metadata?.id
+    ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
     : undefined;
+
+  if (matchResult.position != null) {
+    return { ...matchResult, serpLink };
+  }
 
   return {
     position: null,
