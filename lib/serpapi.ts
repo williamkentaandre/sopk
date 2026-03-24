@@ -210,17 +210,35 @@ export async function trackKeyword(
   gl: string,
   options?: SerpApiOptions
 ): Promise<MatchResult & { serpLink?: string }> {
-  // Request top 100 directly so rank detection covers positions 1..100.
-  const serpResponse = await callSerpApi({ keyword, hl, gl, num: 100 }, options);
-  const organicResults = serpResponse.organic_results || [];
-  const matchResult = matchUrlInResults(url, organicResults);
-  const serpLink = serpResponse.search_metadata?.id
-    ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
+  // Build an explicit absolute ranking 1..100, regardless of API "position" field quirks.
+  const MAX_RESULTS = 100;
+  const PAGE_SIZE = 10;
+  const aggregated: OrganicResult[] = [];
+  let lastResponse: SerpApiResponse | null = null;
+
+  for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
+    const serpResponse = await callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start }, options);
+    lastResponse = serpResponse;
+    const pageResults = serpResponse.organic_results || [];
+    if (pageResults.length === 0) break;
+
+    pageResults.forEach((result, idx) => {
+      // Force absolute rank index (1..100) so detection doesn't stop at 1..10.
+      aggregated.push({
+        ...result,
+        position: start + idx + 1,
+      });
+    });
+
+    if (pageResults.length < PAGE_SIZE) break;
+  }
+
+  const matchResult = matchUrlInResults(url, aggregated);
+  const serpLink = lastResponse?.search_metadata?.id
+    ? `https://serpapi.com/searches/${lastResponse.search_metadata.id}`
     : undefined;
 
-  if (matchResult.position != null) {
-    return { ...matchResult, serpLink };
-  }
+  if (matchResult.position != null) return { ...matchResult, serpLink };
 
   return {
     position: null,

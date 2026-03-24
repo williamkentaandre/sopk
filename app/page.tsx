@@ -35,6 +35,24 @@ export default function HomePage() {
         </Link>
       </section>
 
+      {/* Demo video */}
+      <section style={{ padding: '4rem 2rem', background: '#fff', borderTop: '1px solid #eee' }}>
+        <div style={{ maxWidth: 820, margin: '0 auto' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', textAlign: 'center', marginBottom: '0.5rem' }}>{t('landing.video.title')}</h2>
+          <p style={{ fontSize: '0.95rem', color: '#555', textAlign: 'center', marginBottom: '1.5rem' }}>{t('landing.video.subtitle')}</p>
+          <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', borderRadius: 12, overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
+            <iframe
+              src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+              title="SEO Ranker demo video"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Vs Google Search Console */}
       <section style={{ padding: '4rem 2rem', background: '#fff', borderTop: '1px solid #eee' }}>
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
@@ -136,24 +154,6 @@ export default function HomePage() {
               <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#166534', marginBottom: '0.5rem' }}>{t('landing.compare.us.title')}</h3>
               <p style={{ fontSize: '0.875rem', color: '#14532d', lineHeight: 1.55, margin: 0 }}>{t('landing.compare.us.desc')}</p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Demo video */}
-      <section style={{ padding: '4rem 2rem', background: '#fff', borderTop: '1px solid #eee' }}>
-        <div style={{ maxWidth: 820, margin: '0 auto' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', textAlign: 'center', marginBottom: '0.5rem' }}>{t('landing.video.title')}</h2>
-          <p style={{ fontSize: '0.95rem', color: '#555', textAlign: 'center', marginBottom: '1.5rem' }}>{t('landing.video.subtitle')}</p>
-          <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', borderRadius: 12, overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
-            <iframe
-              src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-              title="SEO Ranker demo video"
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-            />
           </div>
         </div>
       </section>
