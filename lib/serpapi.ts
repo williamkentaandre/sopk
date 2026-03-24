@@ -6,6 +6,7 @@ export interface SerpApiParams {
   gl: string;
   num?: number;
   start?: number;
+  engine?: 'google_light' | 'google';
 }
 
 export interface OrganicResult {
@@ -80,8 +81,8 @@ export async function callSerpApi(
   if (typeof params.start === 'number') {
     url.searchParams.append('start', String(params.start));
   }
-  // Use Google Light for faster/stabler organic ranking responses.
-  url.searchParams.append('engine', 'google_light');
+  // Use Google Light by default, allow override for fallback strategy.
+  url.searchParams.append('engine', params.engine || 'google_light');
   // Include omitted/very similar results when Google provides them.
   url.searchParams.append('filter', '0');
   url.searchParams.append('api_key', apiKey);
@@ -238,49 +239,53 @@ export async function trackKeyword(
     return start + idx + 1;
   };
 
-  for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
-    const serpResponse = await callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start }, options);
-    pagesQueried += 1;
-    lastSerpLink = serpResponse.search_metadata?.id
-      ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
-      : lastSerpLink;
+  const scanEngine = async (engine: 'google_light' | 'google') => {
+    for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
+      const serpResponse = await callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start, engine }, options);
+      pagesQueried += 1;
+      lastSerpLink = serpResponse.search_metadata?.id
+        ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
+        : lastSerpLink;
 
-    const pageResults = (serpResponse.organic_results || []).map((result, idx) => {
-      const relativePos = Number(result.position);
-      return {
-        ...result,
-        // Normalize mixed SerpAPI rank formats (relative vs absolute).
-        position: toAbsolutePosition(relativePos, start, idx),
-      };
-    });
+      const pageResults = (serpResponse.organic_results || []).map((result, idx) => {
+        const relativePos = Number(result.position);
+        return {
+          ...result,
+          // Normalize mixed SerpAPI rank formats (relative vs absolute).
+          position: toAbsolutePosition(relativePos, start, idx),
+        };
+      });
 
-    const pageMatch = matchUrlInResults(url, pageResults);
-    if (pageMatch.position != null) {
-      return {
-        ...pageMatch,
-        serpLink: lastSerpLink,
-        pagesQueried,
-        elapsedMs: Date.now() - startedAt,
-      };
+      const pageMatch = matchUrlInResults(url, pageResults);
+      if (pageMatch.position != null) {
+        return pageMatch;
+      }
     }
-  }
 
-  // Fallback: some SerpAPI plans/queries can behave inconsistently with `start`.
-  // A final `num=100` request improves detection for positions >10.
-  const fallbackResponse = await callSerpApi({ keyword, hl, gl, num: MAX_RESULTS, start: 0 }, options);
-  pagesQueried += 1;
-  lastSerpLink = fallbackResponse.search_metadata?.id
-    ? `https://serpapi.com/searches/${fallbackResponse.search_metadata.id}`
-    : lastSerpLink;
-  const fallbackResults = (fallbackResponse.organic_results || []).slice(0, MAX_RESULTS).map((result, idx) => ({
-    ...result,
-    // In fallback mode we use a flat top-100 list, so idx+1 is absolute.
-    position: idx + 1,
-  }));
-  const fallbackMatch = matchUrlInResults(url, fallbackResults);
-  if (fallbackMatch.position != null) {
+    const fallbackResponse = await callSerpApi(
+      { keyword, hl, gl, num: MAX_RESULTS, start: 0, engine },
+      options
+    );
+    pagesQueried += 1;
+    lastSerpLink = fallbackResponse.search_metadata?.id
+      ? `https://serpapi.com/searches/${fallbackResponse.search_metadata.id}`
+      : lastSerpLink;
+    const fallbackResults = (fallbackResponse.organic_results || []).slice(0, MAX_RESULTS).map((result, idx) => ({
+      ...result,
+      // In fallback mode we use a flat top-100 list, so idx+1 is absolute.
+      position: idx + 1,
+    }));
+    return matchUrlInResults(url, fallbackResults);
+  };
+
+  // Primary: google_light (faster). Secondary fallback: google (coverage).
+  let match = await scanEngine('google_light');
+  if (match.position == null) {
+    match = await scanEngine('google');
+  }
+  if (match.position != null) {
     return {
-      ...fallbackMatch,
+      ...match,
       serpLink: lastSerpLink,
       pagesQueried,
       elapsedMs: Date.now() - startedAt,
