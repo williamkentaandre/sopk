@@ -235,38 +235,35 @@ export async function trackKeyword(
   gl: string,
   options?: SerpApiOptions
 ): Promise<MatchResult & { serpLink?: string }> {
-  // Always use explicit SerpAPI pagination (start offset) to scan ranks 1..100.
+  // Use explicit SerpAPI pagination (start offset):
+  // page 1 -> page 2 -> ... until a match is found or top 100 is exhausted.
   const MAX_RESULTS = 100;
   const PAGE_SIZE = 10;
-  const aggregated: OrganicResult[] = [];
-  let lastResponse: SerpApiResponse | null = null;
+  let lastSerpLink: string | undefined;
 
   for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
     const serpResponse = await callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start }, options);
-    lastResponse = serpResponse;
-    const pageResults = serpResponse.organic_results || [];
+    lastSerpLink = serpResponse.search_metadata?.id
+      ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
+      : lastSerpLink;
 
-    pageResults.forEach((result, idx) => {
-      aggregated.push({
-        ...result,
-        // Absolute position (1..100), derived from pagination offset.
-        position: start + idx + 1,
-      });
-    });
+    const pageResults = (serpResponse.organic_results || []).map((result, idx) => ({
+      ...result,
+      // Force absolute rank from pagination offset.
+      position: start + idx + 1,
+    }));
+
+    const pageMatch = matchUrlInResults(url, pageResults);
+    if (pageMatch.position != null) {
+      return { ...pageMatch, serpLink: lastSerpLink };
+    }
   }
-
-  const matchResult = matchUrlInResults(url, aggregated);
-  const serpLink = lastResponse?.search_metadata?.id
-    ? `https://serpapi.com/searches/${lastResponse.search_metadata.id}`
-    : undefined;
-
-  if (matchResult.position != null) return { ...matchResult, serpLink };
 
   return {
     position: null,
     matchedUrl: null,
     matchType: 'none',
-    serpLink,
+    serpLink: lastSerpLink,
   };
 }
 
