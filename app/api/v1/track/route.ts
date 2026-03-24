@@ -89,6 +89,8 @@ export async function POST(request: NextRequest) {
         position: matchResult.position,
         checked_at: checkedAt.toISOString(),
         matched_url: matchResult.matchedUrl,
+        pages_queried: matchResult.pagesQueried ?? null,
+        elapsed_ms: matchResult.elapsedMs ?? null,
         error: null,
       };
     } catch (error) {

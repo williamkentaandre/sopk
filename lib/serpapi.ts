@@ -81,6 +81,10 @@ export async function callSerpApi(
     url.searchParams.append('start', String(params.start));
   }
   url.searchParams.append('engine', 'google');
+  // Ask SerpAPI to bypass cached snapshots when possible.
+  url.searchParams.append('no_cache', 'true');
+  // Include omitted/very similar results when Google provides them.
+  url.searchParams.append('filter', '0');
   url.searchParams.append('api_key', apiKey);
 
   const response = await fetch(url.toString(), {
@@ -252,11 +256,14 @@ export async function trackKeyword(
       ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
       : lastSerpLink;
 
-    const pageResults = (serpResponse.organic_results || []).map((result, idx) => ({
-      ...result,
-      // Force absolute rank from pagination offset.
-      position: start + idx + 1,
-    }));
+    const pageResults = (serpResponse.organic_results || []).map((result, idx) => {
+      const rawPosition = Number(result.position);
+      return {
+        ...result,
+        // Prefer absolute position from API when available, otherwise compute from page offset.
+        position: Number.isFinite(rawPosition) && rawPosition > 0 ? rawPosition : start + idx + 1,
+      };
+    });
 
     const pageMatch = matchUrlInResults(url, pageResults);
     if (pageMatch.position != null) {
@@ -267,6 +274,30 @@ export async function trackKeyword(
         elapsedMs: Date.now() - startedAt,
       };
     }
+  }
+
+  // Fallback: some SerpAPI plans/queries can behave inconsistently with `start`.
+  // A final `num=100` request improves detection for positions >10.
+  const fallbackResponse = await callSerpApi({ keyword, hl, gl, num: MAX_RESULTS, start: 0 }, options);
+  pagesQueried += 1;
+  lastSerpLink = fallbackResponse.search_metadata?.id
+    ? `https://serpapi.com/searches/${fallbackResponse.search_metadata.id}`
+    : lastSerpLink;
+  const fallbackResults = (fallbackResponse.organic_results || []).slice(0, MAX_RESULTS).map((result, idx) => {
+    const rawPosition = Number(result.position);
+    return {
+      ...result,
+      position: Number.isFinite(rawPosition) && rawPosition > 0 ? rawPosition : idx + 1,
+    };
+  });
+  const fallbackMatch = matchUrlInResults(url, fallbackResults);
+  if (fallbackMatch.position != null) {
+    return {
+      ...fallbackMatch,
+      serpLink: lastSerpLink,
+      pagesQueried,
+      elapsedMs: Date.now() - startedAt,
+    };
   }
 
   return {

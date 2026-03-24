@@ -107,7 +107,11 @@ export default function DashboardPage() {
           : created.history_by_date,
       };
       const positionText = result.position != null ? `${t('dashboard.toast.position')}: ${result.position}` : t('dashboard.toast.notFound');
-      showToast(`${t('dashboard.toast.measureDone')} - ${positionText}`, 'success');
+      const debugText =
+        result.pages_queried != null
+          ? ` (${result.pages_queried} pages, ${result.elapsed_ms ?? 0} ms)`
+          : '';
+      showToast(`${t('dashboard.toast.measureDone')} - ${positionText}${debugText}`, 'success');
       return updated;
     } catch {
       showToast(t('dashboard.toast.serpError'), 'error');
@@ -502,7 +506,11 @@ export default function DashboardPage() {
           )
         );
         const positionText = result.position != null ? `${t('dashboard.toast.position')}: ${result.position}` : t('dashboard.toast.notFound');
-        showToast(`${t('dashboard.toast.measureDone')} - ${positionText}`, 'success');
+        const debugText =
+          result.pages_queried != null
+            ? ` (${result.pages_queried} pages, ${result.elapsed_ms ?? 0} ms)`
+            : '';
+        showToast(`${t('dashboard.toast.measureDone')} - ${positionText}${debugText}`, 'success');
       } else {
         const errMsg = result.error?.message || '';
         if (isNoSerpKeyError(errMsg)) {
