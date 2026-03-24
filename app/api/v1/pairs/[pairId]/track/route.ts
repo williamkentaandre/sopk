@@ -88,6 +88,8 @@ export async function POST(
     position,
     matched_url: matchResult?.matchedUrl ?? null,
     checked_at: checkedAt.toISOString(),
+    pages_queried: matchResult?.pagesQueried ?? null,
+    elapsed_ms: matchResult?.elapsedMs ?? null,
     error,
   });
 }

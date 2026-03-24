@@ -30,6 +30,8 @@ export interface MatchResult {
   matchedUrl: string | null;
   matchType: 'exact' | 'domain' | 'none';
   serpLink?: string;
+  pagesQueried?: number;
+  elapsedMs?: number;
 }
 
 export interface SerpApiOptions {
@@ -240,11 +242,12 @@ export async function trackKeyword(
   const MAX_RESULTS = 100;
   const PAGE_SIZE = 10;
   let lastSerpLink: string | undefined;
-  let firstPageSignature = '';
-  let repeatedPageCount = 0;
+  let pagesQueried = 0;
+  const startedAt = Date.now();
 
   for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
     const serpResponse = await callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start }, options);
+    pagesQueried += 1;
     lastSerpLink = serpResponse.search_metadata?.id
       ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
       : lastSerpLink;
@@ -255,21 +258,14 @@ export async function trackKeyword(
       position: start + idx + 1,
     }));
 
-    const signature = pageResults.slice(0, 3).map((r) => normalizeUrl(r.link)).join('|');
-    if (start === 0) {
-      firstPageSignature = signature;
-    } else if (signature && signature === firstPageSignature) {
-      repeatedPageCount += 1;
-      if (repeatedPageCount >= 2) {
-        throw new Error(
-          'SerpAPI pagination seems unavailable for this key/query (same page returned for multiple offsets).'
-        );
-      }
-    }
-
     const pageMatch = matchUrlInResults(url, pageResults);
     if (pageMatch.position != null) {
-      return { ...pageMatch, serpLink: lastSerpLink };
+      return {
+        ...pageMatch,
+        serpLink: lastSerpLink,
+        pagesQueried,
+        elapsedMs: Date.now() - startedAt,
+      };
     }
   }
 
@@ -278,6 +274,8 @@ export async function trackKeyword(
     matchedUrl: null,
     matchType: 'none',
     serpLink: lastSerpLink,
+    pagesQueried,
+    elapsedMs: Date.now() - startedAt,
   };
 }
 
