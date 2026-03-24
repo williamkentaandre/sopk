@@ -235,36 +235,24 @@ export async function trackKeyword(
   gl: string,
   options?: SerpApiOptions
 ): Promise<MatchResult & { serpLink?: string }> {
-  // Strategy:
-  // 1) Try a direct top-100 query.
-  // 2) If API effectively returns only ~10, fallback to explicit pagination.
+  // Always use explicit SerpAPI pagination (start offset) to scan ranks 1..100.
   const MAX_RESULTS = 100;
   const PAGE_SIZE = 10;
-  let aggregated: OrganicResult[] = [];
+  const aggregated: OrganicResult[] = [];
   let lastResponse: SerpApiResponse | null = null;
 
-  const top100Response = await callSerpApi({ keyword, hl, gl, num: MAX_RESULTS, start: 0 }, options);
-  lastResponse = top100Response;
-  const top100 = top100Response.organic_results || [];
-  aggregated = top100.map((result, idx) => ({ ...result, position: idx + 1 }));
+  for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
+    const serpResponse = await callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start }, options);
+    lastResponse = serpResponse;
+    const pageResults = serpResponse.organic_results || [];
 
-  // Some plans/queries still return ~10 despite num=100; then paginate explicitly.
-  if (aggregated.length <= PAGE_SIZE) {
-    aggregated = [];
-    for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
-      const serpResponse = await callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start }, options);
-      lastResponse = serpResponse;
-      const pageResults = serpResponse.organic_results || [];
-
-      pageResults.forEach((result, idx) => {
-        aggregated.push({
-          ...result,
-          position: start + idx + 1,
-        });
+    pageResults.forEach((result, idx) => {
+      aggregated.push({
+        ...result,
+        // Absolute position (1..100), derived from pagination offset.
+        position: start + idx + 1,
       });
-
-      // Continue scanning even on short pages to maximize chances of reaching >10 ranks.
-    }
+    });
   }
 
   const matchResult = matchUrlInResults(url, aggregated);
