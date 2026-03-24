@@ -104,9 +104,7 @@ export async function callSerpApi(
   const anyError =
     (typeof data.error === 'string' && data.error) ||
     (typeof data.search_metadata?.error === 'string' && data.search_metadata?.error) ||
-    (typeof data.search_metadata?.status === 'string' && data.search_metadata?.status !== 'Success'
-      ? `Search status: ${data.search_metadata?.status}`
-      : '');
+    '';
   if (anyError) {
     throw new Error(`SerpAPI error: ${anyError}`);
   }
