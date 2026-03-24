@@ -81,8 +81,6 @@ export async function callSerpApi(
     url.searchParams.append('start', String(params.start));
   }
   url.searchParams.append('engine', 'google');
-  // Ask SerpAPI to bypass cached snapshots when possible.
-  url.searchParams.append('no_cache', 'true');
   // Include omitted/very similar results when Google provides them.
   url.searchParams.append('filter', '0');
   url.searchParams.append('api_key', apiKey);
@@ -254,12 +252,18 @@ export async function trackKeyword(
       ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
       : lastSerpLink;
 
-    const pageResults = (serpResponse.organic_results || []).map((result, idx) => ({
-      ...result,
-      // Always force absolute rank from pagination offset.
-      // Example: page 3 (start=20), idx=6 => position 27.
-      position: start + idx + 1,
-    }));
+    const pageResults = (serpResponse.organic_results || []).map((result, idx) => {
+      const relativePos = Number(result.position);
+      return {
+        ...result,
+        // Convert page-relative positions to absolute positions.
+        // Ex: start=20 and relativePos=7 => absolute 27.
+        position:
+          Number.isFinite(relativePos) && relativePos >= 1 && relativePos <= PAGE_SIZE
+            ? start + relativePos
+            : start + idx + 1,
+      };
+    });
 
     const pageMatch = matchUrlInResults(url, pageResults);
     if (pageMatch.position != null) {

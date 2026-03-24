@@ -547,6 +547,7 @@ export default function DashboardPage() {
       });
       if (response.ok) {
         const result = await response.json();
+        const failedCount = Number(result.failed || 0);
         setPairs((prev) =>
           prev.map((pair) => {
             const updated =
@@ -557,6 +558,10 @@ export default function DashboardPage() {
                   normalizeUrlForCompare(r.url || '') === normalizeUrlForCompare(pair.url || '')
               );
             if (updated) {
+              // Keep last known position when the measure failed for this pair.
+              if (updated.error) {
+                return pair;
+              }
               const day = updated.checked_at ? getParisDateString(updated.checked_at) : null;
               return {
                 ...pair,
@@ -571,7 +576,14 @@ export default function DashboardPage() {
             return pair;
           })
         );
-        showToast(t('dashboard.toast.measurementsDone'), 'success');
+        if (failedCount > 0) {
+          showToast(
+            `${t('dashboard.toast.measurementsDone')} (${result.successful || 0} OK, ${failedCount} erreurs)`,
+            'error'
+          );
+        } else {
+          showToast(t('dashboard.toast.measurementsDone'), 'success');
+        }
       } else {
         const errorData = await response.json().catch(() => ({}));
         const errMsg = errorData.error?.message || '';
