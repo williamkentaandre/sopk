@@ -139,9 +139,8 @@ export function matchUrlInResults(
   console.log('  📌 Total Results:', organicResults.length);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
-  let bestDomainMatch: { position: number; url: string } | null = null;
-
-  // Iterate through organic results
+  // Iterate through organic results from top to bottom.
+  // We return the first valid match to preserve ranking order.
   for (const result of organicResults) {
     const normalizedResult = normalizeUrl(result.link);
     const resultDomain = extractDomain(result.link);
@@ -153,16 +152,14 @@ export function matchUrlInResults(
       console.log(`    Result Host: "${resultHost}" vs Target Host: "${targetHost}"`);
       
       if (resultHost && targetHost && isSameOrSubdomain(resultHost, targetHost)) {
-        // Keep track of best (lowest position) domain match
-        if (!bestDomainMatch || result.position < bestDomainMatch.position) {
-          console.log('  ✅ Domain match at position', result.position);
-          console.log('    Result URL:', result.link);
-          console.log('    Result Domain:', resultDomain);
-          bestDomainMatch = {
-            position: result.position,
-            url: result.link,
-          };
-        }
+        console.log('  ✅ Domain match at position', result.position);
+        console.log('    Result URL:', result.link);
+        console.log('    Result Domain:', resultDomain);
+        return {
+          position: result.position,
+          matchedUrl: result.link,
+          matchType: 'domain',
+        };
       }
     } else {
       // For full URLs, try exact match first
@@ -182,33 +179,16 @@ export function matchUrlInResults(
         (resultHost && targetHost && isSameOrSubdomain(resultHost, targetHost)) ||
         (resultDomain && resultDomain === targetDomain)
       ) {
-        // Keep track of best (lowest position) domain match
-        if (!bestDomainMatch || result.position < bestDomainMatch.position) {
-          console.log('  🔗 Domain match at position', result.position);
-          console.log('    Result URL:', result.link);
-          console.log('    Result Domain:', resultDomain);
-          bestDomainMatch = {
-            position: result.position,
-            url: result.link,
-          };
-        }
+        console.log('  🔗 Domain match at position', result.position);
+        console.log('    Result URL:', result.link);
+        console.log('    Result Domain:', resultDomain);
+        return {
+          position: result.position,
+          matchedUrl: result.link,
+          matchType: 'domain',
+        };
       }
     }
-  }
-
-  // Return best domain match if found
-  if (bestDomainMatch) {
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('✅ MATCH FOUND!');
-    console.log('  Type:', isDomainOnly ? 'DOMAIN MATCH' : 'DOMAIN FALLBACK');
-    console.log('  Position:', bestDomainMatch.position);
-    console.log('  Matched URL:', bestDomainMatch.url);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    return {
-      position: bestDomainMatch.position,
-      matchedUrl: bestDomainMatch.url,
-      matchType: 'domain',
-    };
   }
 
   // No match found
@@ -244,6 +224,18 @@ export async function trackKeyword(
   let lastSerpLink: string | undefined;
   let pagesQueried = 0;
   const startedAt = Date.now();
+  const toAbsolutePosition = (rawPos: number, start: number, idx: number) => {
+    if (Number.isFinite(rawPos) && rawPos > 0) {
+      // Case A: page-relative rank (1..10) -> convert with offset.
+      if (rawPos >= 1 && rawPos <= PAGE_SIZE) return start + rawPos;
+      // Case B: already absolute rank in current page window.
+      if (rawPos >= start + 1 && rawPos <= start + PAGE_SIZE) return rawPos;
+      // Case C: absolute rank from API in a broader range.
+      if (rawPos <= MAX_RESULTS) return rawPos;
+    }
+    // Fallback to list order in current page.
+    return start + idx + 1;
+  };
 
   for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
     const serpResponse = await callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start }, options);
@@ -256,12 +248,8 @@ export async function trackKeyword(
       const relativePos = Number(result.position);
       return {
         ...result,
-        // Convert page-relative positions to absolute positions.
-        // Ex: start=20 and relativePos=7 => absolute 27.
-        position:
-          Number.isFinite(relativePos) && relativePos >= 1 && relativePos <= PAGE_SIZE
-            ? start + relativePos
-            : start + idx + 1,
+        // Normalize mixed SerpAPI rank formats (relative vs absolute).
+        position: toAbsolutePosition(relativePos, start, idx),
       };
     });
 
