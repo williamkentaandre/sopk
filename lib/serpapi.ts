@@ -238,6 +238,7 @@ export async function trackKeyword(
     // Fallback to list order in current page.
     return start + idx + 1;
   };
+  const engineErrors: string[] = [];
 
   const scanEngine = async (engine: 'google_light' | 'google') => {
     for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
@@ -279,9 +280,19 @@ export async function trackKeyword(
   };
 
   // Primary: google_light (faster). Secondary fallback: google (coverage).
-  let match = await scanEngine('google_light');
+  // If an engine fails, continue with the next one instead of failing immediately.
+  let match: MatchResult = { position: null, matchedUrl: null, matchType: 'none' };
+  try {
+    match = await scanEngine('google_light');
+  } catch (e) {
+    engineErrors.push(`google_light: ${String(e)}`);
+  }
   if (match.position == null) {
-    match = await scanEngine('google');
+    try {
+      match = await scanEngine('google');
+    } catch (e) {
+      engineErrors.push(`google: ${String(e)}`);
+    }
   }
   if (match.position != null) {
     return {
@@ -290,6 +301,10 @@ export async function trackKeyword(
       pagesQueried,
       elapsedMs: Date.now() - startedAt,
     };
+  }
+
+  if (engineErrors.length > 0) {
+    throw new Error(`All SERP engines failed. ${engineErrors.join(' | ')}`);
   }
 
   return {
