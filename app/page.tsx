@@ -53,36 +53,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Vs Google Search Console */}
-      <section style={{ padding: '4rem 2rem', background: '#fff', borderTop: '1px solid #eee' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', textAlign: 'center', marginBottom: '2rem' }}>{t('landing.vsGsc.title')}</h2>
-          <p style={{ fontSize: '1.1rem', color: '#111', fontWeight: 600, textAlign: 'center', lineHeight: 1.5, marginBottom: '2.5rem', padding: '1.25rem 1.5rem', background: '#eff6ff', borderRadius: 8, border: '1px solid #bfdbfe' }}>
-            {t('landing.vsGsc.punch')}
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', alignItems: 'start' }}>
-            <div style={{ padding: '1.25rem', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#991b1b', marginBottom: '0.75rem' }}>{t('landing.vsGsc.gsc.title')}</h3>
-              <p style={{ fontSize: '0.9rem', color: '#555', marginBottom: '0.75rem' }}>{t('landing.vsGsc.gsc.intro')}</p>
-              <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.9rem', color: '#555', lineHeight: 1.6 }}>
-                <li>{t('landing.vsGsc.gsc.bullet1')}</li>
-                <li>{t('landing.vsGsc.gsc.bullet2')}</li>
-                <li>{t('landing.vsGsc.gsc.bullet3')}</li>
-              </ul>
-              <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#991b1b', marginTop: '1rem', marginBottom: 0 }}>➡️ {t('landing.vsGsc.gsc.result')}</p>
-            </div>
-            <div style={{ padding: '1.25rem', background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#166534', marginBottom: '0.75rem' }}>{t('landing.vsGsc.us.title')}</h3>
-              <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.9rem', color: '#555', lineHeight: 1.6 }}>
-                <li style={{ marginBottom: '0.5rem' }}>{t('landing.vsGsc.us.real')}</li>
-                <li style={{ marginBottom: '0.5rem' }}>{t('landing.vsGsc.us.noCookies')}</li>
-                <li>{t('landing.vsGsc.us.competitors')}</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* How it works */}
       <section style={{ padding: '4rem 2rem', background: '#fafafa', borderTop: '1px solid #eee' }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
@@ -143,13 +113,23 @@ export default function HomePage() {
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', textAlign: 'center', marginBottom: '0.5rem' }}>{t('landing.compare.title')}</h2>
           <p style={{ fontSize: '0.95rem', color: '#555', textAlign: 'center', marginBottom: '2rem', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' }}>{t('landing.compare.subtitle')}</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
             <div style={{ padding: '1.25rem', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca' }}>
-              <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }} title="Alternatives">⚠️</div>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#991b1b', marginBottom: '0.5rem' }}>{t('landing.compare.alts.title')}</h3>
-              <p style={{ fontSize: '0.875rem', color: '#7f1d1d', lineHeight: 1.5, margin: 0 }}>{t('landing.compare.alts.desc')}</p>
+              <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }} title="Suites">⚠️</div>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#991b1b', marginBottom: '0.5rem' }}>{t('landing.compare.big.title')}</h3>
+              <p style={{ fontSize: '0.875rem', color: '#7f1d1d', lineHeight: 1.5, margin: 0 }}>{t('landing.compare.big.desc')}</p>
             </div>
-            <div style={{ padding: '1.25rem', background: '#f0fdf4', borderRadius: 8, border: '1px solid #86efac' }}>
+            <div style={{ padding: '1.25rem', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca' }}>
+              <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }} title="Search Console">⚠️</div>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#991b1b', marginBottom: '0.5rem' }}>{t('landing.compare.gsc.title')}</h3>
+              <p style={{ fontSize: '0.875rem', color: '#7f1d1d', lineHeight: 1.5, margin: 0 }}>{t('landing.compare.gsc.desc')}</p>
+            </div>
+            <div style={{ padding: '1.25rem', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca' }}>
+              <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }} title="API services">⚠️</div>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#991b1b', marginBottom: '0.5rem' }}>{t('landing.compare.api.title')}</h3>
+              <p style={{ fontSize: '0.875rem', color: '#7f1d1d', lineHeight: 1.5, margin: 0 }}>{t('landing.compare.api.desc')}</p>
+            </div>
+            <div style={{ padding: '1.25rem', background: '#f0fdf4', borderRadius: 8, border: '1px solid #86efac', gridColumn: '1 / -1', maxWidth: 720, margin: '0 auto', width: '100%' }}>
               <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }} title="Best value">✅</div>
               <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#166534', marginBottom: '0.5rem' }}>{t('landing.compare.us.title')}</h3>
               <p style={{ fontSize: '0.875rem', color: '#14532d', lineHeight: 1.55, margin: 0 }}>{t('landing.compare.us.desc')}</p>
