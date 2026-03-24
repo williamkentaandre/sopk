@@ -230,7 +230,8 @@ export async function trackKeyword(
       });
     });
 
-    if (pageResults.length < PAGE_SIZE) break;
+    // Do not stop on short pages: page 1 can have <10 organic results
+    // while deeper pages still exist (SERP features, ads, etc.).
   }
 
   const matchResult = matchUrlInResults(url, aggregated);
