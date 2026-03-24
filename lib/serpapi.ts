@@ -256,14 +256,12 @@ export async function trackKeyword(
       ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
       : lastSerpLink;
 
-    const pageResults = (serpResponse.organic_results || []).map((result, idx) => {
-      const rawPosition = Number(result.position);
-      return {
-        ...result,
-        // Prefer absolute position from API when available, otherwise compute from page offset.
-        position: Number.isFinite(rawPosition) && rawPosition > 0 ? rawPosition : start + idx + 1,
-      };
-    });
+    const pageResults = (serpResponse.organic_results || []).map((result, idx) => ({
+      ...result,
+      // Always force absolute rank from pagination offset.
+      // Example: page 3 (start=20), idx=6 => position 27.
+      position: start + idx + 1,
+    }));
 
     const pageMatch = matchUrlInResults(url, pageResults);
     if (pageMatch.position != null) {
@@ -283,13 +281,11 @@ export async function trackKeyword(
   lastSerpLink = fallbackResponse.search_metadata?.id
     ? `https://serpapi.com/searches/${fallbackResponse.search_metadata.id}`
     : lastSerpLink;
-  const fallbackResults = (fallbackResponse.organic_results || []).slice(0, MAX_RESULTS).map((result, idx) => {
-    const rawPosition = Number(result.position);
-    return {
-      ...result,
-      position: Number.isFinite(rawPosition) && rawPosition > 0 ? rawPosition : idx + 1,
-    };
-  });
+  const fallbackResults = (fallbackResponse.organic_results || []).slice(0, MAX_RESULTS).map((result, idx) => ({
+    ...result,
+    // In fallback mode we use a flat top-100 list, so idx+1 is absolute.
+    position: idx + 1,
+  }));
   const fallbackMatch = matchUrlInResults(url, fallbackResults);
   if (fallbackMatch.position != null) {
     return {
