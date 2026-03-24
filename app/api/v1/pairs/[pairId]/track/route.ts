@@ -74,6 +74,13 @@ export async function POST(
     });
   }
 
+  if (error) {
+    return NextResponse.json(
+      { error: { code: 502, message: error } },
+      { status: 502 }
+    );
+  }
+
   return NextResponse.json({
     pair_id: pairId,
     keyword: pair.keyword,
