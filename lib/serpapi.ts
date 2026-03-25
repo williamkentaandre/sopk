@@ -73,7 +73,8 @@ export async function callSerpApi(
     throw new Error('Clé SERP API manquante. Configurez-la dans Paramètres.');
   }
 
-  const url = new URL('https://serpapi.com/search');
+  // Use the JSON endpoint to avoid occasional HTML responses.
+  const url = new URL('https://serpapi.com/search.json');
   url.searchParams.append('q', params.keyword);
   url.searchParams.append('hl', params.hl);
   url.searchParams.append('gl', params.gl);
@@ -94,11 +95,19 @@ export async function callSerpApi(
     },
   });
 
+  const rawText = await response.text();
   if (!response.ok) {
-    throw new Error(`SerpAPI error: ${response.status} ${response.statusText}`);
+    const snippet = rawText?.slice(0, 220)?.trim();
+    throw new Error(`SerpAPI error: ${response.status} ${response.statusText}${snippet ? ` — ${snippet}` : ''}`);
   }
 
-  const data = (await response.json()) as SerpApiResponse;
+  let data: SerpApiResponse;
+  try {
+    data = JSON.parse(rawText) as SerpApiResponse;
+  } catch {
+    const snippet = rawText?.slice(0, 220)?.trim();
+    throw new Error(`SerpAPI error: invalid JSON response${snippet ? ` — ${snippet}` : ''}`);
+  }
 
   // SerpAPI can return HTTP 200 with an error payload
   const anyError =
