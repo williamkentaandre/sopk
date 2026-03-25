@@ -220,8 +220,8 @@ export async function trackKeyword(
   options?: SerpApiOptions
 ): Promise<MatchResult & { serpLink?: string }> {
   // Use explicit SerpAPI pagination (start offset):
-  // page 1 -> page 2 -> ... until a match is found or top 100 is exhausted.
-  const MAX_RESULTS = 100;
+  // page 1 -> page 2 -> stop at top 20 (cost control).
+  const MAX_RESULTS = 20;
   const PAGE_SIZE = 10;
   let lastSerpLink: string | undefined;
   let pagesQueried = 0;
@@ -273,7 +273,7 @@ export async function trackKeyword(
       : lastSerpLink;
     const fallbackResults = (fallbackResponse.organic_results || []).slice(0, MAX_RESULTS).map((result, idx) => ({
       ...result,
-      // In fallback mode we use a flat top-100 list, so idx+1 is absolute.
+      // In fallback mode we use a flat top-N list, so idx+1 is absolute.
       position: idx + 1,
     }));
     return matchUrlInResults(url, fallbackResults);
