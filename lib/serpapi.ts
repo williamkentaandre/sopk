@@ -88,12 +88,16 @@ export async function callSerpApi(
   url.searchParams.append('filter', '0');
   url.searchParams.append('api_key', apiKey);
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
   const response = await fetch(url.toString(), {
     method: 'GET',
     headers: {
       'Accept': 'application/json',
     },
+    signal: controller.signal,
   });
+  clearTimeout(timeout);
 
   const rawText = await response.text();
   if (!response.ok) {
@@ -271,21 +275,7 @@ export async function trackKeyword(
         return pageMatch;
       }
     }
-
-    const fallbackResponse = await callSerpApi(
-      { keyword, hl, gl, num: MAX_RESULTS, start: 0, engine },
-      options
-    );
-    pagesQueried += 1;
-    lastSerpLink = fallbackResponse.search_metadata?.id
-      ? `https://serpapi.com/searches/${fallbackResponse.search_metadata.id}`
-      : lastSerpLink;
-    const fallbackResults = (fallbackResponse.organic_results || []).slice(0, MAX_RESULTS).map((result, idx) => ({
-      ...result,
-      // In fallback mode we use a flat top-N list, so idx+1 is absolute.
-      position: idx + 1,
-    }));
-    return matchUrlInResults(url, fallbackResults);
+    return { position: null, matchedUrl: null, matchType: 'none' as const };
   };
 
   // Primary: google_light (faster). Secondary fallback: google (coverage).
