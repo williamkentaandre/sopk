@@ -11,85 +11,89 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { pairId: string } }
 ) {
-  const user = await getCurrentUser(request);
-  if (!user) {
-    return NextResponse.json({ error: { code: 401, message: 'Non connecté' } }, { status: 401 });
-  }
-  if (!user.serpApiKey) {
-    return NextResponse.json(
-      { error: { code: 400, message: 'Configurez votre clé SERP API dans Paramètres.' } },
-      { status: 400 }
-    );
-  }
-
-  const { pairId } = params;
-  const pair = await prisma.pair.findFirst({
-    where: { id: pairId, userId: user.id },
-  });
-  if (!pair) {
-    return NextResponse.json({ error: { code: 404, message: 'Pair not found' } }, { status: 404 });
-  }
-
-  const body = await request.json().catch(() => ({}));
-  const validationResult = trackSchema.safeParse(body);
-  const hl = validationResult.success ? validationResult.data.hl || 'fr' : 'fr';
-  const gl = validationResult.success ? validationResult.data.gl || 'fr' : 'fr';
-
-  const checkedAt = new Date();
-  let position: number | null = null;
-  let error: string | null = null;
-  let matchResult: Awaited<ReturnType<typeof trackKeyword>> | null = null;
-
   try {
-    matchResult = await trackKeyword(pair.keyword, pair.url, hl, gl, {
-      apiKey: user.serpApiKey,
+    const user = await getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json({ error: { code: 401, message: 'Non connecté' } }, { status: 401 });
+    }
+    if (!user.serpApiKey) {
+      return NextResponse.json(
+        { error: { code: 400, message: 'Configurez votre clé SERP API dans Paramètres.' } },
+        { status: 400 }
+      );
+    }
+
+    const { pairId } = params;
+    const pair = await prisma.pair.findFirst({
+      where: { id: pairId, userId: user.id },
     });
-    position = matchResult.position;
-  } catch (e) {
-    error = String(e);
-  }
+    if (!pair) {
+      return NextResponse.json({ error: { code: 404, message: 'Pair not found' } }, { status: 404 });
+    }
 
-  // Never erase a previously known position on measurement failure.
-  await prisma.pair.update({
-    where: { id: pairId },
-    data: {
-      ...(error ? {} : { lastPosition: position }),
-      lastCheckedAt: checkedAt,
-      ...(error ? {} : { lastMatchedUrl: matchResult?.matchedUrl ?? null }),
-    },
-  });
+    const body = await request.json().catch(() => ({}));
+    const validationResult = trackSchema.safeParse(body);
+    const hl = validationResult.success ? validationResult.data.hl || 'fr' : 'fr';
+    const gl = validationResult.success ? validationResult.data.gl || 'fr' : 'fr';
 
-  // Always store the measurement attempt for troubleshooting, even when not found or failing.
-  await prisma.pairHistory.create({
-    data: {
-      pairId,
-      checkedAt,
+    const checkedAt = new Date();
+    let position: number | null = null;
+    let error: string | null = null;
+    let matchResult: Awaited<ReturnType<typeof trackKeyword>> | null = null;
+
+    try {
+      matchResult = await trackKeyword(pair.keyword, pair.url, hl, gl, {
+        apiKey: user.serpApiKey,
+      });
+      position = matchResult.position;
+    } catch (e) {
+      error = String(e);
+    }
+
+    // Never erase a previously known position on measurement failure.
+    await prisma.pair.update({
+      where: { id: pairId },
+      data: {
+        ...(error ? {} : { lastPosition: position }),
+        lastCheckedAt: checkedAt,
+        ...(error ? {} : { lastMatchedUrl: matchResult?.matchedUrl ?? null }),
+      },
+    });
+
+    // Always store the measurement attempt for troubleshooting, even when not found or failing.
+    await prisma.pairHistory.create({
+      data: {
+        pairId,
+        checkedAt,
+        position,
+        matchedUrl: matchResult?.matchedUrl ?? null,
+        matchType: matchResult?.matchType ?? null,
+        serpLink: matchResult?.serpLink ?? null,
+        hl,
+        gl,
+        error: error ?? null,
+      },
+    });
+
+    if (error) {
+      return NextResponse.json({ error: { code: 502, message: error } }, { status: 502 });
+    }
+
+    return NextResponse.json({
+      pair_id: pairId,
+      keyword: pair.keyword,
+      url: pair.rawUrl,
       position,
-      matchedUrl: matchResult?.matchedUrl ?? null,
-      matchType: matchResult?.matchType ?? null,
-      serpLink: matchResult?.serpLink ?? null,
-      hl,
-      gl,
-      error: error ?? null,
-    },
-  });
-
-  if (error) {
+      matched_url: matchResult?.matchedUrl ?? null,
+      checked_at: checkedAt.toISOString(),
+      pages_queried: matchResult?.pagesQueried ?? null,
+      elapsed_ms: matchResult?.elapsedMs ?? null,
+      error,
+    });
+  } catch (e) {
     return NextResponse.json(
-      { error: { code: 502, message: error } },
-      { status: 502 }
+      { error: { code: 500, message: `Internal error: ${String(e)}` } },
+      { status: 500 }
     );
   }
-
-  return NextResponse.json({
-    pair_id: pairId,
-    keyword: pair.keyword,
-    url: pair.rawUrl,
-    position,
-    matched_url: matchResult?.matchedUrl ?? null,
-    checked_at: checkedAt.toISOString(),
-    pages_queried: matchResult?.pagesQueried ?? null,
-    elapsed_ms: matchResult?.elapsedMs ?? null,
-    error,
-  });
 }
