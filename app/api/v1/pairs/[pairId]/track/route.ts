@@ -49,30 +49,30 @@ export async function POST(
     error = String(e);
   }
 
+  // Never erase a previously known position on measurement failure.
   await prisma.pair.update({
     where: { id: pairId },
     data: {
-      lastPosition: position,
+      ...(error ? {} : { lastPosition: position }),
       lastCheckedAt: checkedAt,
-      lastMatchedUrl: matchResult?.matchedUrl ?? null,
+      ...(error ? {} : { lastMatchedUrl: matchResult?.matchedUrl ?? null }),
     },
   });
 
-  if (position != null) {
-    await prisma.pairHistory.create({
-      data: {
-        pairId,
-        checkedAt,
-        position,
-        matchedUrl: matchResult?.matchedUrl ?? null,
-        matchType: matchResult?.matchType ?? null,
-        serpLink: matchResult?.serpLink ?? null,
-        hl,
-        gl,
-        error: error ?? null,
-      },
-    });
-  }
+  // Always store the measurement attempt for troubleshooting, even when not found or failing.
+  await prisma.pairHistory.create({
+    data: {
+      pairId,
+      checkedAt,
+      position,
+      matchedUrl: matchResult?.matchedUrl ?? null,
+      matchType: matchResult?.matchType ?? null,
+      serpLink: matchResult?.serpLink ?? null,
+      hl,
+      gl,
+      error: error ?? null,
+    },
+  });
 
   if (error) {
     return NextResponse.json(

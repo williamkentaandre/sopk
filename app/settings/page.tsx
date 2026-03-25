@@ -19,6 +19,7 @@ export default function SettingsPage() {
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
   const [newEmail, setNewEmail] = useState('');
   const [emailActionLoading, setEmailActionLoading] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
 
   const handleRemoveSerpKey = async () => {
     setMessage(null);
@@ -139,6 +140,7 @@ export default function SettingsPage() {
         setHasSerpApiKey(!!serpApiKey.trim());
         setSerpApiKey('');
         setShowReplaceKey(false);
+        setLastSavedAt(Date.now());
         setMessage({ type: 'success', text: t('settings.key.saved') });
       } else {
         const err = await response.json().catch(() => ({}));
@@ -168,6 +170,7 @@ export default function SettingsPage() {
           if (configured) window.localStorage.setItem('seo-ranker-search-settings-done', '1');
           else window.localStorage.removeItem('seo-ranker-search-settings-done');
         }
+        setLastSavedAt(Date.now());
         setMessage({ type: 'success', text: t('dashboard.toast.settingsSaved') });
       } else {
         const err = await response.json().catch(() => ({}));
@@ -194,6 +197,7 @@ export default function SettingsPage() {
       if (response.ok) {
         if (typeof window !== 'undefined') window.localStorage.removeItem('seo-ranker-search-settings-done');
         setSearchSettings({ hl: null, gl: null });
+        setLastSavedAt(Date.now());
         setMessage({ type: 'success', text: t('dashboard.searchSettings.removed') });
       } else {
         const err = await response.json().catch(() => ({}));
@@ -218,6 +222,11 @@ export default function SettingsPage() {
           <div style={{ flex: 1 }}>
             <h1>{t('settings.title')}</h1>
             <p>{t('settings.subtitle')}</p>
+            {lastSavedAt && (
+              <p style={{ marginTop: '0.25rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                Dernière sauvegarde : {new Date(lastSavedAt).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-GB')}
+              </p>
+            )}
           </div>
         </div>
 

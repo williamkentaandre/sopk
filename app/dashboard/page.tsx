@@ -7,7 +7,6 @@ import ExcelJS from 'exceljs';
 import { getParisDateString } from '@/lib/date-utils';
 import { useLocale } from '@/app/LocaleContext';
 import { SerpApiOnboardingIllustration } from '@/app/components/SerpApiOnboardingIllustration';
-import { OnboardingSpotlight } from '@/app/components/OnboardingSpotlight';
 
 interface Settings {
   hl: string;
@@ -51,11 +50,8 @@ export default function DashboardPage() {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [searchSettingsDone, setSearchSettingsDone] = useState(false);
   const [searchSettingsAlertVisible, setSearchSettingsAlertVisible] = useState(false);
+  const [measureAllProgress, setMeasureAllProgress] = useState<{ done: number; total: number; startedAt: number } | null>(null);
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
-  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
-  const onboardingRef1 = useRef<HTMLAnchorElement | null>(null);
-  const onboardingRef3 = useRef<HTMLDivElement | null>(null);
-  const onboardingRef4 = useRef<HTMLSpanElement | null>(null);
 
   const historyDates = useMemo(() => {
     const set = new Set<string>();
@@ -77,6 +73,31 @@ export default function DashboardPage() {
 
   const isNoSerpKeyError = (msg: string) =>
     /clé|serp|paramètres/i.test(msg || '');
+  const isQuotaOrRateLimitError = (msg: string) =>
+    /429|rate|quota|limit|too many/i.test(msg || '');
+  const showActionableError = (errMsg: string) => {
+    const msg = errMsg || t('dashboard.toast.unknownError');
+    if (isNoSerpKeyError(msg)) {
+      setShowNoKeyBanner(true);
+      showToast(t('dashboard.toast.addKeyInSettings'), 'error');
+      return;
+    }
+    if (!searchSettingsDone) {
+      showSearchSettingsAlert();
+      showToast(t('dashboard.toast.completeSearchSettings'), 'error');
+      return;
+    }
+    if (isQuotaOrRateLimitError(msg)) {
+      showToast(`${t('dashboard.toast.error')}: quota/rate limit — réessaie dans 1 min`, 'error');
+      return;
+    }
+    showToast(`${t('dashboard.toast.error')}: ${msg}`, 'error');
+  };
+
+  const displayPosition = (pos: number | null) => {
+    if (pos == null) return '> 20';
+    return String(pos);
+  };
 
   const measureCreatedPair = async (created: Pair): Promise<Pair> => {
     try {
@@ -87,13 +108,7 @@ export default function DashboardPage() {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const errMsg = result?.error?.message || '';
-        if (isNoSerpKeyError(errMsg)) {
-          setShowNoKeyBanner(true);
-          showToast(t('dashboard.toast.addKeyInSettings'), 'error');
-        } else {
-          showToast(`${t('dashboard.toast.error')}: ${errMsg || t('dashboard.toast.unknownError')}`, 'error');
-        }
+        showActionableError(result?.error?.message || '');
         return created;
       }
       const day = result.checked_at ? getParisDateString(result.checked_at) : null;
@@ -142,31 +157,6 @@ export default function DashboardPage() {
 
     return () => window.clearTimeout(timeout);
   }, [searchSettingsDone, hasSerpApiKey]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const dismissed = window.localStorage.getItem('seo-ranker-onboarding-dismissed');
-    if (dismissed === '1') setOnboardingDismissed(true);
-  }, []);
-
-  const dismissOnboarding = () => {
-    setOnboardingDismissed(true);
-    if (typeof window !== 'undefined') window.localStorage.setItem('seo-ranker-onboarding-dismissed', '1');
-  };
-
-  const hasAnyMeasure = useMemo(() => pairs.some((p) => p.last_checked_at != null), [pairs]);
-  const onboardingStep =
-    onboardingDismissed || loading
-      ? 0
-      : !hasSerpApiKey
-        ? 1
-        : !searchSettingsDone
-          ? 2
-          : pairs.length === 0
-            ? 3
-            : !hasAnyMeasure
-              ? 4
-              : 0;
 
   const showSearchSettingsAlert = () => {
     if (hasSerpApiKey !== true || searchSettingsDone) return;
@@ -512,13 +502,7 @@ export default function DashboardPage() {
             : '';
         showToast(`${t('dashboard.toast.measureDone')} - ${positionText}${debugText}`, 'success');
       } else {
-        const errMsg = result.error?.message || '';
-        if (isNoSerpKeyError(errMsg)) {
-          setShowNoKeyBanner(true);
-          showToast(t('dashboard.toast.addKeyInSettings'), 'error');
-        } else {
-          showToast(`${t('dashboard.toast.error')}: ${errMsg || t('dashboard.toast.unknownError')}`, 'error');
-        }
+        showActionableError(result.error?.message || '');
       }
     } catch {
       showToast(t('dashboard.toast.serpError'), 'error');
@@ -539,6 +523,7 @@ export default function DashboardPage() {
     }
     if (!confirm(t('dashboard.confirm.measureAll'))) return;
     setSaving(true);
+    setMeasureAllProgress({ done: 0, total: pairs.length, startedAt: Date.now() });
     try {
       const response = await fetch('/api/v1/track', {
         method: 'POST',
@@ -547,6 +532,8 @@ export default function DashboardPage() {
       });
       if (response.ok) {
         const result = await response.json();
+        const total = Number(result.total || pairs.length || 0);
+        setMeasureAllProgress((p) => (p ? { ...p, total, done: total } : { done: total, total, startedAt: Date.now() }));
         const failedCount = Number(result.failed || 0);
         setPairs((prev) =>
           prev.map((pair) => {
@@ -586,18 +573,13 @@ export default function DashboardPage() {
         }
       } else {
         const errorData = await response.json().catch(() => ({}));
-        const errMsg = errorData.error?.message || '';
-        if (isNoSerpKeyError(errMsg)) {
-          setShowNoKeyBanner(true);
-          showToast(t('dashboard.toast.addKeyInSettings'), 'error');
-        } else {
-          showToast(`${t('dashboard.toast.error')}: ${errMsg || t('dashboard.toast.unknownError')}`, 'error');
-        }
+        showActionableError(errorData.error?.message || '');
       }
     } catch {
       showToast(t('dashboard.toast.serpError'), 'error');
     } finally {
       setSaving(false);
+      window.setTimeout(() => setMeasureAllProgress(null), 2500);
     }
   };
 
@@ -663,7 +645,7 @@ export default function DashboardPage() {
             )}
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <Link ref={onboardingRef1} href="/settings" className="btn btn-secondary">
+            <Link href="/settings" className="btn btn-secondary">
               {t('dashboard.settings')}
             </Link>
             <button type="button" className="btn btn-secondary" onClick={() => signOut({ callbackUrl: '/' })}>
@@ -671,6 +653,60 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
+
+      {/* Status bar */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '0.75rem',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0.75rem 1rem',
+          border: '1px solid #e5e7eb',
+          borderRadius: 10,
+          background: '#fff',
+          marginBottom: '1.25rem',
+        }}
+      >
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <Link
+            href="/settings"
+            className={`status-badge ${hasSerpApiKey === true ? 'success' : 'pending'}`}
+            style={{ textDecoration: 'none' }}
+          >
+            API Key: {hasSerpApiKey === true ? 'OK' : 'Manquante'}
+          </Link>
+          <Link
+            href="/settings"
+            className={`status-badge ${searchSettingsDone ? 'success' : 'pending'}`}
+            style={{ textDecoration: 'none' }}
+          >
+            Langue/Pays: {searchSettingsDone ? 'OK' : 'Manquant'}
+          </Link>
+          <span className="status-badge" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#334155' }}>
+            Top 20
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {measureAllProgress && (
+            <span style={{ color: '#475569', fontSize: '0.9rem' }}>
+              Mesure en cours… {Math.min(measureAllProgress.done, measureAllProgress.total)}/{measureAllProgress.total}
+            </span>
+          )}
+          {measureAllProgress && (
+            <div style={{ width: 180, height: 8, background: '#e2e8f0', borderRadius: 999, overflow: 'hidden' }}>
+              <div
+                style={{
+                  width: `${measureAllProgress.total ? Math.round((measureAllProgress.done / measureAllProgress.total) * 100) : 0}%`,
+                  height: '100%',
+                  background: '#2563eb',
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
 
       {(hasSerpApiKey !== true) && (
         <div className="onboarding-with-image" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
@@ -769,7 +805,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div ref={onboardingRef3} className="multi-add-block">
+        <div className="multi-add-block">
           <p>{t('dashboard.pairs.multiAdd')}</p>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
             {t('dashboard.pairs.multiAddHelper')}
@@ -855,11 +891,9 @@ export default function DashboardPage() {
             <tbody>
               <tr>
                 <td colSpan={6} style={{ textAlign: 'right', padding: '0.5rem 0.75rem' }}>
-                  <span ref={onboardingRef4}>
-                    <button type="button" className="btn btn-primary" onClick={trackAll} disabled={saving || pairs.length === 0}>
-                      {t('dashboard.table.measureAll')}
-                    </button>
-                  </span>
+                  <button type="button" className="btn btn-primary" onClick={trackAll} disabled={saving || pairs.length === 0}>
+                    {t('dashboard.table.measureAll')}
+                  </button>
                 </td>
               </tr>
               {pairs.length === 0 && (
@@ -939,7 +973,7 @@ export default function DashboardPage() {
                     )}
                   </td>
                   <td>
-                    <strong>{pair.last_position != null ? pair.last_position : '-'}</strong>
+                    <strong>{displayPosition(pair.last_position)}</strong>
                   </td>
                   <td>
                     {pair.last_checked_at
@@ -1008,39 +1042,6 @@ export default function DashboardPage() {
       )}
 
       </div>
-
-      {onboardingStep === 1 && (
-        <OnboardingSpotlight
-          targetRef={onboardingRef1 as React.RefObject<HTMLElement | null>}
-          label={t('dashboard.onboarding.spotlight.step1')}
-          skipLabel={t('dashboard.onboarding.skip')}
-          onDismiss={dismissOnboarding}
-        />
-      )}
-      {onboardingStep === 2 && (
-        <OnboardingSpotlight
-          targetRef={onboardingRef1 as React.RefObject<HTMLElement | null>}
-          label={t('dashboard.onboarding.spotlight.step2')}
-          skipLabel={t('dashboard.onboarding.skip')}
-          onDismiss={dismissOnboarding}
-        />
-      )}
-      {onboardingStep === 3 && (
-        <OnboardingSpotlight
-          targetRef={onboardingRef3}
-          label={t('dashboard.onboarding.spotlight.step3')}
-          skipLabel={t('dashboard.onboarding.skip')}
-          onDismiss={dismissOnboarding}
-        />
-      )}
-      {onboardingStep === 4 && (
-        <OnboardingSpotlight
-          targetRef={onboardingRef4 as React.RefObject<HTMLElement | null>}
-          label={t('dashboard.onboarding.spotlight.step4')}
-          skipLabel={t('dashboard.onboarding.skip')}
-          onDismiss={dismissOnboarding}
-        />
-      )}
 
       {toasts.map((toast) => (
         <div key={toast.id} className={`toast ${toast.type}`}>
