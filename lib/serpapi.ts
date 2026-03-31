@@ -1,4 +1,4 @@
-import { normalizeUrl, extractDomain, unwrapSerpResultLink } from './url-utils';
+import { normalizeUrl, unwrapSerpResultLink } from './url-utils';
 
 export interface SerpApiParams {
   keyword: string;
@@ -38,7 +38,7 @@ export interface SerpApiResponse {
 export interface MatchResult {
   position: number | null;
   matchedUrl: string | null;
-  matchType: 'exact' | 'domain' | 'none';
+  matchType: 'exact' | 'domain' | 'path' | 'none';
   serpLink?: string;
   pagesQueried?: number;
   elapsedMs?: number;
@@ -120,6 +120,24 @@ function normalizeHostname(input: string): string {
 
 function isSameOrSubdomain(host: string, target: string): boolean {
   return host === target || host.endsWith(`.${target}`);
+}
+
+/** Path + query suffix after hostname in normalizeUrl() output (e.g. example.com/foo → /foo). */
+function pathAndQueryAfterHost(normalizedNoProto: string): string {
+  const i = normalizedNoProto.indexOf('/');
+  if (i === -1) return '';
+  return normalizedNoProto.slice(i);
+}
+
+function isRootOnlyPathSuffix(pathAndQuery: string): boolean {
+  if (!pathAndQuery) return true;
+  const pathOnly = pathAndQuery.split('?')[0];
+  return pathOnly === '' || pathOnly === '/';
+}
+
+function stripTrailingSlashPath(p: string): string {
+  if (p.length > 1 && p.endsWith('/')) return p.slice(0, -1);
+  return p;
 }
 
 /**
@@ -217,7 +235,6 @@ export function matchUrlInResults(
   organicResults: OrganicResult[]
 ): MatchResult {
   const normalizedTarget = normalizeUrl(targetUrl);
-  const targetDomain = extractDomain(targetUrl);
   const targetHost = normalizeHostname(targetUrl);
   
   // Check if input is just a domain (no protocol = domain tracking)
@@ -232,7 +249,6 @@ export function matchUrlInResults(
     const resolvedLink = extractOrganicLinkFromSerp(result as OrganicResult & { url?: string });
     if (!resolvedLink) continue;
     const normalizedResult = normalizeUrl(resolvedLink);
-    const resultDomain = extractDomain(resolvedLink);
     const resultHost = normalizeHostname(resolvedLink);
     
     // If target is just a domain, only do domain matching
@@ -245,7 +261,8 @@ export function matchUrlInResults(
         };
       }
     } else {
-      // For full URLs, try exact match first
+      // Full URL (https://...): never use "first random page on same domain" — that reported
+      // homepage rank when the user tracked /pricing, etc. (felt like hallucinations).
       if (normalizedResult === normalizedTarget) {
         return {
           position: result.position,
@@ -254,15 +271,43 @@ export function matchUrlInResults(
         };
       }
 
-      // Then fall back to domain match
-      if (
-        (resultHost && targetHost && isSameOrSubdomain(resultHost, targetHost)) ||
-        (resultDomain && resultDomain === targetDomain)
-      ) {
+      const sameHost =
+        resultHost &&
+        targetHost &&
+        (resultHost === targetHost || isSameOrSubdomain(resultHost, targetHost));
+      if (!sameHost) {
+        continue;
+      }
+
+      const targetTail = pathAndQueryAfterHost(normalizedTarget);
+      const resultTail = pathAndQueryAfterHost(normalizedResult);
+
+      // https://site.com or https://site.com/ — intent = "this site"; any URL on host is OK.
+      if (isRootOnlyPathSuffix(targetTail)) {
         return {
           position: result.position,
           matchedUrl: resolvedLink,
           matchType: 'domain',
+        };
+      }
+
+      const targetPath = stripTrailingSlashPath(targetTail.split('?')[0]);
+      const resultPath = stripTrailingSlashPath(resultTail.split('?')[0]);
+
+      if (resultPath === targetPath) {
+        return {
+          position: result.position,
+          matchedUrl: resolvedLink,
+          matchType: 'exact',
+        };
+      }
+
+      // SERP shows a deeper URL under the tracked path (e.g. tracked /blog, result /blog/post-1).
+      if (targetPath !== '/' && resultPath.startsWith(`${targetPath}/`)) {
+        return {
+          position: result.position,
+          matchedUrl: resolvedLink,
+          matchType: 'path',
         };
       }
     }
