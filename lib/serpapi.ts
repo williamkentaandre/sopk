@@ -232,26 +232,26 @@ export async function trackKeyword(
   gl: string,
   options?: SerpApiOptions
 ): Promise<MatchResult & { serpLink?: string }> {
-  // Single call top 10 only to keep tracking fast and reliable.
-  const PAGE_SIZE = 10;
+  // Single call top 100 detection via SerpAPI.
+  const MAX_RESULTS = 100;
   let lastSerpLink: string | undefined;
   const pagesQueried = 1;
   const startedAt = Date.now();
   const toAbsolutePosition = (rawPos: number, idx: number) => {
     if (Number.isFinite(rawPos) && rawPos > 0) {
-      if (rawPos >= 1 && rawPos <= PAGE_SIZE) return rawPos;
+      if (rawPos >= 1 && rawPos <= MAX_RESULTS) return rawPos;
     }
     return idx + 1;
   };
   const serpResponse = await callSerpApi(
-    { keyword, hl, gl, num: PAGE_SIZE, start: 0, engine: 'google_light' },
+    { keyword, hl, gl, num: MAX_RESULTS, start: 0, engine: 'google_light' },
     options
   );
   lastSerpLink = serpResponse.search_metadata?.id
     ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
     : undefined;
 
-  const pageResults = (serpResponse.organic_results || []).map((result, idx) => {
+  const pageResults = (serpResponse.organic_results || []).slice(0, MAX_RESULTS).map((result, idx) => {
     const relativePos = Number(result.position);
     return {
       ...result,

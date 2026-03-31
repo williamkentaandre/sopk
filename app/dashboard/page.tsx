@@ -95,7 +95,7 @@ export default function DashboardPage() {
   };
 
   const displayPosition = (pos: number | null) => {
-    if (pos == null) return '> 20';
+    if (pos == null) return '> 100';
     return String(pos);
   };
 
@@ -685,7 +685,7 @@ export default function DashboardPage() {
             Langue/Pays: {searchSettingsDone ? 'OK' : 'Manquant'}
           </Link>
           <span className="status-badge" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#334155' }}>
-            Top 20
+            Top 100
           </span>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
