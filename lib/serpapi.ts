@@ -9,6 +9,11 @@ export interface SerpApiParams {
   engine?: 'google_light' | 'google';
   /** Prefer desktop SERP; mobile rankings often differ from what users expect */
   device?: 'desktop' | 'mobile' | 'tablet';
+  /**
+   * SerpAPI defaults to google.com; that SERP differs from google.fr / google.de even with gl set.
+   * Must align with where users manually search (e.g. France → google.fr).
+   */
+  googleDomain?: string;
 }
 
 export interface OrganicResult {
@@ -41,6 +46,60 @@ export interface MatchResult {
 
 export interface SerpApiOptions {
   apiKey?: string | null;
+}
+
+/** Maps ISO 3166-1 alpha-2 `gl` to Google host (SerpAPI `google_domain`). Default google.com. */
+export function googleDomainForGl(gl: string): string {
+  const g = (gl || 'us').toLowerCase().trim();
+  const map: Record<string, string> = {
+    fr: 'google.fr',
+    de: 'google.de',
+    es: 'google.es',
+    it: 'google.it',
+    nl: 'google.nl',
+    be: 'google.be',
+    at: 'google.at',
+    ch: 'google.ch',
+    pt: 'google.pt',
+    pl: 'google.pl',
+    se: 'google.se',
+    no: 'google.no',
+    dk: 'google.dk',
+    fi: 'google.fi',
+    ie: 'google.ie',
+    uk: 'google.co.uk',
+    gb: 'google.co.uk',
+    ca: 'google.ca',
+    us: 'google.com',
+    mx: 'google.com.mx',
+    br: 'google.com.br',
+    ar: 'google.com.ar',
+    in: 'google.co.in',
+    jp: 'google.co.jp',
+    kr: 'google.co.kr',
+    au: 'google.com.au',
+    nz: 'google.co.nz',
+    tw: 'google.com.tw',
+    hk: 'google.com.hk',
+    sg: 'google.com.sg',
+    ru: 'google.ru',
+    cz: 'google.cz',
+    hu: 'google.hu',
+    ro: 'google.ro',
+    gr: 'google.gr',
+    tr: 'google.com.tr',
+    ua: 'google.com.ua',
+    za: 'google.co.za',
+    ae: 'google.ae',
+    sa: 'google.com.sa',
+    il: 'google.co.il',
+    id: 'google.co.id',
+    th: 'google.co.th',
+    vn: 'google.com.vn',
+    ph: 'google.com.ph',
+    my: 'google.com.my',
+  };
+  return map[g] || 'google.com';
 }
 
 function normalizeHostname(input: string): string {
@@ -102,6 +161,9 @@ export async function callSerpApi(
   }
   if (params.device) {
     url.searchParams.append('device', params.device);
+  }
+  if (params.googleDomain) {
+    url.searchParams.append('google_domain', params.googleDomain);
   }
   // Use Google Light by default, allow override for fallback strategy.
   url.searchParams.append('engine', params.engine || 'google_light');
@@ -225,45 +287,33 @@ export async function trackKeyword(
   gl: string,
   options?: SerpApiOptions
 ): Promise<MatchResult & { serpLink?: string }> {
-  // Paginate top 100 (10 results per page). Sequential fetch keeps page 2+ reliable vs burst parallel calls.
   const MAX_RESULTS = 100;
   const PAGE_SIZE = 10;
+  const googleDomain = googleDomainForGl(gl);
+  const baseParams = {
+    keyword,
+    hl,
+    gl,
+    engine: 'google' as const,
+    device: 'desktop' as const,
+    googleDomain,
+  };
+
   let lastSerpLink: string | undefined;
   const startedAt = Date.now();
+  let pagesQueried = 0;
+
   const toAbsolutePosition = (rawPos: number, start: number, idx: number) => {
     if (Number.isFinite(rawPos) && rawPos > 0) {
-      // Case A: page-relative rank (1..PAGE_SIZE)
       if (rawPos >= 1 && rawPos <= PAGE_SIZE) return start + rawPos;
-      // Case B: already absolute in page window
       if (rawPos >= start + 1 && rawPos <= start + PAGE_SIZE) return rawPos;
-      // Case C: absolute rank in top 100
       if (rawPos >= 1 && rawPos <= MAX_RESULTS) return rawPos;
     }
     return start + idx + 1;
   };
 
-  // Strict order: page 1 (start=0), then page 2 (start=10), … up to top 100. One await at a time.
-  // No duplicate-page shortcut — it caused false stops when SerpAPI reused similar blocks across offsets.
-  let pagesQueried = 0;
-  for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
-    const serpResponse = await callSerpApi(
-      { keyword, hl, gl, num: PAGE_SIZE, start, engine: 'google', device: 'desktop' },
-      options
-    );
-    pagesQueried += 1;
-    lastSerpLink = serpResponse.search_metadata?.id
-      ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
-      : lastSerpLink;
-
-    const organic = serpResponse.organic_results || [];
-    // Page 0 with no organic = nothing to rank. Later pages sometimes come back empty (SerpAPI glitch);
-    // do not stop the whole scan — continue to the next offset.
-    if (organic.length === 0) {
-      if (start === 0) break;
-      continue;
-    }
-
-    const pageResults = organic
+  const buildPageResults = (organic: OrganicResult[], start: number) =>
+    organic
       .map((result, idx) => {
         const r = result as OrganicResult & { url?: string };
         const link = extractOrganicLinkFromSerp(r);
@@ -276,20 +326,85 @@ export async function trackKeyword(
       })
       .filter((r) => r.link.length > 0)
       .sort((a, b) => a.position - b.position);
-    const match = matchUrlInResults(url, pageResults);
-    // JSON.stringify turns NaN into null — reject non-finite positions so we don't "find" then return null.
-    if (match.position != null && Number.isFinite(match.position) && match.position >= 1) {
-      return { ...match, serpLink: lastSerpLink, pagesQueried, elapsedMs: Date.now() - startedAt };
-    }
-  }
 
-  return {
-    position: null,
-    matchedUrl: null,
-    matchType: 'none',
+  const tryMatchOrganic = (organic: OrganicResult[], start: number) => {
+    const pageResults = buildPageResults(organic, start);
+    return matchUrlInResults(url, pageResults);
+  };
+
+  const finish = (match: MatchResult): MatchResult & { serpLink?: string; pagesQueried: number; elapsedMs: number } => ({
+    ...match,
     serpLink: lastSerpLink,
     pagesQueried,
     elapsedMs: Date.now() - startedAt,
-  };
+  });
+
+  const isValidMatch = (m: MatchResult) =>
+    m.position != null && Number.isFinite(m.position) && m.position >= 1;
+
+  // 1) One request with num=100 on the correct national Google (e.g. google.fr + gl=fr), not default google.com.
+  const snapshot = await callSerpApi({ ...baseParams, num: MAX_RESULTS, start: 0 }, options);
+  pagesQueried += 1;
+  lastSerpLink = snapshot.search_metadata?.id
+    ? `https://serpapi.com/searches/${snapshot.search_metadata.id}`
+    : lastSerpLink;
+
+  let organic = snapshot.organic_results || [];
+  let match = tryMatchOrganic(organic, 0);
+  if (isValidMatch(match)) {
+    return finish(match);
+  }
+
+  // 2) SerpAPI sometimes returns only the first 10 rows even with num=100 — page through 10–90.
+  if (organic.length > 0 && organic.length <= PAGE_SIZE) {
+    for (let start = PAGE_SIZE; start < MAX_RESULTS; start += PAGE_SIZE) {
+      const serpResponse = await callSerpApi({ ...baseParams, num: PAGE_SIZE, start }, options);
+      pagesQueried += 1;
+      lastSerpLink = serpResponse.search_metadata?.id
+        ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
+        : lastSerpLink;
+
+      const pageOrganic = serpResponse.organic_results || [];
+      if (pageOrganic.length === 0) continue;
+
+      match = tryMatchOrganic(pageOrganic, start);
+      if (isValidMatch(match)) {
+        return finish(match);
+      }
+    }
+    return finish({ position: null, matchedUrl: null, matchType: 'none' });
+  }
+
+  // 3) 11–99 organic rows in one snapshot: treat as full SERP for this query (no more pages).
+  if (organic.length > PAGE_SIZE && organic.length < MAX_RESULTS) {
+    return finish({ position: null, matchedUrl: null, matchType: 'none' });
+  }
+
+  // 4) 100 rows, no match — not in top 100.
+  if (organic.length >= MAX_RESULTS) {
+    return finish({ position: null, matchedUrl: null, matchType: 'none' });
+  }
+
+  // 5) Empty first snapshot — fall back to paged search (rare).
+  for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
+    const serpResponse = await callSerpApi({ ...baseParams, num: PAGE_SIZE, start }, options);
+    pagesQueried += 1;
+    lastSerpLink = serpResponse.search_metadata?.id
+      ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
+      : lastSerpLink;
+
+    const pageOrganic = serpResponse.organic_results || [];
+    if (pageOrganic.length === 0) {
+      if (start === 0) break;
+      continue;
+    }
+
+    match = tryMatchOrganic(pageOrganic, start);
+    if (isValidMatch(match)) {
+      return finish(match);
+    }
+  }
+
+  return finish({ position: null, matchedUrl: null, matchType: 'none' });
 }
 
