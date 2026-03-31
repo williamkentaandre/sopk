@@ -249,10 +249,9 @@ export async function trackKeyword(
     return start + idx + 1;
   };
 
-  // Sequential page fetch. Stop early on first match.
-  // Do NOT use a short-prefix signature: page 1 vs page 2 can share the same top links pattern and would wrongly stop before rank 11–20 (e.g. rank 13).
+  // Strict order: page 1 (start=0), then page 2 (start=10), … up to top 100. One await at a time.
+  // No duplicate-page shortcut — it caused false stops when SerpAPI reused similar blocks across offsets.
   let pagesQueried = 0;
-  const seenFullPageSignatures = new Set<string>();
   for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
     const serpResponse = await callSerpApi(
       { keyword, hl, gl, num: PAGE_SIZE, start, engine: 'google' },
@@ -266,17 +265,15 @@ export async function trackKeyword(
     const organic = serpResponse.organic_results || [];
     if (organic.length === 0) break;
 
-    const fullSignature = organic.map((r) => normalizeUrl(r.link)).join('|');
-    if (seenFullPageSignatures.has(fullSignature)) break;
-    seenFullPageSignatures.add(fullSignature);
-
-    const pageResults = organic.map((result, idx) => {
-      const relativePos = Number(result.position);
-      return {
-        ...result,
-        position: toAbsolutePosition(relativePos, start, idx),
-      };
-    });
+    const pageResults = organic
+      .map((result, idx) => {
+        const relativePos = Number(result.position);
+        return {
+          ...result,
+          position: toAbsolutePosition(relativePos, start, idx),
+        };
+      })
+      .sort((a, b) => a.position - b.position);
     const match = matchUrlInResults(url, pageResults);
     if (match.position != null) {
       return { ...match, serpLink: lastSerpLink, pagesQueried, elapsedMs: Date.now() - startedAt };
