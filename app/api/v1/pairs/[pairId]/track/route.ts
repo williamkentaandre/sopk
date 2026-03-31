@@ -53,11 +53,11 @@ export async function POST(
       error = String(e);
     }
 
-    // Never erase a previously known position on measurement failure.
+    // On API/throw failure: do not touch lastPosition. On success with "not in top 100", keep lastPosition too.
     await prisma.pair.update({
       where: { id: pairId },
       data: {
-        ...(error ? {} : { lastPosition: position }),
+        ...(error ? {} : position != null ? { lastPosition: position } : {}),
         lastCheckedAt: checkedAt,
         ...(error ? {} : { lastMatchedUrl: matchResult?.matchedUrl ?? null }),
       },

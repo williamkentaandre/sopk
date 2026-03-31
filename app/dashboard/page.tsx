@@ -129,7 +129,8 @@ export default function DashboardPage() {
       const day = result.checked_at ? getParisDateString(result.checked_at) : null;
       const updated: Pair = {
         ...created,
-        last_position: normalizedPos,
+        last_position:
+          normalizedPos != null ? normalizedPos : created.last_position ?? null,
         last_checked_at: result.checked_at ?? null,
         last_matched_url: result.matched_url ?? created.last_matched_url ?? null,
         history_by_date: day
@@ -519,7 +520,8 @@ export default function DashboardPage() {
             p.pair_id === pairId
               ? {
                   ...p,
-                  last_position: normalizedPos,
+                  last_position:
+                    normalizedPos != null ? normalizedPos : p.last_position ?? null,
                   last_checked_at: result.checked_at,
                   last_matched_url: result.matched_url ?? p.last_matched_url,
                   history_by_date: day
@@ -584,14 +586,15 @@ export default function DashboardPage() {
                   normalizeUrlForCompare(r.url || '') === normalizeUrlForCompare(pair.url || '')
               );
             if (updated) {
-              // Keep last known position when the measure failed for this pair.
+              // Keep last known position when the measure failed or API error for this pair.
               if (updated.error) {
                 return pair;
               }
               const day = updated.checked_at ? getParisDateString(updated.checked_at) : null;
               return {
                 ...pair,
-                last_position: updated.position,
+                last_position:
+                  updated.position != null ? updated.position : pair.last_position ?? null,
                 last_checked_at: updated.checked_at,
                 last_matched_url: updated.matched_url ?? pair.last_matched_url ?? null,
                 history_by_date: day

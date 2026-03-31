@@ -59,29 +59,31 @@ export async function POST(request: NextRequest) {
         apiKey: user.serpApiKey!,
       });
 
+      // Do not wipe lastPosition when the site is simply not in the top 100 (same idea as "failure" UX).
       await prisma.pair.update({
         where: { id: pair.id },
         data: {
-          lastPosition: matchResult.position,
+          ...(matchResult.position != null ? { lastPosition: matchResult.position } : {}),
           lastCheckedAt: checkedAt,
           lastMatchedUrl: matchResult.matchedUrl ?? null,
         },
       });
 
-      if (matchResult.position != null) {
-        await prisma.pairHistory.create({
-          data: {
-            pairId: pair.id,
-            checkedAt,
-            position: matchResult.position,
-            matchedUrl: matchResult.matchedUrl ?? null,
-            matchType: matchResult.matchType,
-            serpLink: matchResult.serpLink ?? null,
-            hl: finalHl,
-            gl: finalGl,
-          },
-        });
-      }
+      // Always persist a history row (single-pair /track does too). Omitting null positions made
+      // "Mesurer tout" leave date columns empty on reload while still clearing last_position.
+      await prisma.pairHistory.create({
+        data: {
+          pairId: pair.id,
+          checkedAt,
+          position: matchResult.position,
+          matchedUrl: matchResult.matchedUrl ?? null,
+          matchType: matchResult.matchType,
+          serpLink: matchResult.serpLink ?? null,
+          hl: finalHl,
+          gl: finalGl,
+          error: null,
+        },
+      });
 
       return {
         pair_id: pair.id,
@@ -95,6 +97,20 @@ export async function POST(request: NextRequest) {
         error: null,
       };
     } catch (error) {
+      await prisma.pairHistory.create({
+        data: {
+          pairId: pair.id,
+          checkedAt,
+          position: null,
+          matchedUrl: null,
+          matchType: null,
+          serpLink: null,
+          hl: finalHl,
+          gl: finalGl,
+          error: String(error),
+        },
+      });
+
       return {
         pair_id: pair.id,
         keyword: pair.keyword,
