@@ -234,7 +234,8 @@ export async function trackKeyword(
 ): Promise<MatchResult & { serpLink?: string }> {
   // Explicit pagination up to top 100 to reliably detect beyond page 1.
   const MAX_RESULTS = 100;
-  const PAGE_SIZE = 20;
+  // Google pagination is most reliable with 10-result pages.
+  const PAGE_SIZE = 10;
   let lastSerpLink: string | undefined;
   let pagesQueried = 0;
   const startedAt = Date.now();
@@ -250,6 +251,7 @@ export async function trackKeyword(
     return start + idx + 1;
   };
 
+  const seenPageSignatures = new Set<string>();
   for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
     const serpResponse = await callSerpApi(
       { keyword, hl, gl, num: PAGE_SIZE, start, engine: 'google' },
@@ -263,6 +265,11 @@ export async function trackKeyword(
 
     const organic = serpResponse.organic_results || [];
     if (organic.length === 0) break;
+
+    // Guard against providers occasionally repeating page 1 for start>0.
+    const signature = organic.slice(0, 3).map((r) => normalizeUrl(r.link)).join('|');
+    if (seenPageSignatures.has(signature)) break;
+    seenPageSignatures.add(signature);
 
     const pageResults = organic.map((result, idx) => {
       const relativePos = Number(result.position);
