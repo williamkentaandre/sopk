@@ -1,4 +1,4 @@
-import { normalizeUrl, extractDomain } from './url-utils';
+import { normalizeUrl, extractDomain, unwrapSerpResultLink } from './url-utils';
 
 export interface SerpApiParams {
   keyword: string;
@@ -143,48 +143,31 @@ export function matchUrlInResults(
   const isDomainOnly = !trimmedUrl.startsWith('http://') && 
                        !trimmedUrl.startsWith('https://');
 
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🔍 URL MATCHING DEBUG - START');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('  📌 Target URL:', targetUrl);
-  console.log('  📌 Trimmed URL:', trimmedUrl);
-  console.log('  📌 Is Domain Only:', isDomainOnly, isDomainOnly ? '✅ (DOMAIN TRACKING)' : '❌ (URL TRACKING)');
-  console.log('  📌 Normalized Target:', normalizedTarget);
-  console.log('  📌 Target Domain:', targetDomain);
-  console.log('  📌 Total Results:', organicResults.length);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
   // Iterate through organic results from top to bottom.
   // We return the first valid match to preserve ranking order.
   for (const result of organicResults) {
-    const normalizedResult = normalizeUrl(result.link);
-    const resultDomain = extractDomain(result.link);
-    const resultHost = normalizeHostname(result.link);
+    const rawLink = (result.link || '').trim();
+    if (!rawLink) continue;
+    const resolvedLink = unwrapSerpResultLink(rawLink);
+    const normalizedResult = normalizeUrl(resolvedLink);
+    const resultDomain = extractDomain(resolvedLink);
+    const resultHost = normalizeHostname(resolvedLink);
     
     // If target is just a domain, only do domain matching
     if (isDomainOnly) {
-      console.log(`  [Pos ${result.position}] Checking:`, result.link);
-      console.log(`    Result Host: "${resultHost}" vs Target Host: "${targetHost}"`);
-      
       if (resultHost && targetHost && isSameOrSubdomain(resultHost, targetHost)) {
-        console.log('  ✅ Domain match at position', result.position);
-        console.log('    Result URL:', result.link);
-        console.log('    Result Domain:', resultDomain);
         return {
           position: result.position,
-          matchedUrl: result.link,
+          matchedUrl: resolvedLink,
           matchType: 'domain',
         };
       }
     } else {
       // For full URLs, try exact match first
       if (normalizedResult === normalizedTarget) {
-        console.log('  ✅ EXACT MATCH at position', result.position);
-        console.log('    Result URL:', result.link);
-        console.log('    Normalized:', normalizedResult);
         return {
           position: result.position,
-          matchedUrl: result.link,
+          matchedUrl: resolvedLink,
           matchType: 'exact',
         };
       }
@@ -194,12 +177,9 @@ export function matchUrlInResults(
         (resultHost && targetHost && isSameOrSubdomain(resultHost, targetHost)) ||
         (resultDomain && resultDomain === targetDomain)
       ) {
-        console.log('  🔗 Domain match at position', result.position);
-        console.log('    Result URL:', result.link);
-        console.log('    Result Domain:', resultDomain);
         return {
           position: result.position,
-          matchedUrl: result.link,
+          matchedUrl: resolvedLink,
           matchType: 'domain',
         };
       }
@@ -207,13 +187,6 @@ export function matchUrlInResults(
   }
 
   // No match found
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('❌ NO MATCH FOUND!');
-  console.log('  Target was:', isDomainOnly ? 'DOMAIN' : 'URL');
-  console.log('  Target Domain:', targetDomain);
-  console.log('  Checked:', organicResults.length, 'results');
-  console.log('  Reason: No domain match found in results');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   return {
     position: null,
     matchedUrl: null,
@@ -267,12 +240,16 @@ export async function trackKeyword(
 
     const pageResults = organic
       .map((result, idx) => {
+        const r = result as OrganicResult & { url?: string };
+        const link = String(r.link || r.url || '').trim();
         const relativePos = Number(result.position);
         return {
           ...result,
+          link,
           position: toAbsolutePosition(relativePos, start, idx),
         };
       })
+      .filter((r) => r.link.length > 0)
       .sort((a, b) => a.position - b.position);
     const match = matchUrlInResults(url, pageResults);
     // JSON.stringify turns NaN into null — reject non-finite positions so we don't "find" then return null.

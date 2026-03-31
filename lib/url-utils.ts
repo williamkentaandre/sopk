@@ -7,6 +7,44 @@
  * - Remove tracking params (utm_*)
  * - Remove anchor/hash
  */
+/**
+ * Resolves Google's redirect wrapper (organic links often use the google.com/url?q=... form).
+ * Without this, domain/URL matching compares "google.com" to the user's site and always fails.
+ */
+export function unwrapSerpResultLink(link: string): string {
+  const trimmed = (link || '').trim();
+  if (!trimmed) return trimmed;
+  try {
+    const u = new URL(trimmed);
+    const host = u.hostname.toLowerCase();
+    if (!host.includes('google.')) return trimmed;
+    const path = u.pathname.replace(/\/$/, '') || '/';
+    if (path !== '/url') return trimmed;
+    const qRaw = u.searchParams.get('q');
+    if (qRaw) {
+      let q = qRaw;
+      try {
+        q = decodeURIComponent(qRaw.replace(/\+/g, ' '));
+      } catch {
+        /* keep qRaw */
+      }
+      if (/^https?:\/\//i.test(q)) return q;
+    }
+    const urlParam = u.searchParams.get('url');
+    if (urlParam) {
+      try {
+        const decoded = decodeURIComponent(urlParam.replace(/\+/g, ' '));
+        if (/^https?:\/\//i.test(decoded)) return decoded;
+      } catch {
+        if (/^https?:\/\//i.test(urlParam)) return urlParam;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return trimmed;
+}
+
 export function normalizeUrl(url: string): string {
   try {
     // Clean up the URL first

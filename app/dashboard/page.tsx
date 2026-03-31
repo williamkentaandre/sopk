@@ -117,22 +117,35 @@ export default function DashboardPage() {
         showActionableError(result?.error?.message || '');
         return created;
       }
+      const rawPos = result.position;
+      const n =
+        rawPos == null || rawPos === ''
+          ? null
+          : typeof rawPos === 'number'
+            ? rawPos
+            : Number(rawPos);
+      const normalizedPos =
+        n != null && Number.isFinite(n) && n >= 1 ? n : null;
       const day = result.checked_at ? getParisDateString(result.checked_at) : null;
       const updated: Pair = {
         ...created,
-        last_position: result.position ?? null,
+        last_position: normalizedPos,
         last_checked_at: result.checked_at ?? null,
         last_matched_url: result.matched_url ?? created.last_matched_url ?? null,
         history_by_date: day
-          ? { ...(created.history_by_date || {}), [day]: result.position ?? null }
+          ? { ...(created.history_by_date || {}), [day]: normalizedPos }
           : created.history_by_date,
       };
-      const positionText = result.position != null ? `${t('dashboard.toast.position')}: ${result.position}` : t('dashboard.toast.notFound');
+      const positionText =
+        normalizedPos != null
+          ? `${t('dashboard.toast.position')}: ${normalizedPos}`
+          : t('dashboard.toast.notFound');
       const debugText =
         result.pages_queried != null
           ? ` (${result.pages_queried} pages, ${result.elapsed_ms ?? 0} ms)`
           : '';
-      showToast(`${t('dashboard.toast.measureDone')} - ${positionText}${debugText}`, 'success');
+      const kwLabel = created.keyword ? `"${created.keyword}" · ` : '';
+      showToast(`${t('dashboard.toast.measureDone')} — ${kwLabel}${positionText}${debugText}`, 'success');
       return updated;
     } catch {
       showToast(t('dashboard.toast.serpError'), 'error');
@@ -473,7 +486,7 @@ export default function DashboardPage() {
     }
   };
 
-  const trackPair = async (pairId: string) => {
+  const trackPair = async (pairId: string, keywordHint?: string) => {
     if (!searchSettingsDone) {
       showSearchSettingsAlert();
       showToast(t('dashboard.toast.completeSearchSettings'), 'error');
@@ -493,27 +506,39 @@ export default function DashboardPage() {
       const result = await response.json();
       if (response.ok) {
         const day = result.checked_at ? getParisDateString(result.checked_at) : null;
+        const pos =
+          result.position == null || result.position === ''
+            ? null
+            : typeof result.position === 'number'
+              ? result.position
+              : Number(result.position);
+        const normalizedPos =
+          pos != null && Number.isFinite(pos) && pos >= 1 ? pos : null;
         setPairs((prev) =>
           prev.map((p) =>
             p.pair_id === pairId
               ? {
                   ...p,
-                  last_position: result.position,
+                  last_position: normalizedPos,
                   last_checked_at: result.checked_at,
                   last_matched_url: result.matched_url ?? p.last_matched_url,
                   history_by_date: day
-                    ? { ...(p.history_by_date || {}), [day]: result.position }
+                    ? { ...(p.history_by_date || {}), [day]: normalizedPos }
                     : p.history_by_date,
                 }
               : p
           )
         );
-        const positionText = result.position != null ? `${t('dashboard.toast.position')}: ${result.position}` : t('dashboard.toast.notFound');
+        const positionText =
+          normalizedPos != null
+            ? `${t('dashboard.toast.position')}: ${normalizedPos}`
+            : t('dashboard.toast.notFound');
         const debugText =
           result.pages_queried != null
             ? ` (${result.pages_queried} pages, ${result.elapsed_ms ?? 0} ms)`
             : '';
-        showToast(`${t('dashboard.toast.measureDone')} - ${positionText}${debugText}`, 'success');
+        const kwLabel = keywordHint ? `"${keywordHint}" · ` : '';
+        showToast(`${t('dashboard.toast.measureDone')} — ${kwLabel}${positionText}${debugText}`, 'success');
       } else {
         showActionableError(result.error?.message || '');
       }
@@ -1007,7 +1032,7 @@ export default function DashboardPage() {
                         type="button"
                         className="btn btn-primary"
                         style={{ padding: '0.25rem 0.75rem', fontSize: '0.85rem' }}
-                        onClick={() => trackPair(pair.pair_id)}
+                        onClick={() => trackPair(pair.pair_id, pair.keyword)}
                         disabled={tracking.has(pair.pair_id)}
                       >
                         {tracking.has(pair.pair_id) ? <span className="loading" /> : '▶'}
