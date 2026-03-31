@@ -232,78 +232,35 @@ export async function trackKeyword(
   gl: string,
   options?: SerpApiOptions
 ): Promise<MatchResult & { serpLink?: string }> {
-  // Use explicit SerpAPI pagination (start offset):
-  // page 1 -> page 2 -> stop at top 20 (cost control).
-  const MAX_RESULTS = 20;
+  // Single call top 10 only to keep tracking fast and reliable.
   const PAGE_SIZE = 10;
   let lastSerpLink: string | undefined;
-  let pagesQueried = 0;
+  const pagesQueried = 1;
   const startedAt = Date.now();
-  const toAbsolutePosition = (rawPos: number, start: number, idx: number) => {
+  const toAbsolutePosition = (rawPos: number, idx: number) => {
     if (Number.isFinite(rawPos) && rawPos > 0) {
-      // Case A: page-relative rank (1..10) -> convert with offset.
-      if (rawPos >= 1 && rawPos <= PAGE_SIZE) return start + rawPos;
-      // Case B: already absolute rank in current page window.
-      if (rawPos >= start + 1 && rawPos <= start + PAGE_SIZE) return rawPos;
-      // Case C: absolute rank from API in a broader range.
-      if (rawPos <= MAX_RESULTS) return rawPos;
+      if (rawPos >= 1 && rawPos <= PAGE_SIZE) return rawPos;
     }
-    // Fallback to list order in current page.
-    return start + idx + 1;
+    return idx + 1;
   };
-  const engineErrors: string[] = [];
+  const serpResponse = await callSerpApi(
+    { keyword, hl, gl, num: PAGE_SIZE, start: 0, engine: 'google_light' },
+    options
+  );
+  lastSerpLink = serpResponse.search_metadata?.id
+    ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
+    : undefined;
 
-  const scanEngine = async (engine: 'google_light' | 'google') => {
-    for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
-      const serpResponse = await callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start, engine }, options);
-      pagesQueried += 1;
-      lastSerpLink = serpResponse.search_metadata?.id
-        ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
-        : lastSerpLink;
-
-      const pageResults = (serpResponse.organic_results || []).map((result, idx) => {
-        const relativePos = Number(result.position);
-        return {
-          ...result,
-          // Normalize mixed SerpAPI rank formats (relative vs absolute).
-          position: toAbsolutePosition(relativePos, start, idx),
-        };
-      });
-
-      const pageMatch = matchUrlInResults(url, pageResults);
-      if (pageMatch.position != null) {
-        return pageMatch;
-      }
-    }
-    return { position: null, matchedUrl: null, matchType: 'none' as const };
-  };
-
-  // Primary: google_light (faster). Secondary fallback: google (coverage).
-  // If an engine fails, continue with the next one instead of failing immediately.
-  let match: MatchResult = { position: null, matchedUrl: null, matchType: 'none' };
-  try {
-    match = await scanEngine('google_light');
-  } catch (e) {
-    engineErrors.push(`google_light: ${String(e)}`);
-  }
-  if (match.position == null) {
-    try {
-      match = await scanEngine('google');
-    } catch (e) {
-      engineErrors.push(`google: ${String(e)}`);
-    }
-  }
-  if (match.position != null) {
+  const pageResults = (serpResponse.organic_results || []).map((result, idx) => {
+    const relativePos = Number(result.position);
     return {
-      ...match,
-      serpLink: lastSerpLink,
-      pagesQueried,
-      elapsedMs: Date.now() - startedAt,
+      ...result,
+      position: toAbsolutePosition(relativePos, idx),
     };
-  }
-
-  if (engineErrors.length > 0) {
-    throw new Error(`All SERP engines failed. ${engineErrors.join(' | ')}`);
+  });
+  const match = matchUrlInResults(url, pageResults);
+  if (match.position != null) {
+    return { ...match, serpLink: lastSerpLink, pagesQueried, elapsedMs: Date.now() - startedAt };
   }
 
   return {
