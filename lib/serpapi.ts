@@ -232,7 +232,8 @@ export async function trackKeyword(
   gl: string,
   options?: SerpApiOptions
 ): Promise<MatchResult & { serpLink?: string }> {
-  // Explicit pagination up to top 100, fetched in parallel for reliability under serverless limits.
+  // Explicit pagination up to top 100.
+  // We avoid high parallelism because SerpAPI can throttle/degrade deep pages under burst traffic.
   const MAX_RESULTS = 100;
   const PAGE_SIZE = 10;
   let lastSerpLink: string | undefined;
@@ -250,32 +251,65 @@ export async function trackKeyword(
   };
 
   const starts: number[] = [];
-  for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) starts.push(start);
+  for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
+    starts.push(start);
+  }
 
-  const settled = await Promise.allSettled(
-    starts.map((start) =>
-      callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start, engine: 'google' }, options)
-    )
-  );
-
+  const responsesByStart = new Map<number, SerpApiResponse>();
+  const failedStarts: number[] = [];
   let pagesQueried = 0;
-  let firstError: unknown = null;
-  for (let i = 0; i < settled.length; i++) {
-    const start = starts[i];
-    const res = settled[i];
-    if (res.status === 'rejected') {
-      if (!firstError) firstError = res.reason;
-      continue;
-    }
-    pagesQueried += 1;
-    const serpResponse = res.value;
-    lastSerpLink = serpResponse.search_metadata?.id
-      ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
-      : lastSerpLink;
 
+  // Query in small batches to reduce throttling and improve reliability for page 3+.
+  const BATCH_SIZE = 2;
+  for (let i = 0; i < starts.length; i += BATCH_SIZE) {
+    const batch = starts.slice(i, i + BATCH_SIZE);
+    const settled = await Promise.allSettled(
+      batch.map((start) =>
+        callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start, engine: 'google' }, options)
+      )
+    );
+
+    for (let j = 0; j < settled.length; j++) {
+      const start = batch[j];
+      const res = settled[j];
+      if (res.status === 'rejected') {
+        failedStarts.push(start);
+        continue;
+      }
+      pagesQueried += 1;
+      responsesByStart.set(start, res.value);
+      if (res.value.search_metadata?.id) {
+        lastSerpLink = `https://serpapi.com/searches/${res.value.search_metadata.id}`;
+      }
+    }
+  }
+
+  // Retry failed pages once (still batched) before giving up.
+  for (let i = 0; i < failedStarts.length; i += BATCH_SIZE) {
+    const batch = failedStarts.slice(i, i + BATCH_SIZE);
+    const settled = await Promise.allSettled(
+      batch.map((start) =>
+        callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start, engine: 'google' }, options)
+      )
+    );
+    for (let j = 0; j < settled.length; j++) {
+      const start = batch[j];
+      const res = settled[j];
+      if (res.status === 'rejected') continue;
+      pagesQueried += 1;
+      responsesByStart.set(start, res.value);
+      if (res.value.search_metadata?.id) {
+        lastSerpLink = `https://serpapi.com/searches/${res.value.search_metadata.id}`;
+      }
+    }
+  }
+
+  // Match in rank order (1..100) regardless of response order.
+  for (const start of starts) {
+    const serpResponse = responsesByStart.get(start);
+    if (!serpResponse) continue;
     const organic = serpResponse.organic_results || [];
     if (organic.length === 0) continue;
-
     const pageResults = organic.map((result, idx) => {
       const relativePos = Number(result.position);
       return {
@@ -283,15 +317,14 @@ export async function trackKeyword(
         position: toAbsolutePosition(relativePos, start, idx),
       };
     });
-
     const match = matchUrlInResults(url, pageResults);
     if (match.position != null) {
       return { ...match, serpLink: lastSerpLink, pagesQueried, elapsedMs: Date.now() - startedAt };
     }
   }
 
-  if (pagesQueried === 0 && firstError) {
-    throw new Error(String(firstError));
+  if (pagesQueried === 0) {
+    throw new Error('SerpAPI error: all page requests failed');
   }
 
   return {
