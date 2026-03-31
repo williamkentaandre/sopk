@@ -7,11 +7,15 @@ export interface SerpApiParams {
   num?: number;
   start?: number;
   engine?: 'google_light' | 'google';
+  /** Prefer desktop SERP; mobile rankings often differ from what users expect */
+  device?: 'desktop' | 'mobile' | 'tablet';
 }
 
 export interface OrganicResult {
   position: number;
   link: string;
+  /** Present when link is missing or is a Google redirect; see SerpAPI organic-results docs */
+  redirect_link?: string;
   title?: string;
   snippet?: string;
 }
@@ -60,6 +64,20 @@ function isSameOrSubdomain(host: string, target: string): boolean {
 }
 
 /**
+ * SerpAPI usually sets `link` to the destination URL, but sometimes only `redirect_link`
+ * (google.com/url?...) is present. Missing either caused empty `link` and guaranteed "not found".
+ */
+function extractOrganicLinkFromSerp(
+  result: OrganicResult & { url?: string }
+): string {
+  const direct = String(result.link || '').trim();
+  if (direct) return unwrapSerpResultLink(direct);
+  const redirect = String(result.redirect_link || '').trim();
+  if (redirect) return unwrapSerpResultLink(redirect);
+  return unwrapSerpResultLink(String(result.url || '').trim());
+}
+
+/**
  * Calls SerpAPI Google Organic search.
  * Uses options.apiKey if provided, otherwise process.env.SERPAPI_API_KEY.
  */
@@ -81,6 +99,9 @@ export async function callSerpApi(
   url.searchParams.append('num', String(params.num || 100));
   if (typeof params.start === 'number') {
     url.searchParams.append('start', String(params.start));
+  }
+  if (params.device) {
+    url.searchParams.append('device', params.device);
   }
   // Use Google Light by default, allow override for fallback strategy.
   url.searchParams.append('engine', params.engine || 'google_light');
@@ -146,9 +167,8 @@ export function matchUrlInResults(
   // Iterate through organic results from top to bottom.
   // We return the first valid match to preserve ranking order.
   for (const result of organicResults) {
-    const rawLink = (result.link || '').trim();
-    if (!rawLink) continue;
-    const resolvedLink = unwrapSerpResultLink(rawLink);
+    const resolvedLink = extractOrganicLinkFromSerp(result as OrganicResult & { url?: string });
+    if (!resolvedLink) continue;
     const normalizedResult = normalizeUrl(resolvedLink);
     const resultDomain = extractDomain(resolvedLink);
     const resultHost = normalizeHostname(resolvedLink);
@@ -227,7 +247,7 @@ export async function trackKeyword(
   let pagesQueried = 0;
   for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
     const serpResponse = await callSerpApi(
-      { keyword, hl, gl, num: PAGE_SIZE, start, engine: 'google' },
+      { keyword, hl, gl, num: PAGE_SIZE, start, engine: 'google', device: 'desktop' },
       options
     );
     pagesQueried += 1;
@@ -236,12 +256,17 @@ export async function trackKeyword(
       : lastSerpLink;
 
     const organic = serpResponse.organic_results || [];
-    if (organic.length === 0) break;
+    // Page 0 with no organic = nothing to rank. Later pages sometimes come back empty (SerpAPI glitch);
+    // do not stop the whole scan — continue to the next offset.
+    if (organic.length === 0) {
+      if (start === 0) break;
+      continue;
+    }
 
     const pageResults = organic
       .map((result, idx) => {
         const r = result as OrganicResult & { url?: string };
-        const link = String(r.link || r.url || '').trim();
+        const link = extractOrganicLinkFromSerp(r);
         const relativePos = Number(result.position);
         return {
           ...result,
