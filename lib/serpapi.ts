@@ -275,7 +275,8 @@ export async function trackKeyword(
       })
       .sort((a, b) => a.position - b.position);
     const match = matchUrlInResults(url, pageResults);
-    if (match.position != null) {
+    // JSON.stringify turns NaN into null — reject non-finite positions so we don't "find" then return null.
+    if (match.position != null && Number.isFinite(match.position) && match.position >= 1) {
       return { ...match, serpLink: lastSerpLink, pagesQueried, elapsedMs: Date.now() - startedAt };
     }
   }

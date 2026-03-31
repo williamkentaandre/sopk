@@ -52,6 +52,8 @@ export default function DashboardPage() {
   const [searchSettingsAlertVisible, setSearchSettingsAlertVisible] = useState(false);
   const [measureAllProgress, setMeasureAllProgress] = useState<{ done: number; total: number; startedAt: number } | null>(null);
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
+  /** Sync guard: React state for `tracking` can lag one frame — double-clicks could otherwise fire two measures and the slower response would overwrite the row. */
+  const pairMeasureInFlightRef = useRef<Set<string>>(new Set());
 
   const historyDates = useMemo(() => {
     const set = new Set<string>();
@@ -99,7 +101,11 @@ export default function DashboardPage() {
     return String(pos);
   };
 
-  const measureCreatedPair = async (created: Pair): Promise<Pair> => {
+  const measureCreatedPair = async (created: Pair): Promise<Pair | undefined> => {
+    if (pairMeasureInFlightRef.current.has(created.pair_id)) {
+      return undefined;
+    }
+    pairMeasureInFlightRef.current.add(created.pair_id);
     try {
       const response = await fetch(`/api/v1/pairs/${created.pair_id}/track`, {
         method: 'POST',
@@ -131,6 +137,8 @@ export default function DashboardPage() {
     } catch {
       showToast(t('dashboard.toast.serpError'), 'error');
       return created;
+    } finally {
+      pairMeasureInFlightRef.current.delete(created.pair_id);
     }
   };
 
@@ -327,6 +335,7 @@ export default function DashboardPage() {
           setTracking((prev) => new Set(prev).add(created.pair_id));
           measureCreatedPair(created)
             .then((measured) => {
+              if (measured === undefined) return;
               setPairs((prev) => prev.map((p) => (p.pair_id === created.pair_id ? measured : p)));
             })
             .finally(() => {
@@ -470,6 +479,10 @@ export default function DashboardPage() {
       showToast(t('dashboard.toast.completeSearchSettings'), 'error');
       return;
     }
+    if (pairMeasureInFlightRef.current.has(pairId)) {
+      return;
+    }
+    pairMeasureInFlightRef.current.add(pairId);
     setTracking((prev) => new Set(prev).add(pairId));
     try {
       const response = await fetch(`/api/v1/pairs/${pairId}/track`, {
@@ -507,6 +520,7 @@ export default function DashboardPage() {
     } catch {
       showToast(t('dashboard.toast.serpError'), 'error');
     } finally {
+      pairMeasureInFlightRef.current.delete(pairId);
       setTracking((prev) => {
         const next = new Set(prev);
         next.delete(pairId);
