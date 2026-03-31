@@ -232,35 +232,50 @@ export async function trackKeyword(
   gl: string,
   options?: SerpApiOptions
 ): Promise<MatchResult & { serpLink?: string }> {
-  // Single call top 100 detection via SerpAPI.
+  // Explicit pagination up to top 100 to reliably detect beyond page 1.
   const MAX_RESULTS = 100;
+  const PAGE_SIZE = 20;
   let lastSerpLink: string | undefined;
-  const pagesQueried = 1;
+  let pagesQueried = 0;
   const startedAt = Date.now();
-  const toAbsolutePosition = (rawPos: number, idx: number) => {
+  const toAbsolutePosition = (rawPos: number, start: number, idx: number) => {
     if (Number.isFinite(rawPos) && rawPos > 0) {
+      // Case A: page-relative rank (1..PAGE_SIZE)
+      if (rawPos >= 1 && rawPos <= PAGE_SIZE) return start + rawPos;
+      // Case B: already absolute in page window
+      if (rawPos >= start + 1 && rawPos <= start + PAGE_SIZE) return rawPos;
+      // Case C: absolute rank in top 100
       if (rawPos >= 1 && rawPos <= MAX_RESULTS) return rawPos;
     }
-    return idx + 1;
+    return start + idx + 1;
   };
-  const serpResponse = await callSerpApi(
-    { keyword, hl, gl, num: MAX_RESULTS, start: 0, engine: 'google' },
-    options
-  );
-  lastSerpLink = serpResponse.search_metadata?.id
-    ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
-    : undefined;
 
-  const pageResults = (serpResponse.organic_results || []).slice(0, MAX_RESULTS).map((result, idx) => {
-    const relativePos = Number(result.position);
-    return {
-      ...result,
-      position: toAbsolutePosition(relativePos, idx),
-    };
-  });
-  const match = matchUrlInResults(url, pageResults);
-  if (match.position != null) {
-    return { ...match, serpLink: lastSerpLink, pagesQueried, elapsedMs: Date.now() - startedAt };
+  for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
+    const serpResponse = await callSerpApi(
+      { keyword, hl, gl, num: PAGE_SIZE, start, engine: 'google' },
+      options
+    );
+    pagesQueried += 1;
+
+    lastSerpLink = serpResponse.search_metadata?.id
+      ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
+      : lastSerpLink;
+
+    const organic = serpResponse.organic_results || [];
+    if (organic.length === 0) break;
+
+    const pageResults = organic.map((result, idx) => {
+      const relativePos = Number(result.position);
+      return {
+        ...result,
+        position: toAbsolutePosition(relativePos, start, idx),
+      };
+    });
+
+    const match = matchUrlInResults(url, pageResults);
+    if (match.position != null) {
+      return { ...match, serpLink: lastSerpLink, pagesQueried, elapsedMs: Date.now() - startedAt };
+    }
   }
 
   return {
