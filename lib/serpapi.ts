@@ -1,4 +1,9 @@
-import { extractDomain, sameRegistrableBrand, unwrapSerpResultLink } from './url-utils';
+import {
+  extractDomain,
+  extractUrlFromDisplayedLink,
+  resolveSerpResultDestination,
+  sameRegistrableBrand,
+} from './url-utils';
 
 export interface SerpApiParams {
   keyword: string;
@@ -60,6 +65,8 @@ export interface SerpApiOptions {
   apiKey?: string | null;
   /** If true, collect ordered organic rows per page for API response (debug). */
   diagnostic?: boolean;
+  /** SerpAPI: bypass 1h cache (useful when cached response has empty organic_results). */
+  noCache?: boolean;
 }
 
 export function googleDomainForGl(gl: string): string {
@@ -115,14 +122,32 @@ export function googleDomainForGl(gl: string): string {
   return map[g] || 'google.com';
 }
 
-function extractOrganicLinkFromSerp(
-  result: OrganicResult & { url?: string }
-): string {
-  const direct = String(result.link || '').trim();
-  if (direct) return unwrapSerpResultLink(direct);
-  const redirect = String(result.redirect_link || '').trim();
-  if (redirect) return unwrapSerpResultLink(redirect);
-  return unwrapSerpResultLink(String(result.url || '').trim());
+type SerpOrganicRow = OrganicResult & {
+  url?: string;
+  displayed_link?: string;
+  about_this_result?: { source?: { source_info_link?: string } };
+};
+
+function extractOrganicLinkFromSerp(result: SerpOrganicRow): string {
+  const row = result as SerpOrganicRow;
+  const candidates = [
+    row.link,
+    row.redirect_link,
+    row.url,
+    row.about_this_result?.source?.source_info_link,
+  ];
+  for (const raw of candidates) {
+    const resolved = resolveSerpResultDestination(String(raw || '').trim());
+    if (resolved) return resolved;
+  }
+  const fromDisplay = extractUrlFromDisplayedLink(
+    String(row.displayed_link || '')
+  );
+  if (fromDisplay) {
+    const resolved = resolveSerpResultDestination(fromDisplay);
+    if (resolved) return resolved;
+  }
+  return '';
 }
 
 export async function callSerpApi(
@@ -151,6 +176,9 @@ export async function callSerpApi(
   }
   url.searchParams.append('engine', params.engine || 'google_light');
   url.searchParams.append('filter', '0');
+  if (options?.noCache) {
+    url.searchParams.append('no_cache', 'true');
+  }
   url.searchParams.append('api_key', apiKey);
 
   const controller = new AbortController();
@@ -254,10 +282,20 @@ export async function trackKeyword(
   const targetRoot = extractDomain(url);
 
   for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
-    const serpResponse = await callSerpApi(
+    let serpResponse = await callSerpApi(
       { ...baseParams, num: PAGE_SIZE, start },
       options
     );
+    if (
+      start === 0 &&
+      (!serpResponse.organic_results || serpResponse.organic_results.length === 0)
+    ) {
+      serpResponse = await callSerpApi(
+        { ...baseParams, num: PAGE_SIZE, start },
+        { ...options, noCache: true }
+      );
+      pagesQueried += 1;
+    }
     pagesQueried += 1;
     lastSerpLink = serpResponse.search_metadata?.id
       ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
@@ -272,7 +310,7 @@ export async function trackKeyword(
     if (diagnostic) {
       for (let i = 0; i < organic.length; i++) {
         const rank = start + i + 1;
-        const r = organic[i] as OrganicResult & { url?: string };
+        const r = organic[i] as SerpOrganicRow;
         const resolved = extractOrganicLinkFromSerp(r);
         const resultRoot = resolved ? extractDomain(resolved) : '';
         pageItems.push({
@@ -290,7 +328,7 @@ export async function trackKeyword(
 
     for (let i = 0; i < organic.length; i++) {
       const rank = start + i + 1;
-      const r = organic[i] as OrganicResult & { url?: string };
+      const r = organic[i] as SerpOrganicRow;
       const resolved = extractOrganicLinkFromSerp(r);
       const resultRoot = resolved ? extractDomain(resolved) : '';
       if (targetRoot && resultRoot && sameRegistrableBrand(targetRoot, resultRoot)) {

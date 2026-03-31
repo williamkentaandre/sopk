@@ -45,6 +45,76 @@ export function unwrapSerpResultLink(link: string): string {
   return trimmed;
 }
 
+/**
+ * Google/SerpAPI sometimes returns protocol-relative organic links (`//www.nike.fr/...`).
+ * URL() throws without a scheme — normalize before parsing.
+ */
+export function resolveSerpResultDestination(raw: string): string {
+  let s = (raw || '').trim();
+  if (!s) return '';
+  if (s.startsWith('//')) s = 'https:' + s;
+  s = unwrapSerpResultLink(s);
+  s = unwrapAmpCacheLink(s);
+  return s;
+}
+
+/**
+ * AMP cache URLs point at *.cdn.ampproject.org but embed the real site URL in the string.
+ */
+export function unwrapAmpCacheLink(link: string): string {
+  const s = (link || '').trim();
+  if (!s) return s;
+  let u: URL;
+  try {
+    u = new URL(s.startsWith('//') ? 'https:' + s : s);
+  } catch {
+    return s;
+  }
+  const h = u.hostname.toLowerCase();
+  if (!h.endsWith('.cdn.ampproject.org') && h !== 'cdn.ampproject.org') {
+    return s;
+  }
+  let decoded = s;
+  try {
+    decoded = decodeURIComponent(s);
+  } catch {
+    /* keep s */
+  }
+  const re =
+    /https?:\/\/(?:www\.)?[a-z0-9][a-z0-9.-]*\.[a-z]{2,}(?:\/[^\s"'<>]*)?/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(decoded)) !== null) {
+    const cand = m[0];
+    try {
+      const inner = new URL(cand);
+      const ih = inner.hostname.toLowerCase();
+      if (ih.includes('ampproject.org')) continue;
+      if (ih === 'www.google.com' || ih.endsWith('.google.com')) continue;
+      return cand;
+    } catch {
+      continue;
+    }
+  }
+  return s;
+}
+
+/**
+ * SerpAPI `displayed_link` often looks like `https://www.nike.fr › Catégorie` or `nike.fr › ...`.
+ */
+export function extractUrlFromDisplayedLink(displayed: string): string | null {
+  const d = (displayed || '').trim();
+  if (!d) return null;
+  const withScheme = d.match(/https?:\/\/[^\s›]+/i);
+  if (withScheme) return withScheme[0].trim();
+  const head = d.split('›')[0].trim().split(/\s+/)[0];
+  if (
+    /^(?:www\.)?[a-z0-9](?:[a-z0-9-]*\.)+[a-z]{2,}$/i.test(head)
+  ) {
+    return 'https://' + head.replace(/^www\./i, '');
+  }
+  return null;
+}
+
 export function normalizeUrl(url: string): string {
   try {
     // Clean up the URL first

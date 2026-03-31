@@ -46,4 +46,22 @@ describe('matchUrlInResults (domain root only)', () => {
     ]);
     expect(m.position).toBe(3);
   });
+
+  it('resolves protocol-relative organic links (//host/path)', () => {
+    const m = matchUrlInResults('nike.com', [
+      { position: 4, link: '//www.nike.fr/fr/' },
+    ]);
+    expect(m.position).toBe(4);
+  });
+
+  it('falls back to displayed_link when link is empty', () => {
+    const m = matchUrlInResults('jules.com', [
+      {
+        position: 2,
+        link: '',
+        displayed_link: 'https://www.jules.fr › Chaussures',
+      } as OrganicResult,
+    ]);
+    expect(m.position).toBe(2);
+  });
 });
