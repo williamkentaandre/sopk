@@ -232,8 +232,7 @@ export async function trackKeyword(
   gl: string,
   options?: SerpApiOptions
 ): Promise<MatchResult & { serpLink?: string }> {
-  // Explicit pagination up to top 100.
-  // We avoid high parallelism because SerpAPI can throttle/degrade deep pages under burst traffic.
+  // Paginate top 100 (10 results per page). Sequential fetch keeps page 2+ reliable vs burst parallel calls.
   const MAX_RESULTS = 100;
   const PAGE_SIZE = 10;
   let lastSerpLink: string | undefined;
@@ -250,66 +249,26 @@ export async function trackKeyword(
     return start + idx + 1;
   };
 
-  const starts: number[] = [];
-  for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
-    starts.push(start);
-  }
-
-  const responsesByStart = new Map<number, SerpApiResponse>();
-  const failedStarts: number[] = [];
+  // Sequential page fetch (reliable for page 2+). Stop early on first match.
   let pagesQueried = 0;
-
-  // Query in small batches to reduce throttling and improve reliability for page 3+.
-  const BATCH_SIZE = 2;
-  for (let i = 0; i < starts.length; i += BATCH_SIZE) {
-    const batch = starts.slice(i, i + BATCH_SIZE);
-    const settled = await Promise.allSettled(
-      batch.map((start) =>
-        callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start, engine: 'google' }, options)
-      )
+  const seenPageSignatures = new Set<string>();
+  for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
+    const serpResponse = await callSerpApi(
+      { keyword, hl, gl, num: PAGE_SIZE, start, engine: 'google' },
+      options
     );
+    pagesQueried += 1;
+    lastSerpLink = serpResponse.search_metadata?.id
+      ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
+      : lastSerpLink;
 
-    for (let j = 0; j < settled.length; j++) {
-      const start = batch[j];
-      const res = settled[j];
-      if (res.status === 'rejected') {
-        failedStarts.push(start);
-        continue;
-      }
-      pagesQueried += 1;
-      responsesByStart.set(start, res.value);
-      if (res.value.search_metadata?.id) {
-        lastSerpLink = `https://serpapi.com/searches/${res.value.search_metadata.id}`;
-      }
-    }
-  }
-
-  // Retry failed pages once (still batched) before giving up.
-  for (let i = 0; i < failedStarts.length; i += BATCH_SIZE) {
-    const batch = failedStarts.slice(i, i + BATCH_SIZE);
-    const settled = await Promise.allSettled(
-      batch.map((start) =>
-        callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start, engine: 'google' }, options)
-      )
-    );
-    for (let j = 0; j < settled.length; j++) {
-      const start = batch[j];
-      const res = settled[j];
-      if (res.status === 'rejected') continue;
-      pagesQueried += 1;
-      responsesByStart.set(start, res.value);
-      if (res.value.search_metadata?.id) {
-        lastSerpLink = `https://serpapi.com/searches/${res.value.search_metadata.id}`;
-      }
-    }
-  }
-
-  // Match in rank order (1..100) regardless of response order.
-  for (const start of starts) {
-    const serpResponse = responsesByStart.get(start);
-    if (!serpResponse) continue;
     const organic = serpResponse.organic_results || [];
-    if (organic.length === 0) continue;
+    if (organic.length === 0) break;
+
+    const signature = organic.slice(0, 3).map((r) => normalizeUrl(r.link)).join('|');
+    if (seenPageSignatures.has(signature)) break;
+    seenPageSignatures.add(signature);
+
     const pageResults = organic.map((result, idx) => {
       const relativePos = Number(result.position);
       return {
@@ -321,10 +280,6 @@ export async function trackKeyword(
     if (match.position != null) {
       return { ...match, serpLink: lastSerpLink, pagesQueried, elapsedMs: Date.now() - startedAt };
     }
-  }
-
-  if (pagesQueried === 0) {
-    throw new Error('SerpAPI error: all page requests failed');
   }
 
   return {
