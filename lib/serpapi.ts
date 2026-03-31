@@ -232,12 +232,10 @@ export async function trackKeyword(
   gl: string,
   options?: SerpApiOptions
 ): Promise<MatchResult & { serpLink?: string }> {
-  // Explicit pagination up to top 100 to reliably detect beyond page 1.
+  // Explicit pagination up to top 100, fetched in parallel for reliability under serverless limits.
   const MAX_RESULTS = 100;
-  // Google pagination is most reliable with 10-result pages.
   const PAGE_SIZE = 10;
   let lastSerpLink: string | undefined;
-  let pagesQueried = 0;
   const startedAt = Date.now();
   const toAbsolutePosition = (rawPos: number, start: number, idx: number) => {
     if (Number.isFinite(rawPos) && rawPos > 0) {
@@ -251,25 +249,32 @@ export async function trackKeyword(
     return start + idx + 1;
   };
 
-  const seenPageSignatures = new Set<string>();
-  for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
-    const serpResponse = await callSerpApi(
-      { keyword, hl, gl, num: PAGE_SIZE, start, engine: 'google' },
-      options
-    );
-    pagesQueried += 1;
+  const starts: number[] = [];
+  for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) starts.push(start);
 
+  const settled = await Promise.allSettled(
+    starts.map((start) =>
+      callSerpApi({ keyword, hl, gl, num: PAGE_SIZE, start, engine: 'google' }, options)
+    )
+  );
+
+  let pagesQueried = 0;
+  let firstError: unknown = null;
+  for (let i = 0; i < settled.length; i++) {
+    const start = starts[i];
+    const res = settled[i];
+    if (res.status === 'rejected') {
+      if (!firstError) firstError = res.reason;
+      continue;
+    }
+    pagesQueried += 1;
+    const serpResponse = res.value;
     lastSerpLink = serpResponse.search_metadata?.id
       ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
       : lastSerpLink;
 
     const organic = serpResponse.organic_results || [];
-    if (organic.length === 0) break;
-
-    // Guard against providers occasionally repeating page 1 for start>0.
-    const signature = organic.slice(0, 3).map((r) => normalizeUrl(r.link)).join('|');
-    if (seenPageSignatures.has(signature)) break;
-    seenPageSignatures.add(signature);
+    if (organic.length === 0) continue;
 
     const pageResults = organic.map((result, idx) => {
       const relativePos = Number(result.position);
@@ -283,6 +288,10 @@ export async function trackKeyword(
     if (match.position != null) {
       return { ...match, serpLink: lastSerpLink, pagesQueried, elapsedMs: Date.now() - startedAt };
     }
+  }
+
+  if (pagesQueried === 0 && firstError) {
+    throw new Error(String(firstError));
   }
 
   return {
