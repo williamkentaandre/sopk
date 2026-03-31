@@ -36,6 +36,7 @@ export async function POST(
     const validationResult = trackSchema.safeParse(body);
     const hl = validationResult.success ? validationResult.data.hl || 'fr' : 'fr';
     const gl = validationResult.success ? validationResult.data.gl || 'fr' : 'fr';
+    const diagnostic = validationResult.success ? validationResult.data.diagnostic === true : false;
 
     const checkedAt = new Date();
     let position: number | null = null;
@@ -45,6 +46,7 @@ export async function POST(
     try {
       matchResult = await trackKeyword(pair.keyword, pair.rawUrl, hl, gl, {
         apiKey: user.serpApiKey,
+        diagnostic,
       });
       position = matchResult.position;
     } catch (e) {
@@ -90,6 +92,7 @@ export async function POST(
       pages_queried: matchResult?.pagesQueried ?? null,
       elapsed_ms: matchResult?.elapsedMs ?? null,
       error,
+      ...(diagnostic && matchResult?.diagnostic ? { diagnostic: matchResult.diagnostic } : {}),
     });
   } catch (e) {
     return NextResponse.json(

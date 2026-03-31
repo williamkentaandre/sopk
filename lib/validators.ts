@@ -24,6 +24,8 @@ export const updatePairSchema = z.object({
 export const trackSchema = z.object({
   hl: z.string().min(2).max(5).optional(),
   gl: z.string().min(2).max(5).optional(),
+  /** When true, API returns `diagnostic` with organic rows per page (not saved in DB). */
+  diagnostic: z.boolean().optional(),
 });
 
 export const batchTrackSchema = z.object({

@@ -21,7 +21,7 @@ export interface HistoryEntry {
   gl: string;
   position: number | null;
   matched_url: string | null;
-  match_type: 'exact' | 'domain' | 'none';
+  match_type: 'domain' | 'none';
   serp_link?: string;
   source: string;
   error?: string;

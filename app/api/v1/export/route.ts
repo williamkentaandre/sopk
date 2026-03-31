@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       gl: h.gl ?? 'fr',
       position: h.position,
       matched_url: h.matchedUrl,
-      match_type: (h.matchType as 'exact' | 'domain' | 'none') ?? 'none',
+      match_type: (h.matchType as 'domain' | 'none') ?? 'none',
       serp_link: h.serpLink ?? undefined,
       source: 'track',
       ...(h.error && { error: h.error }),
