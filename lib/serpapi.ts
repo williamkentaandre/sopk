@@ -249,9 +249,10 @@ export async function trackKeyword(
     return start + idx + 1;
   };
 
-  // Sequential page fetch (reliable for page 2+). Stop early on first match.
+  // Sequential page fetch. Stop early on first match.
+  // Do NOT use a short-prefix signature: page 1 vs page 2 can share the same top links pattern and would wrongly stop before rank 11–20 (e.g. rank 13).
   let pagesQueried = 0;
-  const seenPageSignatures = new Set<string>();
+  const seenFullPageSignatures = new Set<string>();
   for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
     const serpResponse = await callSerpApi(
       { keyword, hl, gl, num: PAGE_SIZE, start, engine: 'google' },
@@ -265,9 +266,9 @@ export async function trackKeyword(
     const organic = serpResponse.organic_results || [];
     if (organic.length === 0) break;
 
-    const signature = organic.slice(0, 3).map((r) => normalizeUrl(r.link)).join('|');
-    if (seenPageSignatures.has(signature)) break;
-    seenPageSignatures.add(signature);
+    const fullSignature = organic.map((r) => normalizeUrl(r.link)).join('|');
+    if (seenFullPageSignatures.has(fullSignature)) break;
+    seenFullPageSignatures.add(fullSignature);
 
     const pageResults = organic.map((result, idx) => {
       const relativePos = Number(result.position);
