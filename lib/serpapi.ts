@@ -1,4 +1,4 @@
-import { extractDomain, unwrapSerpResultLink } from './url-utils';
+import { extractDomain, sameRegistrableBrand, unwrapSerpResultLink } from './url-utils';
 
 export interface SerpApiParams {
   keyword: string;
@@ -201,7 +201,7 @@ export function matchUrlInResults(targetUrl: string, organicResults: OrganicResu
     const resolved = extractOrganicLinkFromSerp(result as OrganicResult & { url?: string });
     if (!resolved) continue;
     const resultRoot = extractDomain(resolved);
-    if (resultRoot && resultRoot === targetRoot) {
+    if (resultRoot && sameRegistrableBrand(targetRoot, resultRoot)) {
       return {
         position: result.position,
         matchedUrl: resolved,
@@ -293,7 +293,7 @@ export async function trackKeyword(
       const r = organic[i] as OrganicResult & { url?: string };
       const resolved = extractOrganicLinkFromSerp(r);
       const resultRoot = resolved ? extractDomain(resolved) : '';
-      if (targetRoot && resultRoot && resultRoot === targetRoot) {
+      if (targetRoot && resultRoot && sameRegistrableBrand(targetRoot, resultRoot)) {
         return {
           position: rank,
           matchedUrl: resolved,

@@ -30,4 +30,20 @@ describe('matchUrlInResults (domain root only)', () => {
     ]);
     expect(m.position).toBe(2);
   });
+
+  it('matches .com target to local ccTLD in SERP (e.g. nike.com vs nike.fr)', () => {
+    const m = matchUrlInResults('nike.com', [
+      { position: 1, link: 'https://competitor.example/' },
+      { position: 7, link: 'https://www.nike.fr/fr/' },
+    ]);
+    expect(m.position).toBe(7);
+    expect(m.matchedUrl).toContain('nike.fr');
+  });
+
+  it('matches amazon.fr target to amazon.com organic', () => {
+    const m = matchUrlInResults('amazon.fr', [
+      { position: 3, link: 'https://www.amazon.com/dp/test' },
+    ]);
+    expect(m.position).toBe(3);
+  });
 });

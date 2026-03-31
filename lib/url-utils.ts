@@ -154,6 +154,20 @@ export function extractDomain(url: string): string {
 }
 
 /**
+ * Same brand site across different TLDs after extractDomain():
+ * nike.com matches nike.fr (French SERP often uses the local TLD while users track .com).
+ * Both arguments must be two-label roots (name.tld); subdomains should be folded first via extractDomain().
+ */
+export function sameRegistrableBrand(rootA: string, rootB: string): boolean {
+  if (!rootA || !rootB) return false;
+  if (rootA === rootB) return true;
+  const pa = rootA.split('.');
+  const pb = rootB.split('.');
+  if (pa.length !== 2 || pb.length !== 2) return false;
+  return pa[0] === pb[0] && pa[0] !== '';
+}
+
+/**
  * Validates that a URL is well-formed
  */
 export function isValidUrl(url: string): boolean {
