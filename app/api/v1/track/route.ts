@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
   const results = await runWithConcurrency(pairsToTrack, MAX_CONCURRENT, async (pair) => {
     const checkedAt = new Date();
     try {
-      const matchResult = await trackKeyword(pair.keyword, pair.url, finalHl, finalGl, {
+      const matchResult = await trackKeyword(pair.keyword, pair.rawUrl, finalHl, finalGl, {
         apiKey: user.serpApiKey!,
       });
 

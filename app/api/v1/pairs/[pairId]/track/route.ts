@@ -42,7 +42,7 @@ export async function POST(
     let matchResult: Awaited<ReturnType<typeof trackKeyword>> | null = null;
 
     try {
-      matchResult = await trackKeyword(pair.keyword, pair.url, hl, gl, {
+      matchResult = await trackKeyword(pair.keyword, pair.rawUrl, hl, gl, {
         apiKey: user.serpApiKey,
       });
       position = matchResult.position;

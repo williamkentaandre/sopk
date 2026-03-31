@@ -244,7 +244,7 @@ export async function trackKeyword(
     return idx + 1;
   };
   const serpResponse = await callSerpApi(
-    { keyword, hl, gl, num: MAX_RESULTS, start: 0, engine: 'google_light' },
+    { keyword, hl, gl, num: MAX_RESULTS, start: 0, engine: 'google' },
     options
   );
   lastSerpLink = serpResponse.search_metadata?.id
