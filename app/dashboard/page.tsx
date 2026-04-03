@@ -9,6 +9,7 @@ import {
   type KeyboardEvent,
   type ClipboardEvent,
   type MouseEvent as ReactMouseEvent,
+  type DragEvent,
 } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
@@ -38,37 +39,24 @@ interface Toast {
   type: 'success' | 'error';
 }
 
-/** Move selected ids one step up as a block; order inside the block is preserved. */
-function reorderIdsMoveBlockUp(ids: string[], selected: Set<string>): string[] | null {
-  let minIdx = ids.length;
-  for (let i = 0; i < ids.length; i++) {
-    if (selected.has(ids[i]!)) minIdx = Math.min(minIdx, i);
-  }
-  if (minIdx >= ids.length || minIdx <= 0) return null;
-  const prevBefore = ids[minIdx - 1]!;
-  const block = ids.filter((id) => selected.has(id));
-  const rest = ids.filter((id) => !selected.has(id));
-  const j = rest.indexOf(prevBefore);
-  if (j < 0) return null;
-  const next = [...rest];
-  next.splice(j, 0, ...block);
-  return next;
+/** Insert moving ids (in order) immediately before insertBeforeId. */
+function reorderIdsDragInsertBefore(
+  fullIds: string[],
+  movingIds: string[],
+  insertBeforeId: string
+): string[] | null {
+  const moving = new Set(movingIds);
+  if (moving.has(insertBeforeId)) return null;
+  const rest = fullIds.filter((id) => !moving.has(id));
+  const pos = rest.indexOf(insertBeforeId);
+  if (pos < 0) return null;
+  return [...rest.slice(0, pos), ...movingIds, ...rest.slice(pos)];
 }
 
-function reorderIdsMoveBlockDown(ids: string[], selected: Set<string>): string[] | null {
-  let maxIdx = -1;
-  for (let i = 0; i < ids.length; i++) {
-    if (selected.has(ids[i]!)) maxIdx = Math.max(maxIdx, i);
-  }
-  if (maxIdx < 0 || maxIdx >= ids.length - 1) return null;
-  const nextAfter = ids[maxIdx + 1]!;
-  const block = ids.filter((id) => selected.has(id));
-  const rest = ids.filter((id) => !selected.has(id));
-  const j = rest.indexOf(nextAfter);
-  if (j < 0) return null;
-  const next = [...rest];
-  next.splice(j + 1, 0, ...block);
-  return next;
+function reorderIdsDragAppend(fullIds: string[], movingIds: string[]): string[] {
+  const moving = new Set(movingIds);
+  const rest = fullIds.filter((id) => !moving.has(id));
+  return [...rest, ...movingIds];
 }
 
 export default function DashboardPage() {
@@ -106,6 +94,10 @@ export default function DashboardPage() {
   const selectAllCheckboxRef = useRef<HTMLInputElement>(null);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [reordering, setReordering] = useState(false);
+  const dragPayloadRef = useRef<string[] | null>(null);
+  const [draggingIds, setDraggingIds] = useState<Set<string> | null>(null);
+  const [dragOverPairId, setDragOverPairId] = useState<string | null>(null);
+  const [dragOverTail, setDragOverTail] = useState(false);
 
   const selectablePairIds = useMemo(
     () => pairs.filter((p) => !p.pair_id.startsWith('temp_')).map((p) => p.pair_id),
@@ -117,25 +109,16 @@ export default function DashboardPage() {
     [selectablePairIds, selectedPairIds]
   );
 
-  const canMoveSelectedUp = useMemo(() => {
-    if (selectedPairIds.size === 0) return false;
-    const ids = pairs.map((p) => p.pair_id);
-    let minIdx = ids.length;
-    for (let i = 0; i < ids.length; i++) {
-      if (selectedPairIds.has(ids[i]!)) minIdx = Math.min(minIdx, i);
-    }
-    return minIdx < ids.length && minIdx > 0;
-  }, [pairs, selectedPairIds]);
-
-  const canMoveSelectedDown = useMemo(() => {
-    if (selectedPairIds.size === 0) return false;
-    const ids = pairs.map((p) => p.pair_id);
-    let maxIdx = -1;
-    for (let i = 0; i < ids.length; i++) {
-      if (selectedPairIds.has(ids[i]!)) maxIdx = Math.max(maxIdx, i);
-    }
-    return maxIdx >= 0 && maxIdx < ids.length - 1;
-  }, [pairs, selectedPairIds]);
+  useEffect(() => {
+    const onDragEndWindow = () => {
+      dragPayloadRef.current = null;
+      setDraggingIds(null);
+      setDragOverPairId(null);
+      setDragOverTail(false);
+    };
+    window.addEventListener('dragend', onDragEndWindow);
+    return () => window.removeEventListener('dragend', onDragEndWindow);
+  }, []);
 
   useEffect(() => {
     const valid = new Set(pairs.map((p) => p.pair_id));
@@ -594,12 +577,7 @@ export default function DashboardPage() {
     }
   };
 
-  const moveSelectedRowsUp = async () => {
-    if (selectedPairIds.size === 0) return;
-    const ids = pairs.map((p) => p.pair_id);
-    const sel = new Set(selectedPairIds);
-    const newIds = reorderIdsMoveBlockUp(ids, sel);
-    if (!newIds) return;
+  const applyDragReorder = async (newIds: string[]) => {
     const map = new Map(pairs.map((p) => [p.pair_id, p]));
     const newPairs = newIds.map((id) => map.get(id)!);
     setPairs(newPairs);
@@ -612,22 +590,66 @@ export default function DashboardPage() {
     }
   };
 
-  const moveSelectedRowsDown = async () => {
-    if (selectedPairIds.size === 0) return;
-    const ids = pairs.map((p) => p.pair_id);
-    const sel = new Set(selectedPairIds);
-    const newIds = reorderIdsMoveBlockDown(ids, sel);
-    if (!newIds) return;
-    const map = new Map(pairs.map((p) => [p.pair_id, p]));
-    const newPairs = newIds.map((id) => map.get(id)!);
-    setPairs(newPairs);
-    const persisted = newIds.filter((id) => !id.startsWith('temp_'));
-    setReordering(true);
-    try {
-      await persistPairOrder(persisted);
-    } finally {
-      setReordering(false);
+  const onPairDragStart = (pairId: string, e: DragEvent) => {
+    const moving =
+      selectedPairIds.has(pairId) && selectedPairIds.size > 0
+        ? pairs.filter((p) => selectedPairIds.has(p.pair_id)).map((p) => p.pair_id)
+        : [pairId];
+    dragPayloadRef.current = moving;
+    setDraggingIds(new Set(moving));
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', pairId);
+  };
+
+  const onPairRowDragOver = (pairId: string, e: DragEvent) => {
+    const moving = dragPayloadRef.current;
+    if (!moving?.length) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const movingSet = new Set(moving);
+    if (!movingSet.has(pairId)) {
+      setDragOverPairId(pairId);
+      setDragOverTail(false);
     }
+  };
+
+  const onPairRowDragLeave = (pairId: string, e: DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOverPairId((prev) => (prev === pairId ? null : prev));
+    }
+  };
+
+  const onPairRowDrop = (insertBeforeId: string, e: DragEvent) => {
+    e.preventDefault();
+    const moving = dragPayloadRef.current;
+    if (!moving?.length) return;
+    const fullIds = pairs.map((p) => p.pair_id);
+    const newIds = reorderIdsDragInsertBefore(fullIds, moving, insertBeforeId);
+    if (!newIds) return;
+    void applyDragReorder(newIds);
+  };
+
+  const onDropZoneTailDragOver = (e: DragEvent) => {
+    if (!dragPayloadRef.current?.length) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverTail(true);
+    setDragOverPairId(null);
+  };
+
+  const onDropZoneTailDragLeave = (e: DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOverTail(false);
+    }
+  };
+
+  const onDropZoneTailDrop = (e: DragEvent) => {
+    e.preventDefault();
+    const moving = dragPayloadRef.current;
+    if (!moving?.length) return;
+    const fullIds = pairs.map((p) => p.pair_id);
+    const newIds = reorderIdsDragAppend(fullIds, moving);
+    void applyDragReorder(newIds);
   };
 
   const normalizeUrlForCompare = (u: string) => {
@@ -804,7 +826,7 @@ export default function DashboardPage() {
   const pairRowClickIgnoresSelection = (target: EventTarget | null) => {
     const el = pairTableRowSelectionTarget(target);
     if (!el?.closest) return true;
-    return !!el.closest('a, button, input, textarea, label');
+    return !!el.closest('a, button, input, textarea, label, [data-pair-drag-handle]');
   };
 
   const onPairTableRowClick = (pairId: string, e: ReactMouseEvent<HTMLTableRowElement>) => {
@@ -1404,32 +1426,6 @@ export default function DashboardPage() {
                     )}
                   </button>
                 )}
-                {selectedPairIds.size > 0 && (
-                  <>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => void moveSelectedRowsUp()}
-                      disabled={!canMoveSelectedUp || reordering || loading || saving || bulkDeleting}
-                      aria-busy={reordering}
-                      aria-label={t('dashboard.table.moveSelectionUpAria')}
-                      title={t('dashboard.table.moveSelectionUpAria')}
-                    >
-                      {t('dashboard.table.moveUp')}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => void moveSelectedRowsDown()}
-                      disabled={!canMoveSelectedDown || reordering || loading || saving || bulkDeleting}
-                      aria-busy={reordering}
-                      aria-label={t('dashboard.table.moveSelectionDownAria')}
-                      title={t('dashboard.table.moveSelectionDownAria')}
-                    >
-                      {t('dashboard.table.moveDown')}
-                    </button>
-                  </>
-                )}
                 {selectedDeletableCount > 0 && (
                   <button
                     type="button"
@@ -1485,7 +1481,12 @@ export default function DashboardPage() {
                     aria-label={t('dashboard.table.selectAllAria')}
                   />
                 </th>
-                <th style={{ width: '18%' }}>{t('dashboard.table.keyword')}</th>
+                <th className="pairs-table-drag-col" scope="col" title={t('dashboard.table.dragColumn')}>
+                  <span className="pairs-table-drag-col-label" aria-hidden>
+                    ::
+                  </span>
+                </th>
+                <th style={{ width: '17%' }}>{t('dashboard.table.keyword')}</th>
                 <th style={{ width: '20%' }}>{t('dashboard.table.url')}</th>
                 <th style={{ width: '20%' }}>{t('dashboard.table.matchedUrl')}</th>
                 <th style={{ width: '8%' }}>{t('dashboard.table.position')}</th>
@@ -1496,7 +1497,7 @@ export default function DashboardPage() {
             <tbody>
               {pairs.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="empty-state">
+                  <td colSpan={8} className="empty-state">
                     <p>{t('dashboard.table.empty')}</p>
                   </td>
                 </tr>
@@ -1504,11 +1505,15 @@ export default function DashboardPage() {
               {pairs.map((pair) => (
                 <tr
                   key={pair.pair_id}
-                  className={
+                  className={[
                     pair.pair_id.startsWith('temp_')
-                      ? undefined
-                      : `pairs-table-row--selectable${selectedPairIds.has(pair.pair_id) ? ' pairs-table-row--selected' : ''}`
-                  }
+                      ? ''
+                      : `pairs-table-row--selectable${selectedPairIds.has(pair.pair_id) ? ' pairs-table-row--selected' : ''}`,
+                    draggingIds?.has(pair.pair_id) ? 'pairs-table-row--dragging' : '',
+                    dragOverPairId === pair.pair_id ? 'pairs-table-row--drag-over' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ') || undefined}
                   aria-selected={
                     pair.pair_id.startsWith('temp_') ? undefined : selectedPairIds.has(pair.pair_id)
                   }
@@ -1516,6 +1521,9 @@ export default function DashboardPage() {
                     pair.pair_id.startsWith('temp_') ? undefined : t('dashboard.table.rowClickToSelect')
                   }
                   onClick={(e) => onPairTableRowClick(pair.pair_id, e)}
+                  onDragOver={(e) => onPairRowDragOver(pair.pair_id, e)}
+                  onDragLeave={(e) => onPairRowDragLeave(pair.pair_id, e)}
+                  onDrop={(e) => onPairRowDrop(pair.pair_id, e)}
                 >
                   <td className="pairs-table-select">
                     <input
@@ -1527,6 +1535,21 @@ export default function DashboardPage() {
                       aria-label={t('dashboard.table.selectRowAria')}
                       onClick={(e) => e.stopPropagation()}
                     />
+                  </td>
+                  <td className="pairs-table-drag-col">
+                    <span
+                      data-pair-drag-handle
+                      className="pairs-table-drag-handle"
+                      draggable={editingPair !== pair.pair_id}
+                      aria-label={t('dashboard.table.dragHandleAria')}
+                      title={t('dashboard.table.dragHandleAria')}
+                      onDragStart={(e) => onPairDragStart(pair.pair_id, e)}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span className="pairs-table-drag-grip" aria-hidden>
+                        ⋮⋮
+                      </span>
+                    </span>
                   </td>
                   <td>
                     {editingPair === pair.pair_id ? (
@@ -1618,7 +1641,7 @@ export default function DashboardPage() {
                         className="btn btn-primary"
                         style={{ padding: '0.25rem 0.75rem', fontSize: '0.85rem' }}
                         onClick={() => trackPair(pair.pair_id, pair.keyword)}
-                        disabled={tracking.has(pair.pair_id) || saving}
+                        disabled={tracking.has(pair.pair_id) || saving || reordering}
                       >
                         {tracking.has(pair.pair_id) ? <span className="loading" /> : '▶'}
                       </button>
@@ -1629,6 +1652,18 @@ export default function DashboardPage() {
                   </td>
                 </tr>
               ))}
+              {draggingIds && draggingIds.size > 0 && pairs.length > 0 && (
+                <tr
+                  className={`pairs-table-drop-tail ${dragOverTail ? 'pairs-table-drop-tail--active' : ''}`}
+                  onDragOver={onDropZoneTailDragOver}
+                  onDragLeave={onDropZoneTailDragLeave}
+                  onDrop={onDropZoneTailDrop}
+                >
+                  <td colSpan={8} className="pairs-table-drop-tail-cell">
+                    {t('dashboard.table.dropAtEnd')}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
           </div>

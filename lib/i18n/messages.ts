@@ -151,15 +151,19 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.table.measureAll': 'Measure all',
     'dashboard.table.measureSelected': 'Measure selected ({count})',
     'dashboard.table.measureAllHint':
-      'Runs one real Google search per row, one after another. Large lists take several minutes. Select rows and use Up/Down to reorder.',
+      'Runs one real Google search per row, one after another. Large lists take several minutes. Drag the ⋮⋮ handle to reorder (several selected rows move together).',
     'dashboard.table.toolbarAria': 'Tracking table actions',
     'dashboard.table.measureOne': 'Measure this row',
     'dashboard.table.deletePair': 'Delete this pair',
     'dashboard.table.selectColumn': 'Select',
     'dashboard.table.selectAllAria': 'Select all saved rows',
     'dashboard.table.selectRowAria': 'Select this row for bulk measure, reorder, or delete',
-    'dashboard.table.rowClickToSelect': 'Click the row to select or clear (links and buttons work as usual)',
+    'dashboard.table.rowClickToSelect':
+      'Click the row to select or clear (links and buttons work as usual). Drag ⋮⋮ to reorder.',
     'dashboard.table.deleteSelected': 'Delete selected ({count})',
+    'dashboard.table.dragColumn': 'Reorder',
+    'dashboard.table.dragHandleAria': 'Drag to reorder rows (all selected rows move together)',
+    'dashboard.table.dropAtEnd': 'Drop here to move to the end of the list',
     'dashboard.table.positionNotInTop100': '> 100',
     'dashboard.table.domain': 'Domain',
     'dashboard.table.empty': 'No pairs yet. Start by adding a keyword and URL.',
@@ -503,7 +507,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.table.measureAll': 'Mesurer tout',
     'dashboard.table.measureSelected': 'Mesurer la sélection ({count})',
     'dashboard.table.measureAllHint':
-      'Une vraie recherche Google par ligne, l’une après l’autre. Les longues listes peuvent prendre plusieurs minutes. Sélectionnez des lignes puis Monter / Descendre pour l’ordre.',
+      'Une vraie recherche Google par ligne, l’une après l’autre. Les longues listes peuvent prendre plusieurs minutes. Glissez la poignée ⋮⋮ pour réordonner (plusieurs lignes sélectionnées bougent ensemble).',
     'dashboard.table.toolbarAria': 'Actions du tableau de suivi',
     'dashboard.table.measureOne': 'Mesurer cette ligne',
     'dashboard.table.deletePair': 'Supprimer ce couple',
@@ -512,12 +516,12 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.table.selectRowAria':
       'Sélectionner cette ligne pour mesure, changement d’ordre ou suppression groupée',
     'dashboard.table.rowClickToSelect':
-      'Cliquez sur la ligne pour sélectionner ou désélectionner (liens et boutons inchangés)',
+      'Cliquez sur la ligne pour sélectionner ou désélectionner (liens et boutons inchangés). Glissez ⋮⋮ pour réordonner.',
     'dashboard.table.deleteSelected': 'Supprimer la sélection ({count})',
-    'dashboard.table.moveUp': '↑ Monter',
-    'dashboard.table.moveDown': '↓ Descendre',
-    'dashboard.table.moveSelectionUpAria': 'Déplacer les lignes sélectionnées vers le haut',
-    'dashboard.table.moveSelectionDownAria': 'Déplacer les lignes sélectionnées vers le bas',
+    'dashboard.table.dragColumn': 'Ordre',
+    'dashboard.table.dragHandleAria':
+      'Glisser pour réordonner les lignes (toutes les lignes sélectionnées bougent ensemble)',
+    'dashboard.table.dropAtEnd': 'Déposer ici pour placer en fin de liste',
     'dashboard.table.positionNotInTop100': '> 100',
     'dashboard.table.domain': 'Domaine',
     'dashboard.table.empty': 'Aucun couple ajouté. Commencez par ajouter un mot-clé et une URL.',
