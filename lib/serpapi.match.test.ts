@@ -31,8 +31,17 @@ describe('matchUrlInResults (domain root only)', () => {
     expect(m.position).toBe(2);
   });
 
-  it('matches .com target to local ccTLD in SERP (e.g. nike.com vs nike.fr)', () => {
+  it('does not match different public suffixes (e.g. nike.com vs nike.fr)', () => {
     const m = matchUrlInResults('nike.com', [
+      { position: 1, link: 'https://competitor.example/' },
+      { position: 7, link: 'https://www.nike.fr/fr/' },
+    ]);
+    expect(m.position).toBeNull();
+    expect(m.matchType).toBe('none');
+  });
+
+  it('matches when TLD matches (nike.fr target, nike.fr in SERP)', () => {
+    const m = matchUrlInResults('nike.fr', [
       { position: 1, link: 'https://competitor.example/' },
       { position: 7, link: 'https://www.nike.fr/fr/' },
     ]);
@@ -40,22 +49,22 @@ describe('matchUrlInResults (domain root only)', () => {
     expect(m.matchedUrl).toContain('nike.fr');
   });
 
-  it('matches amazon.fr target to amazon.com organic', () => {
+  it('does not match amazon.fr target to amazon.com organic', () => {
     const m = matchUrlInResults('amazon.fr', [
       { position: 3, link: 'https://www.amazon.com/dp/test' },
     ]);
-    expect(m.position).toBe(3);
+    expect(m.position).toBeNull();
   });
 
-  it('resolves protocol-relative organic links (//host/path)', () => {
-    const m = matchUrlInResults('nike.com', [
+  it('resolves protocol-relative organic links when TLD matches', () => {
+    const m = matchUrlInResults('nike.fr', [
       { position: 4, link: '//www.nike.fr/fr/' },
     ]);
     expect(m.position).toBe(4);
   });
 
-  it('falls back to displayed_link when link is empty', () => {
-    const m = matchUrlInResults('jules.com', [
+  it('falls back to displayed_link when link is empty and TLD matches', () => {
+    const m = matchUrlInResults('jules.fr', [
       {
         position: 2,
         link: '',

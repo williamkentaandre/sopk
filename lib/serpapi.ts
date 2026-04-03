@@ -2,7 +2,6 @@ import {
   extractDomain,
   extractUrlFromDisplayedLink,
   resolveSerpResultDestination,
-  sameRegistrableBrand,
 } from './url-utils';
 import { callSerperGoogleSearch } from './serper';
 import type { SerperOrganicItem } from './serper';
@@ -206,8 +205,8 @@ async function fetchSerperOrganicUpTo100(
 }
 
 /**
- * Domain-only match: same registrable-style root as extractDomain() (subdomains of same site match).
- * organicResults must be in real SERP order; each item's `position` field is the rank to return on match.
+ * Domain match: same hostname root as extractDomain() (e.g. blog.example.com → example.com).
+ * TLD must match exactly: example.com ≠ example.fr.
  */
 export function matchUrlInResults(targetUrl: string, organicResults: OrganicResult[]): MatchResult {
   const targetRoot = extractDomain(targetUrl);
@@ -219,7 +218,7 @@ export function matchUrlInResults(targetUrl: string, organicResults: OrganicResu
     const resolved = extractOrganicLinkFromSerp(result as SerpOrganicRow);
     if (!resolved) continue;
     const resultRoot = extractDomain(resolved);
-    if (resultRoot && sameRegistrableBrand(targetRoot, resultRoot)) {
+    if (resultRoot && targetRoot === resultRoot) {
       return {
         position: result.position,
         matchedUrl: resolved,
@@ -241,7 +240,7 @@ export type TrackKeywordResult = MatchResult & {
 };
 
 /**
- * Serper-backed: up to 10 HTTP calls (pages 1–10 × 10 results). Matching: extractDomain + sameRegistrableBrand.
+ * Serper-backed: up to 10 HTTP calls (pages 1–10 × 10 results). Matching: extractDomain (strict TLD).
  */
 export async function trackKeyword(
   keyword: string,

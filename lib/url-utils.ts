@@ -170,12 +170,13 @@ export function normalizeUrl(url: string): string {
 }
 
 /**
- * Extracts the root domain from a URL (without subdomains)
+ * Extracts the registrable-style host (last two labels): hostname without leading www., subdomains stripped.
+ * Used for SERP matching: roots must be equal, so example.com and example.fr never match.
  * Examples:
  * - "https://fr.outscale.com" → "outscale.com"
- * - "https://blog.outscale.com" → "outscale.com"  
+ * - "https://blog.outscale.com" → "outscale.com"
  * - "https://www.google.com" → "google.com"
- * - "outscale.com" → "outscale.com"
+ * - "https://shop.example.fr" → "example.fr"
  */
 export function extractDomain(url: string): string {
   try {
@@ -221,20 +222,6 @@ export function extractDomain(url: string): string {
     console.error('extractDomain error for URL:', url, error);
     return '';
   }
-}
-
-/**
- * Same brand site across different TLDs after extractDomain():
- * nike.com matches nike.fr (French SERP often uses the local TLD while users track .com).
- * Both arguments must be two-label roots (name.tld); subdomains should be folded first via extractDomain().
- */
-export function sameRegistrableBrand(rootA: string, rootB: string): boolean {
-  if (!rootA || !rootB) return false;
-  if (rootA === rootB) return true;
-  const pa = rootA.split('.');
-  const pb = rootB.split('.');
-  if (pa.length !== 2 || pb.length !== 2) return false;
-  return pa[0] === pb[0] && pa[0] !== '';
 }
 
 /**
