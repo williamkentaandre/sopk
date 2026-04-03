@@ -120,13 +120,18 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.pairs.title': 'Keyword / URL pairs',
     'dashboard.pairs.export': 'Export',
     'dashboard.pairs.deleteAll': 'Delete all',
-    'dashboard.pairs.multiAdd': 'Add multiple keywords and URLs',
+    'dashboard.pairs.multiAdd': 'Add keywords & URLs',
+    'dashboard.pairs.multiAddLead':
+      'Each line is one value. We combine every URL with every keyword and add rows to the table below.',
     'dashboard.pairs.multiAddHelper':
-      'One line = one value. Enter locks a line; pasting several lines at once creates chips; Shift+Enter = line break inside one keyword.',
+      'Enter locks a line as a green chip. Paste several lines at once to create chips. Shift+Enter = line break inside one keyword.',
+    'dashboard.pairs.howItWorks': 'Tips & shortcuts',
+    'dashboard.pairs.bulkShowForm': '+ Add more keywords & URLs',
+    'dashboard.pairs.bulkHideForm': 'Hide',
     'dashboard.pairs.bulkUrlsTitle': 'URLs / domains',
     'dashboard.pairs.bulkKeywordsTitle': 'Keywords',
     'dashboard.pairs.keywordEnterHint':
-      'Enter confirms a line (green chip). Paste a list to chip each line. × removes a confirmed item.',
+      '× removes a chip; click a green label to move it back into the field.',
     'dashboard.pairs.removeChip': 'Remove',
     'dashboard.pairs.chipClickToEdit': 'Click to edit in the field',
     'dashboard.pairs.removeDraftLine': 'Remove this line from the field',
@@ -134,7 +139,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.pairs.placeholderUrls': 'URLs/domains (1 line = 1 URL)\nexample.com\nexample.org',
     'dashboard.pairs.placeholderKeyword': 'Keyword',
     'dashboard.pairs.placeholderKeywords': 'Keywords (1 line = 1 keyword)\nseo tool\nrank tracker',
-    'dashboard.pairs.addAll': 'Add all',
+    'dashboard.pairs.addAll': 'Add to table',
     'dashboard.table.keyword': 'Keyword',
     'dashboard.table.url': 'URL',
     'dashboard.table.matchedUrl': 'Matched URL',
@@ -144,6 +149,11 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.table.newKeyword': 'New keyword',
     'dashboard.table.add': 'Add',
     'dashboard.table.measureAll': 'Measure all',
+    'dashboard.table.measureAllHint':
+      'Runs one real Google search per row, one after another. Large lists take several minutes.',
+    'dashboard.table.toolbarAria': 'Tracking table actions',
+    'dashboard.table.measureOne': 'Measure this row',
+    'dashboard.table.deletePair': 'Delete this pair',
     'dashboard.table.positionNotInTop100': '> 100',
     'dashboard.table.domain': 'Domain',
     'dashboard.table.empty': 'No pairs yet. Start by adding a keyword and URL.',
@@ -184,7 +194,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.confirm.deletePair': 'Are you sure you want to delete this pair?',
     'dashboard.confirm.deleteAll': 'Delete ALL pairs? This cannot be undone.',
     'dashboard.confirm.deleteAllConfirm': 'Last confirmation: Delete all pairs and their history?',
-    'dashboard.confirm.measureAll': 'Measure all pairs? This may take a while.',
+    'dashboard.confirm.measureAll':
+      'Measure all pairs now? Each row is measured in turn and may take a few seconds.',
 
     // Settings
     'settings.back': '← Back to dashboard',
@@ -448,13 +459,18 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.pairs.title': 'Couples Mot-clé / URL',
     'dashboard.pairs.export': 'Export',
     'dashboard.pairs.deleteAll': 'Supprimer tout',
-    'dashboard.pairs.multiAdd': 'Ajouter plusieurs mots-clés et URLs',
+    'dashboard.pairs.multiAdd': 'Ajouter mots-clés & URLs',
+    'dashboard.pairs.multiAddLead':
+      'Chaque ligne est une valeur. On combine chaque URL avec chaque mot-clé pour créer des lignes dans le tableau ci‑dessous.',
     'dashboard.pairs.multiAddHelper':
-      'Une ligne = une valeur. Entrée valide une ligne ; coller une liste crée une puce par ligne ; Maj+Entrée = saut de ligne dans le même mot-clé.',
+      'Entrée valide une ligne (puce verte). Coller plusieurs lignes crée des puces d’un coup. Maj+Entrée = saut de ligne dans le même mot-clé.',
+    'dashboard.pairs.howItWorks': 'Astuces & raccourcis',
+    'dashboard.pairs.bulkShowForm': '+ Ajouter d’autres mots-clés & URLs',
+    'dashboard.pairs.bulkHideForm': 'Masquer',
     'dashboard.pairs.bulkUrlsTitle': 'URLs / domaines',
     'dashboard.pairs.bulkKeywordsTitle': 'Mots-clés',
     'dashboard.pairs.keywordEnterHint':
-      'Entrée valide une ligne (puce verte). Coller une liste crée une puce par ligne. × retire un élément confirmé.',
+      '× sur une puce retire la ligne ; cliquer sur le libellé d’une puce verte la remet dans le champ.',
     'dashboard.pairs.removeChip': 'Retirer',
     'dashboard.pairs.chipClickToEdit': 'Cliquer pour modifier dans le champ',
     'dashboard.pairs.removeDraftLine': 'Retirer cette ligne du champ',
@@ -462,7 +478,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.pairs.placeholderUrls': 'URLs/domaines (1 ligne = 1 URL)\nexample.com\nexample.org',
     'dashboard.pairs.placeholderKeyword': 'Mot-clé',
     'dashboard.pairs.placeholderKeywords': 'Mots-clés (1 ligne = 1 mot-clé)\noutil seo\nsuivi positions',
-    'dashboard.pairs.addAll': 'Ajouter tout',
+    'dashboard.pairs.addAll': 'Ajouter au tableau',
     'dashboard.table.keyword': 'Mot-clé',
     'dashboard.table.url': 'URL',
     'dashboard.table.matchedUrl': 'URL trouvée',
@@ -472,6 +488,11 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.table.newKeyword': 'Nouveau mot-clé',
     'dashboard.table.add': 'Ajouter',
     'dashboard.table.measureAll': 'Mesurer tout',
+    'dashboard.table.measureAllHint':
+      'Une vraie recherche Google par ligne, l’une après l’autre. Les longues listes peuvent prendre plusieurs minutes.',
+    'dashboard.table.toolbarAria': 'Actions du tableau de suivi',
+    'dashboard.table.measureOne': 'Mesurer cette ligne',
+    'dashboard.table.deletePair': 'Supprimer ce couple',
     'dashboard.table.positionNotInTop100': '> 100',
     'dashboard.table.domain': 'Domaine',
     'dashboard.table.empty': 'Aucun couple ajouté. Commencez par ajouter un mot-clé et une URL.',
@@ -512,7 +533,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.confirm.deletePair': 'Êtes-vous sûr de vouloir supprimer ce couple ?',
     'dashboard.confirm.deleteAll': 'Supprimer TOUS les couples ? Cette action est irréversible.',
     'dashboard.confirm.deleteAllConfirm': 'Dernière confirmation : Supprimer tous les couples et leur historique ?',
-    'dashboard.confirm.measureAll': 'Mesurer tous les couples ? Cela peut prendre du temps.',
+    'dashboard.confirm.measureAll':
+      'Mesurer tous les couples maintenant ? Chaque ligne est mesurée à la suite et peut prendre quelques secondes.',
 
     'settings.back': '← Retour au dashboard',
     'settings.title': 'Paramètres',

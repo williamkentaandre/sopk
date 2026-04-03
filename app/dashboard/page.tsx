@@ -63,6 +63,8 @@ export default function DashboardPage() {
   const [searchSettingsDone, setSearchSettingsDone] = useState(false);
   const [searchSettingsAlertVisible, setSearchSettingsAlertVisible] = useState(false);
   const [measureAllProgress, setMeasureAllProgress] = useState<{ done: number; total: number; startedAt: number } | null>(null);
+  /** After first bulk add, collapse form so the table stays the focus (user can reopen). */
+  const [bulkAddExpanded, setBulkAddExpanded] = useState(true);
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
   /** Sync guard: React state for `tracking` can lag one frame — double-clicks could otherwise fire two measures and the slower response would overwrite the row. */
   const pairMeasureInFlightRef = useRef<Set<string>>(new Set());
@@ -577,6 +579,10 @@ export default function DashboardPage() {
       setBulkKeywordText('');
       setBulkUrlText('');
       setBulkAddedKeywords([]);
+      setBulkAddExpanded(false);
+      requestAnimationFrame(() => {
+        tableTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     } catch {
       const tempIds = new Set(tempPairs.map((p) => p.pair_id));
       setPairs((prev) => prev.filter((p) => !tempIds.has(p.pair_id)));
@@ -885,25 +891,6 @@ export default function DashboardPage() {
                 </span>
               )}
             </div>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              {measureAllProgress && (
-                <span style={{ color: '#475569', fontSize: '0.9rem' }}>
-                  {t('dashboard.measureInProgress')}{' '}
-                  {Math.min(measureAllProgress.done, measureAllProgress.total)}/{measureAllProgress.total}
-                </span>
-              )}
-              {measureAllProgress && (
-                <div style={{ width: 180, height: 8, background: '#e2e8f0', borderRadius: 999, overflow: 'hidden' }}>
-                  <div
-                    style={{
-                      width: `${measureAllProgress.total ? Math.round((measureAllProgress.done / measureAllProgress.total) * 100) : 0}%`,
-                      height: '100%',
-                      background: '#2563eb',
-                    }}
-                  />
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
@@ -989,11 +976,30 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {pairs.length > 0 && !bulkAddExpanded ? (
+          <div className="multi-add-collapsed">
+            <button type="button" className="btn btn-secondary" onClick={() => setBulkAddExpanded(true)}>
+              {t('dashboard.pairs.bulkShowForm')}
+            </button>
+          </div>
+        ) : (
         <div className="multi-add-block">
-          <p>{t('dashboard.pairs.multiAdd')}</p>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
-            {t('dashboard.pairs.multiAddHelper')}
-          </p>
+          <div className="multi-add-block-header">
+            <div>
+              <p className="multi-add-title">{t('dashboard.pairs.multiAdd')}</p>
+              <p className="multi-add-lead">{t('dashboard.pairs.multiAddLead')}</p>
+            </div>
+            {pairs.length > 0 && (
+              <button type="button" className="btn-text" onClick={() => setBulkAddExpanded(false)}>
+                {t('dashboard.pairs.bulkHideForm')}
+              </button>
+            )}
+          </div>
+          <details className="multi-add-details">
+            <summary>{t('dashboard.pairs.howItWorks')}</summary>
+            <p>{t('dashboard.pairs.multiAddHelper')}</p>
+            <p>{t('dashboard.pairs.keywordEnterHint')}</p>
+          </details>
           <div className="multi-add-columns">
             <div className="multi-add-col">
               <h3 className="multi-add-section-title">{t('dashboard.pairs.bulkUrlsTitle')}</h3>
@@ -1062,7 +1068,6 @@ export default function DashboardPage() {
                 style={{ width: '100%', resize: 'vertical', minHeight: '3.25rem' }}
                 aria-label={t('dashboard.pairs.bulkKeywordsTitle')}
               />
-              <p className="multi-add-hint">{t('dashboard.pairs.keywordEnterHint')}</p>
               {(stagedKeywords.length > 0 || draftKeywordLines.length > 0) && (
                 <div className="multi-add-chip-row" aria-live="polite">
                   {stagedKeywords.map((k, idx) => (
@@ -1116,9 +1121,57 @@ export default function DashboardPage() {
             {t('dashboard.pairs.addAll')}
           </button>
         </div>
+        )}
 
-        <div ref={tableTopRef} />
-        <div className="table-container">
+        <div className="pairs-table-shell" ref={tableTopRef}>
+          <div
+            className="pairs-table-toolbar"
+            role="region"
+            aria-label={t('dashboard.table.toolbarAria')}
+          >
+            <div className="pairs-table-toolbar-main">
+              <div className="pairs-table-toolbar-actions">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={trackAll}
+                  disabled={
+                    saving ||
+                    pairs.length === 0 ||
+                    pairs.some((p) => p.pair_id.startsWith('temp_'))
+                  }
+                  aria-busy={saving}
+                >
+                  {t('dashboard.table.measureAll')}
+                </button>
+                {pairs.length > 0 && (
+                  <div className="pairs-table-toolbar-hint">{t('dashboard.table.measureAllHint')}</div>
+                )}
+              </div>
+              {measureAllProgress && (
+                <div className="measure-all-progress-wrap" aria-live="polite">
+                  <span>
+                    {t('dashboard.measureInProgress')}{' '}
+                    {Math.min(measureAllProgress.done, measureAllProgress.total)}/
+                    {measureAllProgress.total}
+                  </span>
+                  <div className="measure-all-progress-track">
+                    <div
+                      className="measure-all-progress-fill"
+                      style={{
+                        width: `${
+                          measureAllProgress.total
+                            ? Math.round((measureAllProgress.done / measureAllProgress.total) * 100)
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="table-container">
           <table className="pairs-table">
             <thead>
               <tr>
@@ -1131,22 +1184,6 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td colSpan={6} style={{ textAlign: 'right', padding: '0.5rem 0.75rem' }}>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={trackAll}
-                    disabled={
-                      saving ||
-                      pairs.length === 0 ||
-                      pairs.some((p) => p.pair_id.startsWith('temp_'))
-                    }
-                  >
-                    {t('dashboard.table.measureAll')}
-                  </button>
-                </td>
-              </tr>
               {pairs.length === 0 && (
                 <tr>
                   <td colSpan={6} className="empty-state">
@@ -1223,8 +1260,8 @@ export default function DashboardPage() {
                       <span style={{ color: '#999', fontSize: '0.85rem' }}>-</span>
                     )}
                   </td>
-                  <td>
-                    <strong>{displayPosition(pair.last_position, pair.last_checked_at)}</strong>
+                  <td className="pairs-table-cell--rank">
+                    {displayPosition(pair.last_position, pair.last_checked_at)}
                   </td>
                   <td>
                     {pair.last_checked_at
@@ -1258,6 +1295,7 @@ export default function DashboardPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         {historyDates.length > 0 && (
