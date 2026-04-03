@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useLocale } from '@/app/LocaleContext';
 import { SerpApiOnboardingIllustration } from '@/app/components/SerpApiOnboardingIllustration';
+import { formatSearchLocaleLine } from '@/lib/search-locale-labels';
 
 export default function SettingsPage() {
   const { t, locale } = useLocale();
@@ -47,6 +48,13 @@ export default function SettingsPage() {
     }
     void refreshSerperCredits();
   }, [hasSerpApiKey, refreshSerperCredits]);
+
+  const searchLocaleBadge = useMemo(() => {
+    if (!searchSettings.hl || !searchSettings.gl) {
+      return t('dashboard.searchSettings.none');
+    }
+    return formatSearchLocaleLine(t, searchSettings.hl, searchSettings.gl).label;
+  }, [t, searchSettings.hl, searchSettings.gl, locale]);
 
   const handleRemoveSerpKey = async () => {
     setMessage(null);
@@ -348,7 +356,7 @@ export default function SettingsPage() {
           </p>
           <p style={{ marginBottom: '0.75rem' }}>
             <span className={`status-badge ${searchSettings.hl && searchSettings.gl ? 'success' : 'pending'}`}>
-              {searchSettings.hl && searchSettings.gl ? `${searchSettings.hl.toUpperCase()} / ${searchSettings.gl.toUpperCase()}` : t('dashboard.searchSettings.none')}
+              {searchLocaleBadge}
             </span>
           </p>
           <div className="settings-form">
