@@ -4,17 +4,8 @@ import {
   resolveSerpResultDestination,
   sameRegistrableBrand,
 } from './url-utils';
-
-export interface SerpApiParams {
-  keyword: string;
-  hl: string;
-  gl: string;
-  num?: number;
-  start?: number;
-  engine?: 'google_light' | 'google';
-  device?: 'desktop' | 'mobile' | 'tablet';
-  googleDomain?: string;
-}
+import { callSerperGoogleSearch } from './serper';
+import type { SerperOrganicItem } from './serper';
 
 export interface OrganicResult {
   position: number;
@@ -22,16 +13,6 @@ export interface OrganicResult {
   redirect_link?: string;
   title?: string;
   snippet?: string;
-}
-
-export interface SerpApiResponse {
-  organic_results?: OrganicResult[];
-  search_metadata?: {
-    id?: string;
-    status?: string;
-    error?: string;
-  };
-  error?: string;
 }
 
 export interface MatchResult {
@@ -65,8 +46,6 @@ export interface SerpApiOptions {
   apiKey?: string | null;
   /** If true, collect ordered organic rows per page for API response (debug). */
   diagnostic?: boolean;
-  /** SerpAPI: bypass 1h cache (useful when cached response has empty organic_results). */
-  noCache?: boolean;
 }
 
 export function googleDomainForGl(gl: string): string {
@@ -150,69 +129,48 @@ function extractOrganicLinkFromSerp(result: SerpOrganicRow): string {
   return '';
 }
 
-export async function callSerpApi(
-  params: SerpApiParams,
+function mapSerperOrganic(items: SerperOrganicItem[]): OrganicResult[] {
+  return items.map((item, idx) => ({
+    position: item.position ?? idx + 1,
+    link: item.link || '',
+    title: item.title,
+    snippet: item.snippet,
+  }));
+}
+
+/**
+ * Serper: one request with num=100 when possible; if only 10 rows are returned,
+ * fetch pages 2–10 (num=10) to cover the top 100 without redundant calls when 100 rows arrive at once.
+ */
+async function fetchSerperOrganicUpTo100(
+  keyword: string,
+  hl: string,
+  gl: string,
   options?: SerpApiOptions
-): Promise<SerpApiResponse> {
-  const apiKey = options?.apiKey ?? process.env.SERPAPI_API_KEY;
+): Promise<{ organic: OrganicResult[]; pagesQueried: number }> {
+  let pagesQueried = 0;
+  const first = await callSerperGoogleSearch(
+    { q: keyword, hl, gl, num: 100, page: 1 },
+    options
+  );
+  pagesQueried += 1;
+  let organic = mapSerperOrganic(first.organic || []);
 
-  if (!apiKey) {
-    throw new Error('Clé SERP API manquante. Configurez-la dans Paramètres.');
-  }
-
-  const url = new URL('https://serpapi.com/search.json');
-  url.searchParams.append('q', params.keyword);
-  url.searchParams.append('hl', params.hl);
-  url.searchParams.append('gl', params.gl);
-  url.searchParams.append('num', String(params.num || 100));
-  if (typeof params.start === 'number') {
-    url.searchParams.append('start', String(params.start));
-  }
-  if (params.device) {
-    url.searchParams.append('device', params.device);
-  }
-  if (params.googleDomain) {
-    url.searchParams.append('google_domain', params.googleDomain);
-  }
-  url.searchParams.append('engine', params.engine || 'google_light');
-  url.searchParams.append('filter', '0');
-  if (options?.noCache) {
-    url.searchParams.append('no_cache', 'true');
-  }
-  url.searchParams.append('api_key', apiKey);
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000);
-  const response = await fetch(url.toString(), {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-    signal: controller.signal,
-  });
-  clearTimeout(timeout);
-
-  const rawText = await response.text();
-  if (!response.ok) {
-    const snippet = rawText?.slice(0, 220)?.trim();
-    throw new Error(`SerpAPI error: ${response.status} ${response.statusText}${snippet ? ` — ${snippet}` : ''}`);
+  if (organic.length === 10) {
+    for (let page = 2; page <= 10; page++) {
+      const r = await callSerperGoogleSearch(
+        { q: keyword, hl, gl, num: 10, page },
+        options
+      );
+      pagesQueried += 1;
+      const next = mapSerperOrganic(r.organic || []);
+      if (next.length === 0) break;
+      organic = organic.concat(next);
+      if (organic.length >= 100) break;
+    }
   }
 
-  let data: SerpApiResponse;
-  try {
-    data = JSON.parse(rawText) as SerpApiResponse;
-  } catch {
-    const snippet = rawText?.slice(0, 220)?.trim();
-    throw new Error(`SerpAPI error: invalid JSON response${snippet ? ` — ${snippet}` : ''}`);
-  }
-
-  const anyError =
-    (typeof data.error === 'string' && data.error) ||
-    (typeof data.search_metadata?.error === 'string' && data.search_metadata?.error) ||
-    '';
-  if (anyError) {
-    throw new Error(`SerpAPI error: ${anyError}`);
-  }
-
-  return data;
+  return { organic: organic.slice(0, 100), pagesQueried };
 }
 
 /**
@@ -226,7 +184,7 @@ export function matchUrlInResults(targetUrl: string, organicResults: OrganicResu
   }
 
   for (const result of organicResults) {
-    const resolved = extractOrganicLinkFromSerp(result as OrganicResult & { url?: string });
+    const resolved = extractOrganicLinkFromSerp(result as SerpOrganicRow);
     if (!resolved) continue;
     const resultRoot = extractDomain(resolved);
     if (resultRoot && sameRegistrableBrand(targetRoot, resultRoot)) {
@@ -249,9 +207,8 @@ export type TrackKeywordResult = MatchResult & {
 };
 
 /**
- * Deterministic: sequential SerpAPI pages start=0,10,…90 with num=10 (no parallel calls, no num=100 shortcut).
- * Rank for row i on page start is always start + i + 1 (Google order = API organic_results order).
- * Matching is domain root only (extractDomain).
+ * Serper-backed: typically 1 HTTP call (num=100); up to 10 extra calls if the API returns only 10 rows for the first request.
+ * Matching uses extractDomain + sameRegistrableBrand.
  */
 export async function trackKeyword(
   keyword: string,
@@ -260,96 +217,43 @@ export async function trackKeyword(
   gl: string,
   options?: SerpApiOptions
 ): Promise<TrackKeywordResult> {
-  const MAX_RESULTS = 100;
-  const PAGE_SIZE = 10;
-  const googleDomain = googleDomainForGl(gl);
-  const baseParams = {
-    keyword,
-    hl,
-    gl,
-    engine: 'google' as const,
-    device: 'desktop' as const,
-    googleDomain,
-  };
-
-  let lastSerpLink: string | undefined;
   const startedAt = Date.now();
-  let pagesQueried = 0;
   const diagnostic = options?.diagnostic
     ? { target_root_domain: extractDomain(url), pages: [] as SerpTrackDiagnosticPage[] }
     : null;
 
-  const targetRoot = extractDomain(url);
+  const { organic, pagesQueried } = await fetchSerperOrganicUpTo100(
+    keyword,
+    hl,
+    gl,
+    options
+  );
 
-  for (let start = 0; start < MAX_RESULTS; start += PAGE_SIZE) {
-    let serpResponse = await callSerpApi(
-      { ...baseParams, num: PAGE_SIZE, start },
-      options
-    );
-    if (
-      start === 0 &&
-      (!serpResponse.organic_results || serpResponse.organic_results.length === 0)
-    ) {
-      serpResponse = await callSerpApi(
-        { ...baseParams, num: PAGE_SIZE, start },
-        { ...options, noCache: true }
-      );
-      pagesQueried += 1;
-    }
-    pagesQueried += 1;
-    lastSerpLink = serpResponse.search_metadata?.id
-      ? `https://serpapi.com/searches/${serpResponse.search_metadata.id}`
-      : lastSerpLink;
-
-    const organic = serpResponse.organic_results || [];
-    if (organic.length === 0) {
-      break;
-    }
-
+  if (diagnostic) {
     const pageItems: SerpTrackDiagnosticItem[] = [];
-    if (diagnostic) {
-      for (let i = 0; i < organic.length; i++) {
-        const rank = start + i + 1;
-        const r = organic[i] as SerpOrganicRow;
-        const resolved = extractOrganicLinkFromSerp(r);
-        const resultRoot = resolved ? extractDomain(resolved) : '';
-        pageItems.push({
-          rank,
-          resolved_url: resolved || null,
-          result_root_domain: resultRoot || null,
-        });
-      }
-      diagnostic.pages.push({
-        start_param: start,
-        organic_count: organic.length,
-        items: pageItems,
-      });
-    }
-
     for (let i = 0; i < organic.length; i++) {
-      const rank = start + i + 1;
       const r = organic[i] as SerpOrganicRow;
+      const rank = r.position ?? i + 1;
       const resolved = extractOrganicLinkFromSerp(r);
       const resultRoot = resolved ? extractDomain(resolved) : '';
-      if (targetRoot && resultRoot && sameRegistrableBrand(targetRoot, resultRoot)) {
-        return {
-          position: rank,
-          matchedUrl: resolved,
-          matchType: 'domain',
-          serpLink: lastSerpLink,
-          pagesQueried,
-          elapsedMs: Date.now() - startedAt,
-          diagnostic: diagnostic ?? undefined,
-        };
-      }
+      pageItems.push({
+        rank,
+        resolved_url: resolved || null,
+        result_root_domain: resultRoot || null,
+      });
     }
+    diagnostic.pages.push({
+      start_param: 0,
+      organic_count: organic.length,
+      items: pageItems,
+    });
   }
 
+  const match = matchUrlInResults(url, organic);
+
   return {
-    position: null,
-    matchedUrl: null,
-    matchType: 'none',
-    serpLink: lastSerpLink,
+    ...match,
+    serpLink: undefined,
     pagesQueried,
     elapsedMs: Date.now() - startedAt,
     diagnostic: diagnostic ?? undefined,

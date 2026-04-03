@@ -46,7 +46,7 @@ export function unwrapSerpResultLink(link: string): string {
 }
 
 /**
- * Google/SerpAPI sometimes returns protocol-relative organic links (`//www.nike.fr/...`).
+ * Google/SERP APIs sometimes return protocol-relative organic links (`//www.nike.fr/...`).
  * URL() throws without a scheme — normalize before parsing.
  */
 export function resolveSerpResultDestination(raw: string): string {
@@ -99,7 +99,7 @@ export function unwrapAmpCacheLink(link: string): string {
 }
 
 /**
- * SerpAPI `displayed_link` often looks like `https://www.nike.fr › Catégorie` or `nike.fr › ...`.
+ * Some SERPs expose `displayed_link` like `https://www.nike.fr › Catégorie` or `nike.fr › ...`.
  */
 export function extractUrlFromDisplayedLink(displayed: string): string | null {
   const d = (displayed || '').trim();

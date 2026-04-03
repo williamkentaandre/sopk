@@ -763,7 +763,7 @@ export default function DashboardPage() {
               <li>{t("dashboard.onboarding.step3")}</li>
             </ol>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ fontSize: '1rem', padding: '0.6rem 1.2rem' }}>
+              <a href="https://serper.dev/api-keys" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ fontSize: '1rem', padding: '0.6rem 1.2rem' }}>
                 {t('dashboard.onboarding.getKey')}
               </a>
               <Link href="/settings" className="btn btn-secondary">
@@ -779,7 +779,7 @@ export default function DashboardPage() {
         <div className="card-warning">
           <p style={{ margin: 0, marginBottom: '0.75rem', fontWeight: 500 }}>{t('dashboard.warning.title')}</p>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-primary">{t('dashboard.warning.getKey')}</a>
+            <a href="https://serper.dev/api-keys" target="_blank" rel="noopener noreferrer" className="btn btn-primary">{t('dashboard.warning.getKey')}</a>
             <Link href="/settings" className="btn btn-secondary">{t('dashboard.warning.goSettings')}</Link>
             <button type="button" className="btn btn-secondary" onClick={() => setShowNoKeyBanner(false)}>{t('dashboard.warning.close')}</button>
           </div>

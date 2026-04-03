@@ -257,7 +257,7 @@ export default function SettingsPage() {
         </p>
         {hasSerpApiKey && !serpApiKey && !showReplaceKey ? (
           <p style={{ marginBottom: '1rem', color: '#666' }}>
-            <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ display: 'inline-block', marginTop: '0.25rem' }}>{t('settings.key.getKey')}</a>
+            <a href="https://serper.dev/api-keys" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ display: 'inline-block', marginTop: '0.25rem' }}>{t('settings.key.getKey')}</a>
           </p>
         ) : null}
         {hasSerpApiKey && !serpApiKey && !showReplaceKey ? (
@@ -273,7 +273,7 @@ export default function SettingsPage() {
         ) : (
           <>
             <p style={{ marginBottom: '0.5rem', color: '#666', fontSize: '0.95rem' }}>
-              <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ display: 'inline-block', marginBottom: '0.5rem' }}>{t('settings.key.getKey')}</a>
+              <a href="https://serper.dev/api-keys" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ display: 'inline-block', marginBottom: '0.5rem' }}>{t('settings.key.getKey')}</a>
             </p>
             <form onSubmit={handleSaveSerpKey} className="settings-form">
               <div className="form-group" style={{ flex: 1 }}>

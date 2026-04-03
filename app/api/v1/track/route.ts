@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   }
   if (!user.serpApiKey) {
     return NextResponse.json(
-      { error: { code: 400, message: 'Configurez votre clé SERP API dans Paramètres.' } },
+      { error: { code: 400, message: 'Configurez votre clé Serper dans Paramètres.' } },
       { status: 400 }
     );
   }

@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth-server';
 import { prisma } from '@/lib/prisma';
 import { settingsSchema } from '@/lib/validators';
-import { callSerpApi } from '@/lib/serpapi';
+import { callSerperGoogleSearch } from '@/lib/serper';
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser(request);
@@ -39,15 +39,15 @@ export async function PUT(request: NextRequest) {
       body.serpApiKey === null ? null : typeof body.serpApiKey === 'string' ? body.serpApiKey.trim() : undefined;
     const serpApiKey = serpApiKeyRaw || null;
 
-    // If user is trying to set a non-empty key, validate it against SerpAPI before saving
+    // If user is trying to set a non-empty key, validate it against Serper before saving
     if (hasSerpApiKeyField && serpApiKey) {
       try {
-        await callSerpApi(
-          { keyword: 'google', hl: hl ?? 'fr', gl: gl ?? 'fr', num: 1 },
+        await callSerperGoogleSearch(
+          { q: 'google', hl: hl ?? 'fr', gl: gl ?? 'fr', num: 1, page: 1 },
           { apiKey: serpApiKey }
         );
       } catch (err: any) {
-        const message = typeof err?.message === 'string' ? err.message : 'Clé SerpAPI invalide.';
+        const message = typeof err?.message === 'string' ? err.message : 'Clé Serper invalide.';
         return NextResponse.json(
           { error: { code: 400, message } },
           { status: 400 }
