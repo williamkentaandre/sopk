@@ -1,6 +1,14 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef, useCallback, type KeyboardEvent } from 'react';
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+  type KeyboardEvent,
+  type ClipboardEvent,
+} from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { getParisDateString } from '@/lib/date-utils';
@@ -165,6 +173,78 @@ export default function DashboardPage() {
     const newPos = Math.min(lineStart, newVal.length);
     requestAnimationFrame(() => {
       el.selectionStart = el.selectionEnd = newPos;
+    });
+  };
+
+  const removeStagedKeywordAt = (index: number) => {
+    setStagedKeywords((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeStagedUrlAt = (index: number) => {
+    setStagedUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const pasteKeywordsFromClipboard = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = e.clipboardData.getData('text/plain');
+    if (!pasted || !/\r?\n/.test(pasted)) return;
+    e.preventDefault();
+    const el = e.currentTarget;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const v = el.value;
+    const before = v.slice(0, start);
+    const after = v.slice(end);
+    const lines = splitLines(pasted);
+    if (lines.length === 0) return;
+    setStagedKeywords((prev) => {
+      const seen = new Set(prev.map((k) => k.toLowerCase()));
+      const next = [...prev];
+      for (const line of lines) {
+        const key = line.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        next.push(line);
+      }
+      return next;
+    });
+    const newVal = before + after;
+    setBulkKeywordText(newVal);
+    const caret = Math.min(start, newVal.length);
+    requestAnimationFrame(() => {
+      el.selectionStart = el.selectionEnd = caret;
+    });
+  };
+
+  const pasteUrlsFromClipboard = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = e.clipboardData.getData('text/plain');
+    if (!pasted || !/\r?\n/.test(pasted)) return;
+    e.preventDefault();
+    const el = e.currentTarget;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const v = el.value;
+    const before = v.slice(0, start);
+    const after = v.slice(end);
+    const domains = splitLines(pasted)
+      .map((line) => toDomainOnly(line))
+      .filter((d) => d.length >= 3);
+    if (domains.length === 0) return;
+    setStagedUrls((prev) => {
+      const seen = new Set(prev.map((u) => u.toLowerCase()));
+      const next = [...prev];
+      for (const d of domains) {
+        const key = d.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        next.push(d);
+      }
+      return next;
+    });
+    const newVal = before + after;
+    setBulkUrlText(newVal);
+    const caret = Math.min(start, newVal.length);
+    requestAnimationFrame(() => {
+      el.selectionStart = el.selectionEnd = caret;
     });
   };
 
@@ -844,6 +924,7 @@ export default function DashboardPage() {
                 value={bulkUrlText}
                 onChange={(e) => setBulkUrlText(e.target.value)}
                 onKeyDown={commitUrlLineAtCursor}
+                onPaste={pasteUrlsFromClipboard}
                 placeholder={t('dashboard.pairs.placeholderUrls')}
                 rows={4}
                 style={{ width: '100%', resize: 'vertical', minHeight: '3.25rem' }}
@@ -852,11 +933,19 @@ export default function DashboardPage() {
               {(stagedUrls.length > 0 || draftUrlDomains.length > 0) && (
                 <div className="multi-add-chip-row" aria-live="polite">
                   {stagedUrls.map((u, idx) => (
-                    <span key={`s-${u}-${idx}`} className="multi-add-chip multi-add-chip--staged" title={t('dashboard.pairs.multiAddHelper')}>
-                      ✓ {u}
+                    <span key={`s-${u}-${idx}`} className="multi-add-chip multi-add-chip--staged">
+                      <span>✓ {u}</span>
+                      <button
+                        type="button"
+                        className="multi-add-chip-remove"
+                        onClick={() => removeStagedUrlAt(idx)}
+                        aria-label={`${t('dashboard.pairs.removeChip')}: ${u}`}
+                      >
+                        ×
+                      </button>
                     </span>
                   ))}
-                  {draftUrlDomains.slice(0, 16).map((u, idx) => (
+                  {draftUrlDomains.map((u, idx) => (
                     <span key={`d-${u}-${idx}`} className="multi-add-chip">
                       {u}
                     </span>
@@ -870,6 +959,7 @@ export default function DashboardPage() {
                 value={bulkKeywordText}
                 onChange={(e) => setBulkKeywordText(e.target.value)}
                 onKeyDown={commitKeywordLineAtCursor}
+                onPaste={pasteKeywordsFromClipboard}
                 placeholder={t('dashboard.pairs.placeholderKeywords')}
                 rows={4}
                 style={{ width: '100%', resize: 'vertical', minHeight: '3.25rem' }}
@@ -880,10 +970,18 @@ export default function DashboardPage() {
                 <div className="multi-add-chip-row" aria-live="polite">
                   {stagedKeywords.map((k, idx) => (
                     <span key={`sk-${k}-${idx}`} className="multi-add-chip multi-add-chip--staged">
-                      ✓ {k}
+                      <span>✓ {k}</span>
+                      <button
+                        type="button"
+                        className="multi-add-chip-remove"
+                        onClick={() => removeStagedKeywordAt(idx)}
+                        aria-label={`${t('dashboard.pairs.removeChip')}: ${k}`}
+                      >
+                        ×
+                      </button>
                     </span>
                   ))}
-                  {draftKeywordLines.slice(0, 16).map((k, idx) => (
+                  {draftKeywordLines.map((k, idx) => (
                     <span key={`dk-${k}-${idx}`} className="multi-add-chip">
                       {k}
                     </span>

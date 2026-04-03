@@ -122,11 +122,12 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.pairs.deleteAll': 'Delete all',
     'dashboard.pairs.multiAdd': 'Add multiple keywords and URLs',
     'dashboard.pairs.multiAddHelper':
-      'One line = one value. Press Enter on a line to lock it in (highlighted chip). Shift+Enter for a line break inside a keyword.',
+      'One line = one value. Enter locks a line; pasting several lines at once creates chips; Shift+Enter = line break inside one keyword.',
     'dashboard.pairs.bulkUrlsTitle': 'URLs / domains',
     'dashboard.pairs.bulkKeywordsTitle': 'Keywords',
     'dashboard.pairs.keywordEnterHint':
-      'Tip: Enter on a line confirms the keyword (green chip). Shift+Enter = new line in the same keyword.',
+      'Enter confirms a line (green chip). Paste a list to chip each line. × removes a confirmed item.',
+    'dashboard.pairs.removeChip': 'Remove',
     'dashboard.pairs.placeholderUrl': 'e.g. example.com',
     'dashboard.pairs.placeholderUrls': 'URLs/domains (1 line = 1 URL)\nexample.com\nexample.org',
     'dashboard.pairs.placeholderKeyword': 'Keyword',
@@ -443,11 +444,12 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.pairs.deleteAll': 'Supprimer tout',
     'dashboard.pairs.multiAdd': 'Ajouter plusieurs mots-clés et URLs',
     'dashboard.pairs.multiAddHelper':
-      'Une ligne = une valeur. Entrée sur une ligne la valide (puce mise en avant). Maj+Entrée = saut de ligne dans le même mot-clé.',
+      'Une ligne = une valeur. Entrée valide une ligne ; coller une liste crée une puce par ligne ; Maj+Entrée = saut de ligne dans le même mot-clé.',
     'dashboard.pairs.bulkUrlsTitle': 'URLs / domaines',
     'dashboard.pairs.bulkKeywordsTitle': 'Mots-clés',
     'dashboard.pairs.keywordEnterHint':
-      'Astuce : Entrée valide le mot-clé (puce verte). Maj+Entrée = nouvelle ligne dans le même mot-clé.',
+      'Entrée valide une ligne (puce verte). Coller une liste crée une puce par ligne. × retire un élément confirmé.',
+    'dashboard.pairs.removeChip': 'Retirer',
     'dashboard.pairs.placeholderUrl': 'ex: example.com',
     'dashboard.pairs.placeholderUrls': 'URLs/domaines (1 ligne = 1 URL)\nexample.com\nexample.org',
     'dashboard.pairs.placeholderKeyword': 'Mot-clé',
