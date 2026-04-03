@@ -72,6 +72,7 @@ model Pair {
   keyword         String
   url             String    // normalized
   rawUrl          String    // display
+  sortOrder       Int       @default(0)
   lastPosition    Int?
   lastCheckedAt   DateTime?
   lastMatchedUrl  String?
@@ -81,6 +82,7 @@ model Pair {
   history         PairHistory[]
 
   @@index([userId])
+  @@index([userId, sortOrder])
 }
 
 model PairHistory {

@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { createPairsSchema } from '@/lib/validators';
 import { normalizeUrl, isValidUrl } from '@/lib/url-utils';
 import { getParisDateString } from '@/lib/date-utils';
+import { allocateSortOrdersForNewPairs } from '@/lib/pair-sort-order';
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser(request);
@@ -81,8 +82,10 @@ export async function POST(request: NextRequest) {
 
     const { pairs: inputPairs } = validationResult.data;
     const createdPairs = [];
+    const sortOrders = await allocateSortOrdersForNewPairs(user.id, inputPairs.length);
 
-    for (const pair of inputPairs) {
+    for (let i = 0; i < inputPairs.length; i++) {
+      const pair = inputPairs[i];
       if (!isValidUrl(pair.url)) {
         return NextResponse.json(
           { error: { code: 400, message: 'URL invalide', details: { url: pair.url } } },
@@ -96,6 +99,7 @@ export async function POST(request: NextRequest) {
           keyword: pair.keyword.trim(),
           url: normalized,
           rawUrl: pair.url.trim(),
+          sortOrder: sortOrders[i]!,
         },
       });
       createdPairs.push({

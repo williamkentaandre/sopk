@@ -38,6 +38,39 @@ interface Toast {
   type: 'success' | 'error';
 }
 
+/** Move selected ids one step up as a block; order inside the block is preserved. */
+function reorderIdsMoveBlockUp(ids: string[], selected: Set<string>): string[] | null {
+  let minIdx = ids.length;
+  for (let i = 0; i < ids.length; i++) {
+    if (selected.has(ids[i]!)) minIdx = Math.min(minIdx, i);
+  }
+  if (minIdx >= ids.length || minIdx <= 0) return null;
+  const prevBefore = ids[minIdx - 1]!;
+  const block = ids.filter((id) => selected.has(id));
+  const rest = ids.filter((id) => !selected.has(id));
+  const j = rest.indexOf(prevBefore);
+  if (j < 0) return null;
+  const next = [...rest];
+  next.splice(j, 0, ...block);
+  return next;
+}
+
+function reorderIdsMoveBlockDown(ids: string[], selected: Set<string>): string[] | null {
+  let maxIdx = -1;
+  for (let i = 0; i < ids.length; i++) {
+    if (selected.has(ids[i]!)) maxIdx = Math.max(maxIdx, i);
+  }
+  if (maxIdx < 0 || maxIdx >= ids.length - 1) return null;
+  const nextAfter = ids[maxIdx + 1]!;
+  const block = ids.filter((id) => selected.has(id));
+  const rest = ids.filter((id) => !selected.has(id));
+  const j = rest.indexOf(nextAfter);
+  if (j < 0) return null;
+  const next = [...rest];
+  next.splice(j + 1, 0, ...block);
+  return next;
+}
+
 export default function DashboardPage() {
   const { t, locale } = useLocale();
   const dateLocale = locale === 'fr' ? 'fr-FR' : 'en-GB';
@@ -72,6 +105,7 @@ export default function DashboardPage() {
   const [selectedPairIds, setSelectedPairIds] = useState<Set<string>>(() => new Set());
   const selectAllCheckboxRef = useRef<HTMLInputElement>(null);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [reordering, setReordering] = useState(false);
 
   const selectablePairIds = useMemo(
     () => pairs.filter((p) => !p.pair_id.startsWith('temp_')).map((p) => p.pair_id),
@@ -82,6 +116,26 @@ export default function DashboardPage() {
     () => selectablePairIds.filter((id) => selectedPairIds.has(id)).length,
     [selectablePairIds, selectedPairIds]
   );
+
+  const canMoveSelectedUp = useMemo(() => {
+    if (selectedPairIds.size === 0) return false;
+    const ids = pairs.map((p) => p.pair_id);
+    let minIdx = ids.length;
+    for (let i = 0; i < ids.length; i++) {
+      if (selectedPairIds.has(ids[i]!)) minIdx = Math.min(minIdx, i);
+    }
+    return minIdx < ids.length && minIdx > 0;
+  }, [pairs, selectedPairIds]);
+
+  const canMoveSelectedDown = useMemo(() => {
+    if (selectedPairIds.size === 0) return false;
+    const ids = pairs.map((p) => p.pair_id);
+    let maxIdx = -1;
+    for (let i = 0; i < ids.length; i++) {
+      if (selectedPairIds.has(ids[i]!)) maxIdx = Math.max(maxIdx, i);
+    }
+    return maxIdx >= 0 && maxIdx < ids.length - 1;
+  }, [pairs, selectedPairIds]);
 
   useEffect(() => {
     const valid = new Set(pairs.map((p) => p.pair_id));
@@ -512,6 +566,68 @@ export default function DashboardPage() {
     const id = Date.now();
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
+  };
+
+  const persistPairOrder = async (orderedPersistedIds: string[]) => {
+    if (orderedPersistedIds.length === 0) return true;
+    try {
+      const res = await fetch('/api/v1/pairs/reorder', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderedIds: orderedPersistedIds }),
+        credentials: 'same-origin',
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+        showToast(
+          `${t('dashboard.toast.error')}: ${err.error?.message || t('dashboard.toast.reorderError')}`,
+          'error'
+        );
+        await loadData();
+        return false;
+      }
+      return true;
+    } catch {
+      showToast(t('dashboard.toast.reorderError'), 'error');
+      await loadData();
+      return false;
+    }
+  };
+
+  const moveSelectedRowsUp = async () => {
+    if (selectedPairIds.size === 0) return;
+    const ids = pairs.map((p) => p.pair_id);
+    const sel = new Set(selectedPairIds);
+    const newIds = reorderIdsMoveBlockUp(ids, sel);
+    if (!newIds) return;
+    const map = new Map(pairs.map((p) => [p.pair_id, p]));
+    const newPairs = newIds.map((id) => map.get(id)!);
+    setPairs(newPairs);
+    const persisted = newIds.filter((id) => !id.startsWith('temp_'));
+    setReordering(true);
+    try {
+      await persistPairOrder(persisted);
+    } finally {
+      setReordering(false);
+    }
+  };
+
+  const moveSelectedRowsDown = async () => {
+    if (selectedPairIds.size === 0) return;
+    const ids = pairs.map((p) => p.pair_id);
+    const sel = new Set(selectedPairIds);
+    const newIds = reorderIdsMoveBlockDown(ids, sel);
+    if (!newIds) return;
+    const map = new Map(pairs.map((p) => [p.pair_id, p]));
+    const newPairs = newIds.map((id) => map.get(id)!);
+    setPairs(newPairs);
+    const persisted = newIds.filter((id) => !id.startsWith('temp_'));
+    setReordering(true);
+    try {
+      await persistPairOrder(persisted);
+    } finally {
+      setReordering(false);
+    }
   };
 
   const normalizeUrlForCompare = (u: string) => {
@@ -1266,6 +1382,7 @@ export default function DashboardPage() {
                   onClick={trackAll}
                   disabled={
                     saving ||
+                    reordering ||
                     pairs.length === 0 ||
                     pairs.some((p) => p.pair_id.startsWith('temp_'))
                   }
@@ -1278,7 +1395,7 @@ export default function DashboardPage() {
                     type="button"
                     className="btn btn-secondary"
                     onClick={trackSelected}
-                    disabled={loading || saving || bulkDeleting}
+                    disabled={loading || saving || bulkDeleting || reordering}
                     aria-busy={saving}
                   >
                     {t('dashboard.table.measureSelected').replace(
@@ -1287,12 +1404,38 @@ export default function DashboardPage() {
                     )}
                   </button>
                 )}
+                {selectedPairIds.size > 0 && (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => void moveSelectedRowsUp()}
+                      disabled={!canMoveSelectedUp || reordering || loading || saving || bulkDeleting}
+                      aria-busy={reordering}
+                      aria-label={t('dashboard.table.moveSelectionUpAria')}
+                      title={t('dashboard.table.moveSelectionUpAria')}
+                    >
+                      {t('dashboard.table.moveUp')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => void moveSelectedRowsDown()}
+                      disabled={!canMoveSelectedDown || reordering || loading || saving || bulkDeleting}
+                      aria-busy={reordering}
+                      aria-label={t('dashboard.table.moveSelectionDownAria')}
+                      title={t('dashboard.table.moveSelectionDownAria')}
+                    >
+                      {t('dashboard.table.moveDown')}
+                    </button>
+                  </>
+                )}
                 {selectedDeletableCount > 0 && (
                   <button
                     type="button"
                     className="btn btn-danger"
                     onClick={deleteSelectedPairs}
-                    disabled={loading || saving || bulkDeleting}
+                    disabled={loading || saving || bulkDeleting || reordering}
                     aria-busy={bulkDeleting}
                   >
                     {t('dashboard.table.deleteSelected').replace('{count}', String(selectedDeletableCount))}

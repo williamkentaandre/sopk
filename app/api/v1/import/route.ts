@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth-server';
 import { prisma } from '@/lib/prisma';
 import { normalizeUrl } from '@/lib/url-utils';
+import { allocateSortOrdersForNewPairs } from '@/lib/pair-sort-order';
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser(request);
@@ -32,6 +33,10 @@ export async function POST(request: NextRequest) {
   // Colonne 1 = mots-clés, colonne 2 = URLs (peu importe le nom des en-têtes)
   const results: { success: boolean; pair_id?: string; keyword?: string; url?: string; error?: string }[] = [];
   const errors: { line: number; error: string; data: object }[] = [];
+
+  const maxNewPairs = Math.max(0, lines.length - 1);
+  const sortOrders = await allocateSortOrdersForNewPairs(user.id, maxNewPairs);
+  let sortOrderIndex = 0;
 
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -65,8 +70,10 @@ export async function POST(request: NextRequest) {
           keyword,
           url: normalizeUrl(url),
           rawUrl: url,
+          sortOrder: sortOrders[sortOrderIndex]!,
         },
       });
+      sortOrderIndex += 1;
       results.push({ success: true, pair_id: p.id, keyword: p.keyword, url: p.rawUrl });
     } catch (e) {
       results.push({ success: false, keyword, url, error: String(e) });

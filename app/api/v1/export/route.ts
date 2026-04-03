@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
       userId: user.id,
       ...(pairIdsFilter && pairIdsFilter.length > 0 ? { id: { in: pairIdsFilter } } : {}),
     },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     include: {
       history: {
         orderBy: { checkedAt: 'desc' },
