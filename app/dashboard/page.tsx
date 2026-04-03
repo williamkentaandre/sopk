@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, type KeyboardEvent } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { getParisDateString } from '@/lib/date-utils';
@@ -41,6 +41,9 @@ export default function DashboardPage() {
   const [bulkUrlText, setBulkUrlText] = useState('');
   const [bulkKeywordText, setBulkKeywordText] = useState('');
   const [bulkAddedKeywords, setBulkAddedKeywords] = useState<string[]>([]);
+  /** Confirmed with Enter — shown as reassuring chips */
+  const [stagedKeywords, setStagedKeywords] = useState<string[]>([]);
+  const [stagedUrls, setStagedUrls] = useState<string[]>([]);
   const tableTopRef = useRef<HTMLDivElement | null>(null);
   const [editingPair, setEditingPair] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<{ keyword: string; url: string }>({ keyword: '', url: '' });
@@ -75,11 +78,95 @@ export default function DashboardPage() {
       .map((l) => l.trim())
       .filter(Boolean);
 
-  const keywordPreview = useMemo(() => splitLines(bulkKeywordText), [bulkKeywordText]);
-  const urlPreview = useMemo(
-    () => splitLines(bulkUrlText).map((u) => toDomainOnly(u)).filter((u) => !!u && u.length >= 3),
-    [bulkUrlText]
-  );
+  const draftUrlDomains = useMemo(() => {
+    const stagedLower = new Set(stagedUrls.map((u) => u.toLowerCase()));
+    return splitLines(bulkUrlText)
+      .map((u) => toDomainOnly(u))
+      .filter((u) => u.length >= 3 && !stagedLower.has(u.toLowerCase()));
+  }, [bulkUrlText, stagedUrls]);
+
+  const draftKeywordLines = useMemo(() => {
+    const stagedLower = new Set(stagedKeywords.map((k) => k.toLowerCase()));
+    return splitLines(bulkKeywordText).filter((k) => !stagedLower.has(k.toLowerCase()));
+  }, [bulkKeywordText, stagedKeywords]);
+
+  function mergeKeywordsForBulk(): string[] {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const k of [...stagedKeywords, ...splitLines(bulkKeywordText)]) {
+      const trimmed = k.trim();
+      if (!trimmed) continue;
+      const key = trimmed.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(trimmed);
+    }
+    return out;
+  }
+
+  function mergeUrlsForBulk(): string[] {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const u of [...stagedUrls, ...splitLines(bulkUrlText).map((x) => toDomainOnly(x))]) {
+      if (!u || u.length < 3) continue;
+      const key = u.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(u);
+    }
+    return out;
+  }
+
+  const commitKeywordLineAtCursor = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    const el = e.currentTarget;
+    const v = el.value;
+    const pos = el.selectionStart;
+    const lineStart = v.lastIndexOf('\n', pos - 1) + 1;
+    let lineEnd = v.indexOf('\n', pos);
+    if (lineEnd === -1) lineEnd = v.length;
+    const line = v.slice(lineStart, lineEnd).trim();
+    if (!line) return;
+    e.preventDefault();
+    setStagedKeywords((prev) => {
+      if (prev.some((k) => k.toLowerCase() === line.toLowerCase())) return prev;
+      return [...prev, line];
+    });
+    const before = v.slice(0, lineStart);
+    const after = lineEnd >= v.length ? '' : v.slice(lineEnd + 1);
+    const newVal = before + after;
+    setBulkKeywordText(newVal);
+    const newPos = Math.min(lineStart, newVal.length);
+    requestAnimationFrame(() => {
+      el.selectionStart = el.selectionEnd = newPos;
+    });
+  };
+
+  const commitUrlLineAtCursor = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    const el = e.currentTarget;
+    const v = el.value;
+    const pos = el.selectionStart;
+    const lineStart = v.lastIndexOf('\n', pos - 1) + 1;
+    let lineEnd = v.indexOf('\n', pos);
+    if (lineEnd === -1) lineEnd = v.length;
+    const raw = v.slice(lineStart, lineEnd).trim();
+    const dom = toDomainOnly(raw);
+    if (dom.length < 3) return;
+    e.preventDefault();
+    setStagedUrls((prev) => {
+      if (prev.some((u) => u.toLowerCase() === dom.toLowerCase())) return prev;
+      return [...prev, dom];
+    });
+    const before = v.slice(0, lineStart);
+    const after = lineEnd >= v.length ? '' : v.slice(lineEnd + 1);
+    const newVal = before + after;
+    setBulkUrlText(newVal);
+    const newPos = Math.min(lineStart, newVal.length);
+    requestAnimationFrame(() => {
+      el.selectionStart = el.selectionEnd = newPos;
+    });
+  };
 
   const isNoSerpKeyError = (msg: string) =>
     /clé|serp|paramètres/i.test(msg || '');
@@ -259,15 +346,13 @@ export default function DashboardPage() {
     } as const;
   };
 
-  const addBulkPairs = async (keywordsRaw: string[], urlsRaw: string[]) => {
-    const urls = urlsRaw
-      .map((u) => toDomainOnly(u))
-      .filter((u) => !!u && u.length >= 3);
+  const addBulkPairs = async () => {
+    const urls = mergeUrlsForBulk();
     if (urls.length === 0) {
       showToast(t('dashboard.toast.enterUrl'), 'error');
       return;
     }
-    const keywords = keywordsRaw.map((k) => k.trim()).filter(Boolean);
+    const keywords = mergeKeywordsForBulk();
     if (keywords.length === 0) return;
 
     const seen = new Set<string>();
@@ -320,6 +405,10 @@ export default function DashboardPage() {
         return [...createdItems, ...rest];
       });
       showToast(`${createdItems.length} ${t('dashboard.toast.pairsAdded')}`, 'success');
+      setStagedKeywords([]);
+      setStagedUrls([]);
+      setBulkKeywordText('');
+      setBulkUrlText('');
     } catch {
       const tempIds = new Set(tempPairs.map((p) => p.pair_id));
       setPairs((prev) => prev.filter((p) => !tempIds.has(p.pair_id)));
@@ -588,90 +677,78 @@ export default function DashboardPage() {
   return (
     <div className="app-shell">
       <div className="container">
-        <div className="header">
-          <div>
-            <h1>{t('dashboard.title')}</h1>
-            <p>{t('dashboard.subtitle')}</p>
-            {hasSerpApiKey !== true && (
-              <p style={{ marginTop: '0.35rem', fontSize: '0.9rem' }}>
-                <Link href="/settings">
-                  {t('dashboard.settingsKey')}
-                </Link>
-              </p>
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <Link href="/settings" className="btn btn-secondary">
-              {t('dashboard.settings')}
-            </Link>
-            <button type="button" className="btn btn-secondary" onClick={() => signOut({ callbackUrl: '/' })}>
-              {t('dashboard.signOut')}
-            </button>
-          </div>
-        </div>
-
-      {/* Status bar */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '0.75rem',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0.75rem 1rem',
-          border: '1px solid #e5e7eb',
-          borderRadius: 10,
-          background: '#fff',
-          marginBottom: '1.25rem',
-        }}
-      >
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <Link
-            href="/settings"
-            className={`status-badge ${hasSerpApiKey === true ? 'success' : 'pending'}`}
-            style={{ textDecoration: 'none' }}
-          >
-            {t('dashboard.status.apiKey')}:{' '}
-            {hasSerpApiKey === true ? t('dashboard.status.apiKeyOk') : t('dashboard.status.apiKeyMissing')}
-          </Link>
-          <Link
-            href="/settings"
-            className={`status-badge ${searchLocaleDisplay.configured ? 'success' : 'pending'}`}
-            style={{ textDecoration: 'none' }}
-          >
-            {t('dashboard.status.languageCountry')}: {searchLocaleDisplay.label}
-          </Link>
-          {hasSerpApiKey === true && (
-            <span
-              className="status-badge"
-              style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#334155' }}
-              title={t('dashboard.serpCreditsHint')}
-            >
-              {t('dashboard.serpCredits')}:{' '}
-              {typeof serperCredits === 'number' ? serperCredits.toLocaleString(dateLocale) : '—'}
-            </span>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          {measureAllProgress && (
-            <span style={{ color: '#475569', fontSize: '0.9rem' }}>
-              {t('dashboard.measureInProgress')}{' '}
-              {Math.min(measureAllProgress.done, measureAllProgress.total)}/{measureAllProgress.total}
-            </span>
-          )}
-          {measureAllProgress && (
-            <div style={{ width: 180, height: 8, background: '#e2e8f0', borderRadius: 999, overflow: 'hidden' }}>
-              <div
-                style={{
-                  width: `${measureAllProgress.total ? Math.round((measureAllProgress.done / measureAllProgress.total) * 100) : 0}%`,
-                  height: '100%',
-                  background: '#2563eb',
-                }}
-              />
+        <div className="header dashboard-header-merged">
+          <div className="dashboard-header-top">
+            <div>
+              <h1>{t('dashboard.title')}</h1>
+              <p>{t('dashboard.subtitle')}</p>
+              {hasSerpApiKey !== true && (
+                <p style={{ marginTop: '0.35rem', fontSize: '0.9rem' }}>
+                  <Link href="/settings">
+                    {t('dashboard.settingsKey')}
+                  </Link>
+                </p>
+              )}
             </div>
-          )}
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <Link href="/settings" className="btn btn-secondary">
+                {t('dashboard.settings')}
+              </Link>
+              <button type="button" className="btn btn-secondary" onClick={() => signOut({ callbackUrl: '/' })}>
+                {t('dashboard.signOut')}
+              </button>
+            </div>
+          </div>
+          <div className="dashboard-status-row">
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <Link
+                href="/settings"
+                className={`status-badge ${hasSerpApiKey === true ? 'success' : 'pending'}`}
+                style={{ textDecoration: 'none' }}
+              >
+                {t('dashboard.status.apiKey')}:{' '}
+                {hasSerpApiKey === true ? t('dashboard.status.apiKeyOk') : t('dashboard.status.apiKeyMissing')}
+              </Link>
+              <Link
+                href="/settings"
+                className={`status-badge ${searchLocaleDisplay.configured ? 'success' : 'pending'}`}
+                style={{ textDecoration: 'none' }}
+                title={t('dashboard.status.searchLocaleHint')}
+              >
+                {t('dashboard.status.languageCountry')}: {searchLocaleDisplay.label}
+              </Link>
+              {hasSerpApiKey === true && (
+                <span
+                  className="status-badge"
+                  style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#334155' }}
+                  title={t('dashboard.serpCreditsHint')}
+                >
+                  {t('dashboard.serpCredits')}:{' '}
+                  {typeof serperCredits === 'number' ? serperCredits.toLocaleString(dateLocale) : '—'}
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {measureAllProgress && (
+                <span style={{ color: '#475569', fontSize: '0.9rem' }}>
+                  {t('dashboard.measureInProgress')}{' '}
+                  {Math.min(measureAllProgress.done, measureAllProgress.total)}/{measureAllProgress.total}
+                </span>
+              )}
+              {measureAllProgress && (
+                <div style={{ width: 180, height: 8, background: '#e2e8f0', borderRadius: 999, overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      width: `${measureAllProgress.total ? Math.round((measureAllProgress.done / measureAllProgress.total) * 100) : 0}%`,
+                      height: '100%',
+                      background: '#2563eb',
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
 
       {(hasSerpApiKey !== true) && (
         <div className="onboarding-with-image" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
@@ -757,52 +834,74 @@ export default function DashboardPage() {
 
         <div className="multi-add-block">
           <p>{t('dashboard.pairs.multiAdd')}</p>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
             {t('dashboard.pairs.multiAddHelper')}
           </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'flex-start' }}>
-            <div style={{ flex: '1 1 320px', minWidth: 260 }}>
+          <div className="multi-add-columns">
+            <div className="multi-add-col">
+              <h3 className="multi-add-section-title">{t('dashboard.pairs.bulkUrlsTitle')}</h3>
               <textarea
                 value={bulkUrlText}
                 onChange={(e) => setBulkUrlText(e.target.value)}
+                onKeyDown={commitUrlLineAtCursor}
                 placeholder={t('dashboard.pairs.placeholderUrls')}
                 rows={4}
                 style={{ width: '100%', resize: 'vertical', minHeight: '3.25rem' }}
+                aria-label={t('dashboard.pairs.bulkUrlsTitle')}
               />
-              {urlPreview.length > 0 && (
-                <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                  {urlPreview.slice(0, 12).map((u, idx) => (
-                    <span key={`${u}-${idx}`} style={{ fontSize: '0.8rem', padding: '0.18rem 0.45rem', borderRadius: 999, border: '1px solid #cbd5e1', background: '#fff' }}>
+              {(stagedUrls.length > 0 || draftUrlDomains.length > 0) && (
+                <div className="multi-add-chip-row" aria-live="polite">
+                  {stagedUrls.map((u, idx) => (
+                    <span key={`s-${u}-${idx}`} className="multi-add-chip multi-add-chip--staged" title={t('dashboard.pairs.multiAddHelper')}>
+                      ✓ {u}
+                    </span>
+                  ))}
+                  {draftUrlDomains.slice(0, 16).map((u, idx) => (
+                    <span key={`d-${u}-${idx}`} className="multi-add-chip">
                       {u}
                     </span>
                   ))}
                 </div>
               )}
             </div>
-            <div style={{ flex: '1 1 320px', minWidth: 260 }}>
+            <div className="multi-add-col">
+              <h3 className="multi-add-section-title">{t('dashboard.pairs.bulkKeywordsTitle')}</h3>
               <textarea
                 value={bulkKeywordText}
                 onChange={(e) => setBulkKeywordText(e.target.value)}
+                onKeyDown={commitKeywordLineAtCursor}
                 placeholder={t('dashboard.pairs.placeholderKeywords')}
                 rows={4}
                 style={{ width: '100%', resize: 'vertical', minHeight: '3.25rem' }}
+                aria-label={t('dashboard.pairs.bulkKeywordsTitle')}
               />
+              <p className="multi-add-hint">{t('dashboard.pairs.keywordEnterHint')}</p>
+              {(stagedKeywords.length > 0 || draftKeywordLines.length > 0) && (
+                <div className="multi-add-chip-row" aria-live="polite">
+                  {stagedKeywords.map((k, idx) => (
+                    <span key={`sk-${k}-${idx}`} className="multi-add-chip multi-add-chip--staged">
+                      ✓ {k}
+                    </span>
+                  ))}
+                  {draftKeywordLines.slice(0, 16).map((k, idx) => (
+                    <span key={`dk-${k}-${idx}`} className="multi-add-chip">
+                      {k}
+                    </span>
+                  ))}
+                </div>
+              )}
               {bulkAddedKeywords.length > 0 && (
-                <div style={{ marginTop: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                  {bulkAddedKeywords.slice(0, 8).map((k, idx) => (
+                <div style={{ marginTop: '0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  {bulkAddedKeywords.slice(0, 6).map((k, idx) => (
                     <div key={`${k}-${idx}`}>• {k}</div>
                   ))}
                 </div>
               )}
             </div>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => addBulkPairs(splitLines(bulkKeywordText), splitLines(bulkUrlText))}
-            >
-              {t('dashboard.pairs.addAll')}
-            </button>
           </div>
+          <button type="button" className="btn btn-primary multi-add-submit" onClick={() => addBulkPairs()}>
+            {t('dashboard.pairs.addAll')}
+          </button>
         </div>
 
         <div ref={tableTopRef} />
