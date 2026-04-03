@@ -535,6 +535,7 @@ export default function DashboardPage() {
         // rollback optimistic
         const tempIds = new Set(tempPairs.map((p) => p.pair_id));
         setPairs((prev) => prev.filter((p) => !tempIds.has(p.pair_id)));
+        setBulkAddedKeywords((prev) => prev.slice(toCreate.length));
         showToast(`${t('dashboard.toast.error')}: ${result?.error?.message || t('dashboard.toast.unknownError')}`, 'error');
         return;
       }
@@ -551,9 +552,11 @@ export default function DashboardPage() {
       setStagedUrls([]);
       setBulkKeywordText('');
       setBulkUrlText('');
+      setBulkAddedKeywords([]);
     } catch {
       const tempIds = new Set(tempPairs.map((p) => p.pair_id));
       setPairs((prev) => prev.filter((p) => !tempIds.has(p.pair_id)));
+      setBulkAddedKeywords((prev) => prev.slice(toCreate.length));
       showToast(t('dashboard.toast.addError'), 'error');
     }
   };
