@@ -11,7 +11,9 @@
     "test": "vitest run",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev"
+    "db:migrate": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:baseline-sort-order": "prisma db execute --file prisma/migrations/20260404000000_add_pair_sort_order/migration.sql --schema prisma/schema.prisma && prisma migrate resolve --applied 20260404000000_add_pair_sort_order"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.525.0",

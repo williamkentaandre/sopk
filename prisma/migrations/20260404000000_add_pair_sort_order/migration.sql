@@ -1,5 +1,18 @@
--- AlterTable
-ALTER TABLE "Pair" ADD COLUMN "sortOrder" INTEGER;
+-- Idempotent: safe on DBs that already had tables before Prisma Migrate (P3005 baseline).
+-- Pair.sortOrder: lower = higher in the list; backfill matches former createdAt DESC order.
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'Pair'
+      AND column_name = 'sortOrder'
+  ) THEN
+    ALTER TABLE "Pair" ADD COLUMN "sortOrder" INTEGER;
+  END IF;
+END $$;
 
 UPDATE "Pair" AS p
 SET "sortOrder" = sub.rn
