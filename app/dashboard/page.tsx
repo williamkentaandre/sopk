@@ -338,6 +338,30 @@ export default function DashboardPage() {
     return '';
   };
 
+  const mergeTrackApiResultIntoState = (
+    pairId: string,
+    result: { checked_at?: string; position?: unknown; matched_url?: string | null }
+  ) => {
+    const day = result.checked_at ? getParisDateString(result.checked_at) : null;
+    const normalizedPos = normalizeMeasuredRank(result.position);
+    setPairs((prev) =>
+      prev.map((p) =>
+        p.pair_id === pairId
+          ? {
+              ...p,
+              last_position:
+                normalizedPos != null ? normalizedPos : p.last_position ?? null,
+              last_checked_at: result.checked_at ?? null,
+              last_matched_url: result.matched_url ?? p.last_matched_url,
+              history_by_date: day
+                ? { ...(p.history_by_date || {}), [day]: normalizedPos }
+                : p.history_by_date,
+            }
+          : p
+      )
+    );
+  };
+
   /** Same source as page load: GET balance (no reliance on search/track parsing). */
   const refreshSerperCreditsFromApi = useCallback(async () => {
     try {
@@ -652,24 +676,8 @@ export default function DashboardPage() {
       });
       const result = await response.json();
       if (response.ok) {
-        const day = result.checked_at ? getParisDateString(result.checked_at) : null;
+        mergeTrackApiResultIntoState(pairId, result);
         const normalizedPos = normalizeMeasuredRank(result.position);
-        setPairs((prev) =>
-          prev.map((p) =>
-            p.pair_id === pairId
-              ? {
-                  ...p,
-                  last_position:
-                    normalizedPos != null ? normalizedPos : p.last_position ?? null,
-                  last_checked_at: result.checked_at,
-                  last_matched_url: result.matched_url ?? p.last_matched_url,
-                  history_by_date: day
-                    ? { ...(p.history_by_date || {}), [day]: normalizedPos }
-                    : p.history_by_date,
-                }
-              : p
-          )
-        );
         const positionText =
           normalizedPos != null
             ? `${t('dashboard.toast.position')}: ${normalizedPos}`
@@ -713,89 +721,65 @@ export default function DashboardPage() {
     }
     if (!confirm(t('dashboard.confirm.measureAll'))) return;
 
-    const lockIds = persistedPairs.map((p) => p.pair_id);
-    for (const id of lockIds) {
-      pairMeasureInFlightRef.current.add(id);
-    }
-    setTracking((prev) => {
-      const next = new Set(prev);
-      for (const id of lockIds) next.add(id);
-      return next;
-    });
-
+    const total = persistedPairs.length;
     setSaving(true);
-    setMeasureAllProgress({ done: 0, total: persistedPairs.length, startedAt: Date.now() });
+    setMeasureAllProgress({ done: 0, total, startedAt: Date.now() });
 
-    const releaseLocks = () => {
-      for (const id of lockIds) {
-        pairMeasureInFlightRef.current.delete(id);
-      }
-      setTracking((prev) => {
-        const next = new Set(prev);
-        for (const id of lockIds) next.delete(id);
-        return next;
-      });
-    };
+    let failedCount = 0;
+    let shownConfigError = false;
 
     try {
-      const response = await fetch('/api/v1/track', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hl: settings.hl, gl: settings.gl }),
-      });
-      if (response.ok) {
-        const result = await response.json();
-        const total = Number(result.total || persistedPairs.length || 0);
-        setMeasureAllProgress((p) =>
-          p ? { ...p, total, done: total } : { done: total, total, startedAt: Date.now() }
-        );
-        const failedCount = Number(result.failed || 0);
-        setPairs((prev) =>
-          prev.map((pair) => {
-            const updated =
-              result.results?.find((r: { pair_id?: string }) => r.pair_id === pair.pair_id) ||
-              result.results?.find(
-                (r: { keyword?: string; url?: string }) =>
-                  r.keyword?.toLowerCase() === pair.keyword.toLowerCase() &&
-                  normalizeUrlForCompare(r.url || '') === normalizeUrlForCompare(pair.url || '')
-              );
-            if (updated) {
-              if (updated.error) {
-                return pair;
-              }
-              const day = updated.checked_at ? getParisDateString(updated.checked_at) : null;
-              const normalizedPos = normalizeMeasuredRank(updated.position);
-              return {
-                ...pair,
-                last_position:
-                  normalizedPos != null ? normalizedPos : pair.last_position ?? null,
-                last_checked_at: updated.checked_at,
-                last_matched_url: updated.matched_url ?? pair.last_matched_url ?? null,
-                history_by_date: day
-                  ? { ...(pair.history_by_date || {}), [day]: normalizedPos }
-                  : pair.history_by_date,
-              };
+      for (let i = 0; i < persistedPairs.length; i++) {
+        const p = persistedPairs[i];
+        pairMeasureInFlightRef.current.add(p.pair_id);
+        setTracking((prev) => new Set(prev).add(p.pair_id));
+        try {
+          const response = await fetch(`/api/v1/pairs/${p.pair_id}/track`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hl: settings.hl, gl: settings.gl }),
+          });
+          const result = await response.json();
+          if (response.ok) {
+            mergeTrackApiResultIntoState(p.pair_id, result);
+            void refreshSerperCreditsFromApi();
+          } else {
+            failedCount++;
+            if (
+              !shownConfigError &&
+              (response.status === 400 || response.status === 401)
+            ) {
+              shownConfigError = true;
+              showActionableError(result.error?.message || '');
             }
-            return pair;
-          })
-        );
-        void refreshSerperCreditsFromApi();
-        if (failedCount > 0) {
-          showToast(
-            `${t('dashboard.toast.measurementsDone')} (${result.successful || 0} OK, ${failedCount} erreurs)`,
-            'error'
+          }
+        } catch {
+          failedCount++;
+        } finally {
+          pairMeasureInFlightRef.current.delete(p.pair_id);
+          setTracking((prev) => {
+            const next = new Set(prev);
+            next.delete(p.pair_id);
+            return next;
+          });
+          setMeasureAllProgress((prog) =>
+            prog
+              ? { ...prog, done: Math.min(prog.done + 1, prog.total) }
+              : { done: i + 1, total, startedAt: Date.now() }
           );
-        } else {
-          showToast(t('dashboard.toast.measurementsDone'), 'success');
         }
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        showActionableError(errorData.error?.message || '');
       }
-    } catch {
-      showToast(t('dashboard.toast.serpError'), 'error');
+
+      if (failedCount > 0) {
+        const ok = total - failedCount;
+        showToast(
+          `${t('dashboard.toast.measurementsDone')} (${ok} OK, ${failedCount} ${t('dashboard.toast.failed')})`,
+          'error'
+        );
+      } else {
+        showToast(t('dashboard.toast.measurementsDone'), 'success');
+      }
     } finally {
-      releaseLocks();
       setSaving(false);
       window.setTimeout(() => setMeasureAllProgress(null), 2500);
     }
@@ -1261,7 +1245,7 @@ export default function DashboardPage() {
                         className="btn btn-primary"
                         style={{ padding: '0.25rem 0.75rem', fontSize: '0.85rem' }}
                         onClick={() => trackPair(pair.pair_id, pair.keyword)}
-                        disabled={tracking.has(pair.pair_id)}
+                        disabled={tracking.has(pair.pair_id) || saving}
                       >
                         {tracking.has(pair.pair_id) ? <span className="loading" /> : '▶'}
                       </button>
