@@ -79,6 +79,35 @@ export function pickCreditsFromUnknown(v: unknown, depth = 0): number | null {
   return null;
 }
 
+/**
+ * Credits from POST /search JSON body only at the **root** object.
+ * We must not deep-scan the body: nested keys like `usage: 1` or organic `position: 1`
+ * were mistaken for the account balance.
+ */
+export function pickCreditsFromSearchBodyTopLevel(data: unknown): number | null {
+  if (data == null || typeof data !== 'object' || Array.isArray(data)) return null;
+  const o = data as Record<string, unknown>;
+  const topKeys = [
+    'creditsRemaining',
+    'credits_remaining',
+    'remainingCredits',
+    'creditRemaining',
+    'credits',
+    'balance',
+    'remaining',
+    'queriesLeft',
+    'totalCredits',
+  ];
+  for (const key of topKeys) {
+    if (!(key in o) || o[key] == null) continue;
+    const v = o[key];
+    if (typeof v === 'number' && Number.isFinite(v) && v >= 0) {
+      return Math.floor(v);
+    }
+  }
+  return null;
+}
+
 function creditsFromHeaders(headers: Headers): number | null {
   const names = [
     'x-credits-remaining',
@@ -179,7 +208,7 @@ async function postSerperSearch(
     throw new Error(`Serper error: ${anyErr.error}`);
   }
 
-  const bodyCredits = pickCreditsFromUnknown(data);
+  const bodyCredits = pickCreditsFromSearchBodyTopLevel(data);
   const merged = hdrCredits ?? bodyCredits;
   if (merged != null) {
     data.creditsRemaining = merged;

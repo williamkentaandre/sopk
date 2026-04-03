@@ -1,5 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { pickCreditsFromUnknown } from './serper';
+import { pickCreditsFromSearchBodyTopLevel, pickCreditsFromUnknown } from './serper';
+
+describe('pickCreditsFromSearchBodyTopLevel', () => {
+  it('does not treat nested usage/position as credits', () => {
+    expect(
+      pickCreditsFromSearchBodyTopLevel({
+        usage: 1,
+        organic: [{ position: 1 }],
+        searchParameters: { page: 1, num: 10 },
+      })
+    ).toBeNull();
+  });
+
+  it('reads explicit top-level credit fields', () => {
+    expect(pickCreditsFromSearchBodyTopLevel({ creditsRemaining: 500 })).toBe(500);
+    expect(pickCreditsFromSearchBodyTopLevel({ credits_remaining: 42 })).toBe(42);
+  });
+});
 
 describe('pickCreditsFromUnknown', () => {
   it('reads plain numbers', () => {
