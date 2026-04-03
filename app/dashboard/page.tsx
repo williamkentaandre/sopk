@@ -47,6 +47,8 @@ export default function DashboardPage() {
   const [editValues, setEditValues] = useState<{ keyword: string; url: string }>({ keyword: '', url: '' });
   const [showNoKeyBanner, setShowNoKeyBanner] = useState(false);
   const [hasSerpApiKey, setHasSerpApiKey] = useState<boolean | null>(null);
+  /** Remaining Serper credits when exposed by API (GET or search response); null = unknown */
+  const [serperCredits, setSerperCredits] = useState<number | null>(null);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [searchSettingsDone, setSearchSettingsDone] = useState(false);
   const [searchSettingsAlertVisible, setSearchSettingsAlertVisible] = useState(false);
@@ -145,6 +147,9 @@ export default function DashboardPage() {
         result.pages_queried != null
           ? ` (${result.pages_queried} pages, ${result.elapsed_ms ?? 0} ms)`
           : '';
+      if (typeof result.serper_credits_remaining === 'number') {
+        setSerperCredits(result.serper_credits_remaining);
+      }
       const kwLabel = created.keyword ? `"${created.keyword}" · ` : '';
       showToast(`${t('dashboard.toast.measureDone')} — ${kwLabel}${positionText}${debugText}`, 'success');
       return updated;
@@ -201,9 +206,10 @@ export default function DashboardPage() {
 
   const loadData = async () => {
     try {
-      const [settingsRes, pairsRes] = await Promise.all([
+      const [settingsRes, pairsRes, creditsRes] = await Promise.all([
         fetch('/api/v1/settings'),
         fetch('/api/v1/pairs?includeHistory=1'),
+        fetch('/api/v1/serper-credits'),
       ]);
       if (settingsRes.ok && pairsRes.ok) {
         const settingsData = await settingsRes.json();
@@ -212,6 +218,14 @@ export default function DashboardPage() {
         setHasSerpApiKey(!!settingsData.hasSerpApiKey);
         setSearchSettingsDone(!!(settingsData.hl && settingsData.gl));
         setPairs(pairsData.items || []);
+        if (creditsRes.ok) {
+          const cd = await creditsRes.json().catch(() => ({}));
+          if (typeof cd.credits === 'number' && Number.isFinite(cd.credits)) {
+            setSerperCredits(cd.credits);
+          } else {
+            setSerperCredits(null);
+          }
+        }
       } else {
         if (settingsRes.status === 401 || pairsRes.status === 401) {
           window.location.href = '/login';
@@ -221,12 +235,14 @@ export default function DashboardPage() {
         setHasSerpApiKey(null);
         setSearchSettingsDone(false);
         setPairs([]);
+        setSerperCredits(null);
       }
     } catch {
       setSettings({ hl: 'fr', gl: 'fr' });
       setHasSerpApiKey(null);
       setSearchSettingsDone(false);
       setPairs([]);
+      setSerperCredits(null);
     } finally {
       setLoading(false);
     }
@@ -539,6 +555,9 @@ export default function DashboardPage() {
           result.pages_queried != null
             ? ` (${result.pages_queried} pages, ${result.elapsed_ms ?? 0} ms)`
             : '';
+        if (typeof result.serper_credits_remaining === 'number') {
+          setSerperCredits(result.serper_credits_remaining);
+        }
         const kwLabel = keywordHint ? `"${keywordHint}" · ` : '';
         showToast(`${t('dashboard.toast.measureDone')} — ${kwLabel}${positionText}${debugText}`, 'success');
       } else {
@@ -605,6 +624,13 @@ export default function DashboardPage() {
             return pair;
           })
         );
+        const resultsArr = (result.results || []) as { serper_credits_remaining?: number }[];
+        const creditNums = resultsArr
+          .map((r) => r.serper_credits_remaining)
+          .filter((c): c is number => typeof c === 'number' && Number.isFinite(c));
+        if (creditNums.length > 0) {
+          setSerperCredits(Math.min(...creditNums));
+        }
         if (failedCount > 0) {
           showToast(
             `${t('dashboard.toast.measurementsDone')} (${result.successful || 0} OK, ${failedCount} erreurs)`,
@@ -729,6 +755,16 @@ export default function DashboardPage() {
           <span className="status-badge" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#334155' }}>
             Top 100
           </span>
+          {hasSerpApiKey === true && (
+            <span
+              className="status-badge"
+              style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#334155' }}
+              title={t('dashboard.serpCreditsHint')}
+            >
+              {t('dashboard.serpCredits')}:{' '}
+              {typeof serperCredits === 'number' ? serperCredits.toLocaleString(dateLocale) : '—'}
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {measureAllProgress && (

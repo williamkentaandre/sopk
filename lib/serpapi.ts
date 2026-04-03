@@ -163,9 +163,14 @@ async function fetchSerperOrganicUpTo100(
   hl: string,
   gl: string,
   options?: SerpApiOptions
-): Promise<{ organic: OrganicResult[]; pagesQueried: number }> {
+): Promise<{
+  organic: OrganicResult[];
+  pagesQueried: number;
+  serperCreditsRemaining: number | null;
+}> {
   let pagesQueried = 0;
   const organic: OrganicResult[] = [];
+  let serperCreditsRemaining: number | null = null;
 
   for (let page = 1; page <= SERPER_MAX_PAGES; page++) {
     if (page > 1) await sleep(SERPER_PAGE_DELAY_MS);
@@ -174,6 +179,9 @@ async function fetchSerperOrganicUpTo100(
       options
     );
     pagesQueried += 1;
+    if (r.creditsRemaining != null) {
+      serperCreditsRemaining = r.creditsRemaining;
+    }
     const startRank = organic.length + 1;
     const batch = mapSerperOrganicSequential(r.organic || [], startRank);
     if (batch.length === 0) break;
@@ -190,7 +198,11 @@ async function fetchSerperOrganicUpTo100(
     if (organic.length >= SERPER_MAX_PAGES * SERPER_PAGE_SIZE) break;
   }
 
-  return { organic: organic.slice(0, 100), pagesQueried };
+  return {
+    organic: organic.slice(0, 100),
+    pagesQueried,
+    serperCreditsRemaining,
+  };
 }
 
 /**
@@ -224,6 +236,8 @@ export type TrackKeywordResult = MatchResult & {
   pagesQueried: number;
   elapsedMs: number;
   diagnostic?: SerpTrackDiagnostic;
+  /** When Serper returns credits in search JSON/headers (last page response wins). */
+  serperCreditsRemaining?: number | null;
 };
 
 /**
@@ -241,12 +255,8 @@ export async function trackKeyword(
     ? { target_root_domain: extractDomain(url), pages: [] as SerpTrackDiagnosticPage[] }
     : null;
 
-  const { organic, pagesQueried } = await fetchSerperOrganicUpTo100(
-    keyword,
-    hl,
-    gl,
-    options
-  );
+  const { organic, pagesQueried, serperCreditsRemaining } =
+    await fetchSerperOrganicUpTo100(keyword, hl, gl, options);
 
   if (diagnostic) {
     const pageItems: SerpTrackDiagnosticItem[] = [];
@@ -276,5 +286,6 @@ export async function trackKeyword(
     pagesQueried,
     elapsedMs: Date.now() - startedAt,
     diagnostic: diagnostic ?? undefined,
+    serperCreditsRemaining,
   };
 }

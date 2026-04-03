@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
         matched_url: matchResult.matchedUrl,
         pages_queried: matchResult.pagesQueried ?? null,
         elapsed_ms: matchResult.elapsedMs ?? null,
+        serper_credits_remaining: matchResult.serperCreditsRemaining ?? null,
         error: null,
       };
     } catch (error) {

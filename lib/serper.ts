@@ -34,6 +34,107 @@ export interface SerperSearchResponse {
   };
   /** Some error payloads use this field */
   message?: string;
+  /** Parsed from JSON body or response headers when Serper exposes it */
+  creditsRemaining?: number;
+}
+
+/** Try to read a credits balance from arbitrary JSON (Serper may change field names). */
+export function pickCreditsFromUnknown(v: unknown, depth = 0): number | null {
+  if (depth > 5 || v == null) return null;
+  if (typeof v === 'number' && Number.isFinite(v) && v >= 0) {
+    return Math.floor(v);
+  }
+  if (typeof v !== 'object') return null;
+  if (Array.isArray(v)) {
+    for (const el of v) {
+      const n = pickCreditsFromUnknown(el, depth + 1);
+      if (n != null) return n;
+    }
+    return null;
+  }
+  const o = v as Record<string, unknown>;
+  const preferKeys = [
+    'creditsRemaining',
+    'credits_remaining',
+    'remainingCredits',
+    'creditRemaining',
+    'credits',
+    'balance',
+    'remaining',
+    'queriesLeft',
+    'totalCredits',
+  ];
+  for (const key of preferKeys) {
+    if (key in o && o[key] != null) {
+      const n = pickCreditsFromUnknown(o[key], depth + 1);
+      if (n != null) return n;
+    }
+  }
+  for (const k of Object.keys(o)) {
+    if (/credit|balance|remaining|quota|usage/i.test(k)) {
+      const n = pickCreditsFromUnknown(o[k], depth + 1);
+      if (n != null) return n;
+    }
+  }
+  return null;
+}
+
+function creditsFromHeaders(headers: Headers): number | null {
+  const names = [
+    'x-credits-remaining',
+    'x-serper-credits',
+    'x-credits',
+    'x-remaining-credits',
+    'x-credit-balance',
+  ];
+  for (const name of names) {
+    const raw = headers.get(name);
+    if (raw) {
+      const n = parseInt(raw, 10);
+      if (Number.isFinite(n) && n >= 0) return n;
+    }
+  }
+  return null;
+}
+
+/**
+ * Best-effort GET (no search charge): some Serper deployments expose balance on a read endpoint.
+ */
+export async function fetchSerperCredits(apiKey: string): Promise<number | null> {
+  const key = apiKey.trim();
+  if (!key) return null;
+  const urls = [
+    'https://google.serper.dev/credits',
+    'https://google.serper.dev/account',
+    'https://google.serper.dev/balance',
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-API-KEY': key,
+          'User-Agent': 'SEO-Ranker/1.0 (https://serper.dev)',
+          Accept: 'application/json',
+        },
+      });
+      const text = await res.text();
+      const hdr = creditsFromHeaders(res.headers);
+      if (hdr != null) return hdr;
+      if (!res.ok) continue;
+      let data: unknown;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        continue;
+      }
+      const n = pickCreditsFromUnknown(data);
+      if (n != null) return n;
+    } catch {
+      /* try next URL */
+    }
+  }
+  return null;
 }
 
 async function postSerperSearch(
@@ -55,6 +156,7 @@ async function postSerperSearch(
   });
   clearTimeout(timeout);
 
+  const hdrCredits = creditsFromHeaders(res.headers);
   const rawText = await res.text();
   let data: SerperSearchResponse;
   try {
@@ -72,10 +174,15 @@ async function postSerperSearch(
     throw new Error(`Serper error: ${res.status} — ${msg}`);
   }
 
-  // Some accounts return HTTP 200 with a structured error (e.g. credits)
   const anyErr = data as SerperSearchResponse & { error?: string; statusCode?: number };
   if (typeof anyErr.error === 'string' && anyErr.error.trim()) {
     throw new Error(`Serper error: ${anyErr.error}`);
+  }
+
+  const bodyCredits = pickCreditsFromUnknown(data);
+  const merged = hdrCredits ?? bodyCredits;
+  if (merged != null) {
+    data.creditsRemaining = merged;
   }
 
   return data;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useLocale } from '@/app/LocaleContext';
@@ -20,6 +20,33 @@ export default function SettingsPage() {
   const [newEmail, setNewEmail] = useState('');
   const [emailActionLoading, setEmailActionLoading] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+  const [serperCredits, setSerperCredits] = useState<number | null>(null);
+
+  const refreshSerperCredits = useCallback(async () => {
+    try {
+      const r = await fetch('/api/v1/serper-credits');
+      if (!r.ok) {
+        setSerperCredits(null);
+        return;
+      }
+      const d = await r.json().catch(() => ({}));
+      if (typeof d.credits === 'number' && Number.isFinite(d.credits)) {
+        setSerperCredits(d.credits);
+      } else {
+        setSerperCredits(null);
+      }
+    } catch {
+      setSerperCredits(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasSerpApiKey) {
+      setSerperCredits(null);
+      return;
+    }
+    void refreshSerperCredits();
+  }, [hasSerpApiKey, refreshSerperCredits]);
 
   const handleRemoveSerpKey = async () => {
     setMessage(null);
@@ -255,6 +282,17 @@ export default function SettingsPage() {
             {hasSerpApiKey ? t('settings.key.configured') : t('settings.key.notConfigured')}
           </span>
         </p>
+        {hasSerpApiKey && (
+          <p
+            style={{ marginBottom: '0.75rem', fontSize: '0.9rem', color: '#475569' }}
+            title={t('dashboard.serpCreditsHint')}
+          >
+            {t('settings.serpCredits')}:{' '}
+            {typeof serperCredits === 'number'
+              ? serperCredits.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-GB')
+              : '—'}
+          </p>
+        )}
         {hasSerpApiKey && !serpApiKey && !showReplaceKey ? (
           <p style={{ marginBottom: '1rem', color: '#666' }}>
             <a href="https://serper.dev/api-keys" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ display: 'inline-block', marginTop: '0.25rem' }}>{t('settings.key.getKey')}</a>

@@ -91,6 +91,7 @@ export async function POST(
       checked_at: checkedAt.toISOString(),
       pages_queried: matchResult?.pagesQueried ?? null,
       elapsed_ms: matchResult?.elapsedMs ?? null,
+      serper_credits_remaining: matchResult?.serperCreditsRemaining ?? null,
       error,
       ...(diagnostic && matchResult?.diagnostic ? { diagnostic: matchResult.diagnostic } : {}),
     });
