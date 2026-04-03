@@ -149,11 +149,16 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.table.newKeyword': 'New keyword',
     'dashboard.table.add': 'Add',
     'dashboard.table.measureAll': 'Measure all',
+    'dashboard.table.measureSelected': 'Measure selected ({count})',
     'dashboard.table.measureAllHint':
       'Runs one real Google search per row, one after another. Large lists take several minutes.',
     'dashboard.table.toolbarAria': 'Tracking table actions',
     'dashboard.table.measureOne': 'Measure this row',
     'dashboard.table.deletePair': 'Delete this pair',
+    'dashboard.table.selectColumn': 'Select',
+    'dashboard.table.selectAllAria': 'Select all saved rows',
+    'dashboard.table.selectRowAria': 'Select this row for bulk measure or delete',
+    'dashboard.table.deleteSelected': 'Delete selected ({count})',
     'dashboard.table.positionNotInTop100': '> 100',
     'dashboard.table.domain': 'Domain',
     'dashboard.table.empty': 'No pairs yet. Start by adding a keyword and URL.',
@@ -168,6 +173,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.toast.enterUrl': 'Enter a URL or domain',
     'dashboard.toast.pairUpdated': 'Pair updated',
     'dashboard.toast.pairDeleted': 'Pair deleted',
+    'dashboard.toast.bulkPairsDeleted': '{count} pair(s) deleted',
     'dashboard.toast.pairsDeleted': 'pairs deleted',
     'dashboard.toast.settingsSaved': 'Settings saved',
     'dashboard.toast.measureDone': 'Measurement done',
@@ -191,11 +197,16 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.toast.measureAllNoPairs': 'No saved pairs to measure yet.',
     'dashboard.toast.measureAllWaitForSave':
       'Finish adding pairs (wait until they are saved) before using Measure all.',
+    'dashboard.toast.measureSelectedNone': 'Select at least one saved row (checkbox) to measure a subset.',
     'dashboard.confirm.deletePair': 'Are you sure you want to delete this pair?',
+    'dashboard.confirm.deleteSelected':
+      'Delete {count} selected pair(s)? This cannot be undone.',
     'dashboard.confirm.deleteAll': 'Delete ALL pairs? This cannot be undone.',
     'dashboard.confirm.deleteAllConfirm': 'Last confirmation: Delete all pairs and their history?',
     'dashboard.confirm.measureAll':
       'Measure all pairs now? Each row is measured in turn and may take a few seconds.',
+    'dashboard.confirm.measureSelected':
+      'Measure {count} selected pair(s) now? Each row is measured in turn and may take a few seconds.',
 
     // Settings
     'settings.back': '← Back to dashboard',
@@ -488,11 +499,16 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.table.newKeyword': 'Nouveau mot-clé',
     'dashboard.table.add': 'Ajouter',
     'dashboard.table.measureAll': 'Mesurer tout',
+    'dashboard.table.measureSelected': 'Mesurer la sélection ({count})',
     'dashboard.table.measureAllHint':
       'Une vraie recherche Google par ligne, l’une après l’autre. Les longues listes peuvent prendre plusieurs minutes.',
     'dashboard.table.toolbarAria': 'Actions du tableau de suivi',
     'dashboard.table.measureOne': 'Mesurer cette ligne',
     'dashboard.table.deletePair': 'Supprimer ce couple',
+    'dashboard.table.selectColumn': 'Sél.',
+    'dashboard.table.selectAllAria': 'Tout sélectionner (lignes enregistrées)',
+    'dashboard.table.selectRowAria': 'Sélectionner cette ligne pour mesure ou suppression groupée',
+    'dashboard.table.deleteSelected': 'Supprimer la sélection ({count})',
     'dashboard.table.positionNotInTop100': '> 100',
     'dashboard.table.domain': 'Domaine',
     'dashboard.table.empty': 'Aucun couple ajouté. Commencez par ajouter un mot-clé et une URL.',
@@ -507,6 +523,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.toast.enterUrl': 'Saisissez une URL ou un domaine',
     'dashboard.toast.pairUpdated': 'Couple modifié',
     'dashboard.toast.pairDeleted': 'Couple supprimé',
+    'dashboard.toast.bulkPairsDeleted': '{count} couple(s) supprimé(s)',
     'dashboard.toast.pairsDeleted': 'couples supprimés',
     'dashboard.toast.settingsSaved': 'Paramètres sauvegardés',
     'dashboard.toast.measureDone': 'Mesure effectuée',
@@ -530,11 +547,17 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.toast.measureAllNoPairs': 'Aucun couple enregistré à mesurer pour le moment.',
     'dashboard.toast.measureAllWaitForSave':
       'Terminez l’ajout des couples (attendez qu’ils soient enregistrés) avant « Mesurer tout ».',
+    'dashboard.toast.measureSelectedNone':
+      'Cochez au moins une ligne enregistrée pour mesurer une partie du tableau.',
     'dashboard.confirm.deletePair': 'Êtes-vous sûr de vouloir supprimer ce couple ?',
+    'dashboard.confirm.deleteSelected':
+      'Supprimer {count} couple(s) sélectionné(s) ? Cette action est irréversible.',
     'dashboard.confirm.deleteAll': 'Supprimer TOUS les couples ? Cette action est irréversible.',
     'dashboard.confirm.deleteAllConfirm': 'Dernière confirmation : Supprimer tous les couples et leur historique ?',
     'dashboard.confirm.measureAll':
       'Mesurer tous les couples maintenant ? Chaque ligne est mesurée à la suite et peut prendre quelques secondes.',
+    'dashboard.confirm.measureSelected':
+      'Mesurer {count} couple(s) sélectionné(s) maintenant ? Chaque ligne est mesurée à la suite et peut prendre quelques secondes.',
 
     'settings.back': '← Retour au dashboard',
     'settings.title': 'Paramètres',

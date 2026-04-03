@@ -68,6 +68,44 @@ export default function DashboardPage() {
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
   /** Sync guard: React state for `tracking` can lag one frame — double-clicks could otherwise fire two measures and the slower response would overwrite the row. */
   const pairMeasureInFlightRef = useRef<Set<string>>(new Set());
+  const [selectedPairIds, setSelectedPairIds] = useState<Set<string>>(() => new Set());
+  const selectAllCheckboxRef = useRef<HTMLInputElement>(null);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const selectablePairIds = useMemo(
+    () => pairs.filter((p) => !p.pair_id.startsWith('temp_')).map((p) => p.pair_id),
+    [pairs]
+  );
+
+  const selectedDeletableCount = useMemo(
+    () => selectablePairIds.filter((id) => selectedPairIds.has(id)).length,
+    [selectablePairIds, selectedPairIds]
+  );
+
+  useEffect(() => {
+    const valid = new Set(pairs.map((p) => p.pair_id));
+    setSelectedPairIds((prev) => {
+      let changed = false;
+      const next = new Set<string>();
+      prev.forEach((id) => {
+        if (valid.has(id)) next.add(id);
+        else changed = true;
+      });
+      if (!changed && next.size === prev.size) return prev;
+      return next;
+    });
+  }, [pairs]);
+
+  useEffect(() => {
+    const el = selectAllCheckboxRef.current;
+    if (!el) return;
+    if (selectablePairIds.length === 0) {
+      el.indeterminate = false;
+      return;
+    }
+    const n = selectedDeletableCount;
+    el.indeterminate = n > 0 && n < selectablePairIds.length;
+  }, [selectablePairIds.length, selectedDeletableCount]);
 
   const historyDates = useMemo(() => {
     const set = new Set<string>();
@@ -631,18 +669,68 @@ export default function DashboardPage() {
     }
   };
 
+  const togglePairRowSelected = (pairId: string) => {
+    if (pairId.startsWith('temp_')) return;
+    setSelectedPairIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(pairId)) next.delete(pairId);
+      else next.add(pairId);
+      return next;
+    });
+  };
+
+  const toggleSelectAllSavedRows = () => {
+    const allSelected =
+      selectablePairIds.length > 0 && selectablePairIds.every((id) => selectedPairIds.has(id));
+    setSelectedPairIds(allSelected ? new Set() : new Set(selectablePairIds));
+  };
+
   const deletePair = async (pairId: string) => {
     if (!confirm(t('dashboard.confirm.deletePair'))) return;
     try {
       const response = await fetch(`/api/v1/pairs/${pairId}`, { method: 'DELETE' });
       if (response.ok) {
         setPairs((prev) => prev.filter((p) => p.pair_id !== pairId));
+        setSelectedPairIds((prev) => {
+          if (!prev.has(pairId)) return prev;
+          const next = new Set(prev);
+          next.delete(pairId);
+          return next;
+        });
         showToast(t('dashboard.toast.pairDeleted'), 'success');
       } else {
         showToast(t('dashboard.toast.deleteError'), 'error');
       }
     } catch {
       showToast(t('dashboard.toast.deleteError'), 'error');
+    }
+  };
+
+  const deleteSelectedPairs = async () => {
+    const ids = selectablePairIds.filter((id) => selectedPairIds.has(id));
+    if (ids.length === 0) return;
+    if (!confirm(t('dashboard.confirm.deleteSelected').replace('{count}', String(ids.length)))) return;
+    try {
+      setBulkDeleting(true);
+      const response = await fetch('/api/v1/pairs/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      });
+      if (response.ok) {
+        const data = (await response.json()) as { deleted?: number };
+        const deleted = typeof data.deleted === 'number' ? data.deleted : ids.length;
+        setPairs((prev) => prev.filter((p) => !ids.includes(p.pair_id)));
+        setSelectedPairIds(new Set());
+        showToast(t('dashboard.toast.bulkPairsDeleted').replace('{count}', String(deleted)), 'success');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        showToast(`${t('dashboard.toast.error')}: ${errorData.error?.message || t('dashboard.toast.unknownError')}`, 'error');
+      }
+    } catch {
+      showToast(t('dashboard.toast.deleteError'), 'error');
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -714,24 +802,8 @@ export default function DashboardPage() {
     }
   };
 
-  const trackAll = async () => {
-    if (!searchSettingsDone) {
-      showSearchSettingsAlert();
-      showToast(t('dashboard.toast.completeSearchSettings'), 'error');
-      return;
-    }
-    const persistedPairs = pairs.filter((p) => !p.pair_id.startsWith('temp_'));
-    if (persistedPairs.length === 0) {
-      showToast(t('dashboard.toast.measureAllNoPairs'), 'error');
-      return;
-    }
-    if (persistedPairs.length < pairs.length) {
-      showToast(t('dashboard.toast.measureAllWaitForSave'), 'error');
-      return;
-    }
-    if (!confirm(t('dashboard.confirm.measureAll'))) return;
-
-    const total = persistedPairs.length;
+  const runMeasureSequenceForPairs = async (rows: Pair[]) => {
+    const total = rows.length;
     setSaving(true);
     setMeasureAllProgress({ done: 0, total, startedAt: Date.now() });
 
@@ -739,8 +811,8 @@ export default function DashboardPage() {
     let shownConfigError = false;
 
     try {
-      for (let i = 0; i < persistedPairs.length; i++) {
-        const p = persistedPairs[i];
+      for (let i = 0; i < rows.length; i++) {
+        const p = rows[i];
         pairMeasureInFlightRef.current.add(p.pair_id);
         setTracking((prev) => new Set(prev).add(p.pair_id));
         try {
@@ -793,6 +865,42 @@ export default function DashboardPage() {
       setSaving(false);
       window.setTimeout(() => setMeasureAllProgress(null), 2500);
     }
+  };
+
+  const trackAll = async () => {
+    if (!searchSettingsDone) {
+      showSearchSettingsAlert();
+      showToast(t('dashboard.toast.completeSearchSettings'), 'error');
+      return;
+    }
+    const persistedPairs = pairs.filter((p) => !p.pair_id.startsWith('temp_'));
+    if (persistedPairs.length === 0) {
+      showToast(t('dashboard.toast.measureAllNoPairs'), 'error');
+      return;
+    }
+    if (persistedPairs.length < pairs.length) {
+      showToast(t('dashboard.toast.measureAllWaitForSave'), 'error');
+      return;
+    }
+    if (!confirm(t('dashboard.confirm.measureAll'))) return;
+    await runMeasureSequenceForPairs(persistedPairs);
+  };
+
+  const trackSelected = async () => {
+    if (!searchSettingsDone) {
+      showSearchSettingsAlert();
+      showToast(t('dashboard.toast.completeSearchSettings'), 'error');
+      return;
+    }
+    const toMeasure = pairs.filter(
+      (p) => selectedPairIds.has(p.pair_id) && !p.pair_id.startsWith('temp_')
+    );
+    if (toMeasure.length === 0) {
+      showToast(t('dashboard.toast.measureSelectedNone'), 'error');
+      return;
+    }
+    if (!confirm(t('dashboard.confirm.measureSelected').replace('{count}', String(toMeasure.length)))) return;
+    await runMeasureSequenceForPairs(toMeasure);
   };
 
   const exportData = async (format: 'csv' | 'xlsx') => {
@@ -1147,6 +1255,31 @@ export default function DashboardPage() {
                 >
                   {t('dashboard.table.measureAll')}
                 </button>
+                {selectedDeletableCount > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={trackSelected}
+                    disabled={loading || saving || bulkDeleting}
+                    aria-busy={saving}
+                  >
+                    {t('dashboard.table.measureSelected').replace(
+                      '{count}',
+                      String(selectedDeletableCount)
+                    )}
+                  </button>
+                )}
+                {selectedDeletableCount > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={deleteSelectedPairs}
+                    disabled={loading || saving || bulkDeleting}
+                    aria-busy={bulkDeleting}
+                  >
+                    {t('dashboard.table.deleteSelected').replace('{count}', String(selectedDeletableCount))}
+                  </button>
+                )}
                 {pairs.length > 0 && (
                   <div className="pairs-table-toolbar-hint">{t('dashboard.table.measureAllHint')}</div>
                 )}
@@ -1178,9 +1311,22 @@ export default function DashboardPage() {
           <table className="pairs-table">
             <thead>
               <tr>
-                <th style={{ width: '20%' }}>{t('dashboard.table.keyword')}</th>
-                <th style={{ width: '22%' }}>{t('dashboard.table.url')}</th>
-                <th style={{ width: '22%' }}>{t('dashboard.table.matchedUrl')}</th>
+                <th className="pairs-table-select" scope="col" title={t('dashboard.table.selectColumn')}>
+                  <input
+                    ref={selectAllCheckboxRef}
+                    type="checkbox"
+                    className="pairs-table-checkbox"
+                    checked={
+                      selectablePairIds.length > 0 && selectedDeletableCount === selectablePairIds.length
+                    }
+                    onChange={toggleSelectAllSavedRows}
+                    disabled={selectablePairIds.length === 0}
+                    aria-label={t('dashboard.table.selectAllAria')}
+                  />
+                </th>
+                <th style={{ width: '18%' }}>{t('dashboard.table.keyword')}</th>
+                <th style={{ width: '20%' }}>{t('dashboard.table.url')}</th>
+                <th style={{ width: '20%' }}>{t('dashboard.table.matchedUrl')}</th>
                 <th style={{ width: '8%' }}>{t('dashboard.table.position')}</th>
                 <th style={{ width: '13%', minWidth: '7rem' }}>{t('dashboard.table.lastMeasure')}</th>
                 <th style={{ width: '10%' }}>{t('dashboard.table.actions')}</th>
@@ -1189,13 +1335,23 @@ export default function DashboardPage() {
             <tbody>
               {pairs.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="empty-state">
+                  <td colSpan={7} className="empty-state">
                     <p>{t('dashboard.table.empty')}</p>
                   </td>
                 </tr>
               )}
               {pairs.map((pair) => (
                 <tr key={pair.pair_id}>
+                  <td className="pairs-table-select">
+                    <input
+                      type="checkbox"
+                      className="pairs-table-checkbox"
+                      checked={selectedPairIds.has(pair.pair_id)}
+                      onChange={() => togglePairRowSelected(pair.pair_id)}
+                      disabled={pair.pair_id.startsWith('temp_')}
+                      aria-label={t('dashboard.table.selectRowAria')}
+                    />
+                  </td>
                   <td>
                     {editingPair === pair.pair_id ? (
                       <input
