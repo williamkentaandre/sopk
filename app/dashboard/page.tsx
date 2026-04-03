@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
-import ExcelJS from 'exceljs';
 import { getParisDateString } from '@/lib/date-utils';
+import { formatSearchLocaleLine } from '@/lib/search-locale-labels';
 import { useLocale } from '@/app/LocaleContext';
 import { SerpApiOnboardingIllustration } from '@/app/components/SerpApiOnboardingIllustration';
 
@@ -41,7 +41,6 @@ export default function DashboardPage() {
   const [bulkUrlText, setBulkUrlText] = useState('');
   const [bulkKeywordText, setBulkKeywordText] = useState('');
   const [bulkAddedKeywords, setBulkAddedKeywords] = useState<string[]>([]);
-  const bulkTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const tableTopRef = useRef<HTMLDivElement | null>(null);
   const [editingPair, setEditingPair] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<{ keyword: string; url: string }>({ keyword: '', url: '' });
@@ -62,6 +61,13 @@ export default function DashboardPage() {
     pairs.forEach((p) => Object.keys(p.history_by_date || {}).forEach((d) => set.add(d)));
     return Array.from(set).sort();
   }, [pairs]);
+
+  const searchLocaleDisplay = useMemo(() => {
+    if (!searchSettingsDone) {
+      return { configured: false, label: t('dashboard.status.searchLocaleNotSet') };
+    }
+    return formatSearchLocaleLine(t, settings.hl, settings.gl);
+  }, [t, settings.hl, settings.gl, locale, searchSettingsDone]);
 
   const splitLines = (text: string) =>
     (text || '')
@@ -116,62 +122,6 @@ export default function DashboardPage() {
       /* keep previous */
     }
   }, []);
-
-  const measureCreatedPair = async (created: Pair): Promise<Pair | undefined> => {
-    if (pairMeasureInFlightRef.current.has(created.pair_id)) {
-      return undefined;
-    }
-    pairMeasureInFlightRef.current.add(created.pair_id);
-    try {
-      const response = await fetch(`/api/v1/pairs/${created.pair_id}/track`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hl: settings.hl, gl: settings.gl }),
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        showActionableError(result?.error?.message || '');
-        return created;
-      }
-      const rawPos = result.position;
-      const n =
-        rawPos == null || rawPos === ''
-          ? null
-          : typeof rawPos === 'number'
-            ? rawPos
-            : Number(rawPos);
-      const normalizedPos =
-        n != null && Number.isFinite(n) && n >= 1 ? n : null;
-      const day = result.checked_at ? getParisDateString(result.checked_at) : null;
-      const updated: Pair = {
-        ...created,
-        last_position:
-          normalizedPos != null ? normalizedPos : created.last_position ?? null,
-        last_checked_at: result.checked_at ?? null,
-        last_matched_url: result.matched_url ?? created.last_matched_url ?? null,
-        history_by_date: day
-          ? { ...(created.history_by_date || {}), [day]: normalizedPos }
-          : created.history_by_date,
-      };
-      const positionText =
-        normalizedPos != null
-          ? `${t('dashboard.toast.position')}: ${normalizedPos}`
-          : t('dashboard.toast.notFound');
-      const debugText =
-        result.pages_queried != null
-          ? ` (${result.pages_queried} pages, ${result.elapsed_ms ?? 0} ms)`
-          : '';
-      void refreshSerperCreditsFromApi();
-      const kwLabel = created.keyword ? `"${created.keyword}" · ` : '';
-      showToast(`${t('dashboard.toast.measureDone')} — ${kwLabel}${positionText}${debugText}`, 'success');
-      return updated;
-    } catch {
-      showToast(t('dashboard.toast.serpError'), 'error');
-      return created;
-    } finally {
-      pairMeasureInFlightRef.current.delete(created.pair_id);
-    }
-  };
 
   useEffect(() => {
     loadData();
@@ -370,25 +320,6 @@ export default function DashboardPage() {
         return [...createdItems, ...rest];
       });
       showToast(`${createdItems.length} ${t('dashboard.toast.pairsAdded')}`, 'success');
-
-      if (hasSerpApiKey === true) {
-        // measure each created pair in background
-        for (const created of createdItems) {
-          setTracking((prev) => new Set(prev).add(created.pair_id));
-          measureCreatedPair(created)
-            .then((measured) => {
-              if (measured === undefined) return;
-              setPairs((prev) => prev.map((p) => (p.pair_id === created.pair_id ? measured : p)));
-            })
-            .finally(() => {
-              setTracking((prev) => {
-                const next = new Set(prev);
-                next.delete(created.pair_id);
-                return next;
-              });
-            });
-        }
-      }
     } catch {
       const tempIds = new Set(tempPairs.map((p) => p.pair_id));
       setPairs((prev) => prev.filter((p) => !tempIds.has(p.pair_id)));
@@ -444,53 +375,6 @@ export default function DashboardPage() {
       }
     } catch {
       showToast(t('dashboard.toast.deleteError'), 'error');
-    }
-  };
-
-  const importCSV = async (file: File) => {
-    try {
-      setLoading(true);
-      let csvData: string;
-      const isExcel = /\.xlsx?$/i.test(file.name);
-      if (isExcel) {
-        const buf = await file.arrayBuffer();
-        const wb = new ExcelJS.Workbook();
-        await wb.xlsx.load(buf);
-        const sheet = wb.worksheets[0];
-        if (!sheet) {
-          showToast(t('dashboard.toast.emptyExcel'), 'error');
-          setLoading(false);
-          return;
-        }
-        const rows: string[][] = [];
-        sheet.eachRow((row) => {
-          const values = (row.values as (string | number | undefined)[])?.slice(1) ?? [];
-          rows.push(values.map((v) => String(v ?? '').trim()));
-        });
-        csvData = rows.map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-      } else {
-        csvData = await file.text();
-      }
-      const response = await fetch('/api/v1/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ csvData }),
-      });
-      if (response.ok) {
-        const result = await response.json();
-        showToast(
-          `${result.imported} ${t('dashboard.toast.imported')}${result.failed > 0 ? `, ${result.failed} ${t('dashboard.toast.failed')}` : ''}`,
-          'success'
-        );
-        loadData();
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        showToast(`${t('dashboard.toast.error')}: ${errorData.error?.message || t('dashboard.toast.unknownError')}`, 'error');
-      }
-    } catch {
-      showToast(t('dashboard.toast.importError'), 'error');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -747,18 +631,16 @@ export default function DashboardPage() {
             className={`status-badge ${hasSerpApiKey === true ? 'success' : 'pending'}`}
             style={{ textDecoration: 'none' }}
           >
-            API Key: {hasSerpApiKey === true ? 'OK' : 'Manquante'}
+            {t('dashboard.status.apiKey')}:{' '}
+            {hasSerpApiKey === true ? t('dashboard.status.apiKeyOk') : t('dashboard.status.apiKeyMissing')}
           </Link>
           <Link
             href="/settings"
-            className={`status-badge ${searchSettingsDone ? 'success' : 'pending'}`}
+            className={`status-badge ${searchLocaleDisplay.configured ? 'success' : 'pending'}`}
             style={{ textDecoration: 'none' }}
           >
-            Langue/Pays: {searchSettingsDone ? 'OK' : 'Manquant'}
+            {t('dashboard.status.languageCountry')}: {searchLocaleDisplay.label}
           </Link>
-          <span className="status-badge" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#334155' }}>
-            Top 100
-          </span>
           {hasSerpApiKey === true && (
             <span
               className="status-badge"
@@ -773,7 +655,8 @@ export default function DashboardPage() {
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {measureAllProgress && (
             <span style={{ color: '#475569', fontSize: '0.9rem' }}>
-              Mesure en cours… {Math.min(measureAllProgress.done, measureAllProgress.total)}/{measureAllProgress.total}
+              {t('dashboard.measureInProgress')}{' '}
+              {Math.min(measureAllProgress.done, measureAllProgress.total)}/{measureAllProgress.total}
             </span>
           )}
           {measureAllProgress && (
@@ -850,21 +733,6 @@ export default function DashboardPage() {
         <div className="pairs-header">
           <h2>{t('dashboard.pairs.title')} ({pairs.length})</h2>
           <div className="pairs-actions">
-            <label className="btn btn-secondary" style={{ cursor: 'pointer', margin: 0 }} title="1re colonne = mots-clés, 2e = URLs (noms des colonnes libres)">
-              <input
-                type="file"
-                accept=".csv,.xlsx"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    importCSV(file);
-                    e.target.value = '';
-                  }
-                }}
-                style={{ display: 'none' }}
-              />
-              {t('dashboard.pairs.import')}
-            </label>
             <div ref={exportMenuRef} style={{ position: 'relative', display: 'inline-block' }}>
               <button type="button" className="btn btn-secondary" onClick={() => setExportMenuOpen((v) => !v)}>
                 {t('dashboard.pairs.export')} {exportMenuOpen ? '▾' : '▸'}
@@ -913,28 +781,8 @@ export default function DashboardPage() {
             </div>
             <div style={{ flex: '1 1 320px', minWidth: 260 }}>
               <textarea
-                ref={bulkTextareaRef}
                 value={bulkKeywordText}
                 onChange={(e) => setBulkKeywordText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key !== 'Enter' || e.shiftKey) return;
-                  e.preventDefault();
-                  const el = e.currentTarget;
-                  const text = el.value || '';
-                  const lines = text
-                    .split('\n')
-                    .map((l) => l.trim())
-                    .filter(Boolean);
-                  if (lines.length === 0) {
-                    setBulkKeywordText(text + '\n');
-                    return;
-                  }
-                  addBulkPairs(lines, splitLines(bulkUrlText));
-                  setBulkKeywordText('');
-                  requestAnimationFrame(() => {
-                    bulkTextareaRef.current?.focus();
-                  });
-                }}
                 placeholder={t('dashboard.pairs.placeholderKeywords')}
                 rows={4}
                 style={{ width: '100%', resize: 'vertical', minHeight: '3.25rem' }}
