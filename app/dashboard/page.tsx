@@ -422,11 +422,14 @@ export default function DashboardPage() {
   }, [exportMenuOpen]);
 
   const loadData = async () => {
+    const ac = new AbortController();
+    const tid = window.setTimeout(() => ac.abort(), 32000);
+    const fetchInit: RequestInit = { signal: ac.signal, credentials: 'same-origin' };
     try {
       const [settingsRes, pairsRes, creditsRes] = await Promise.all([
-        fetch('/api/v1/settings'),
-        fetch('/api/v1/pairs?includeHistory=1'),
-        fetch('/api/v1/serper-credits'),
+        fetch('/api/v1/settings', fetchInit),
+        fetch('/api/v1/pairs?includeHistory=1', fetchInit),
+        fetch('/api/v1/serper-credits', fetchInit),
       ]);
       if (settingsRes.ok && pairsRes.ok) {
         const settingsData = await settingsRes.json();
@@ -461,6 +464,7 @@ export default function DashboardPage() {
       setPairs([]);
       setSerperCredits(null);
     } finally {
+      window.clearTimeout(tid);
       setLoading(false);
     }
   };
@@ -830,8 +834,11 @@ export default function DashboardPage() {
   if (loading && pairs.length === 0) {
     return (
       <div className="app-shell">
-        <div className="container" style={{ paddingTop: '4rem', textAlign: 'center' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>{t('dashboard.loading')}</p>
+        <div className="container dashboard-initial-load">
+          <div className="dashboard-loading-card" role="status" aria-live="polite">
+            <span className="loading loading--panel" aria-hidden />
+            <p>{t('dashboard.loading')}</p>
+          </div>
         </div>
       </div>
     );
