@@ -129,18 +129,26 @@ function extractOrganicLinkFromSerp(result: SerpOrganicRow): string {
   return '';
 }
 
-function mapSerperOrganic(items: SerperOrganicItem[]): OrganicResult[] {
+/** Serper `page` is 1-based (Google SERP page). `num` is typically 10 per page. */
+function mapSerperOrganic(
+  items: SerperOrganicItem[],
+  page: number
+): OrganicResult[] {
+  const base = (page - 1) * 10;
   return items.map((item, idx) => ({
-    position: item.position ?? idx + 1,
+    position: item.position ?? base + idx + 1,
     link: item.link || '',
     title: item.title,
     snippet: item.snippet,
   }));
 }
 
+const SERPER_MAX_PAGES = 10;
+const SERPER_PAGE_SIZE = 10;
+
 /**
- * Serper: one request with num=100 when possible; if only 10 rows are returned,
- * fetch pages 2–10 (num=10) to cover the top 100 without redundant calls when 100 rows arrive at once.
+ * Serper often returns at most 10 organic rows per request regardless of `num`.
+ * We always walk Google pages 1…10 (num=10 each) so matching covers ranks 1–100, not only the first page.
  */
 async function fetchSerperOrganicUpTo100(
   keyword: string,
@@ -149,25 +157,19 @@ async function fetchSerperOrganicUpTo100(
   options?: SerpApiOptions
 ): Promise<{ organic: OrganicResult[]; pagesQueried: number }> {
   let pagesQueried = 0;
-  const first = await callSerperGoogleSearch(
-    { q: keyword, hl, gl, num: 100, page: 1 },
-    options
-  );
-  pagesQueried += 1;
-  let organic = mapSerperOrganic(first.organic || []);
+  const organic: OrganicResult[] = [];
 
-  if (organic.length === 10) {
-    for (let page = 2; page <= 10; page++) {
-      const r = await callSerperGoogleSearch(
-        { q: keyword, hl, gl, num: 10, page },
-        options
-      );
-      pagesQueried += 1;
-      const next = mapSerperOrganic(r.organic || []);
-      if (next.length === 0) break;
-      organic = organic.concat(next);
-      if (organic.length >= 100) break;
-    }
+  for (let page = 1; page <= SERPER_MAX_PAGES; page++) {
+    const r = await callSerperGoogleSearch(
+      { q: keyword, hl, gl, num: SERPER_PAGE_SIZE, page },
+      options
+    );
+    pagesQueried += 1;
+    const batch = mapSerperOrganic(r.organic || [], page);
+    if (batch.length === 0) break;
+    organic.push(...batch);
+    if (organic.length >= SERPER_MAX_PAGES * SERPER_PAGE_SIZE) break;
+    if (batch.length < SERPER_PAGE_SIZE) break;
   }
 
   return { organic: organic.slice(0, 100), pagesQueried };
@@ -207,7 +209,7 @@ export type TrackKeywordResult = MatchResult & {
 };
 
 /**
- * Serper-backed: typically 1 HTTP call (num=100); up to 10 extra calls if the API returns only 10 rows for the first request.
+ * Serper-backed: up to 10 HTTP calls (Google pages 1–10, 10 results each) to cover the top 100.
  * Matching uses extractDomain + sameRegistrableBrand.
  */
 export async function trackKeyword(

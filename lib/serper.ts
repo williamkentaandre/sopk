@@ -1,6 +1,6 @@
 /**
  * Serper Google Search API — https://google.serper.dev/search
- * One primary request with num=100; if only 10 rows come back, paginate pages 2–10.
+ * Callers typically set num=10 and page=1…10 to mirror Google pagination (top 100).
  */
 
 export interface SerperGoogleSearchOptions {
