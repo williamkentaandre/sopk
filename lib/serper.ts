@@ -48,6 +48,7 @@ async function postSerperSearch(
     headers: {
       'Content-Type': 'application/json',
       'X-API-KEY': apiKey,
+      'User-Agent': 'SEO-Ranker/1.0 (https://serper.dev)',
     },
     body: JSON.stringify(body),
     signal: controller.signal,
@@ -69,6 +70,12 @@ async function postSerperSearch(
       (typeof data.message === 'string' && data.message) ||
       rawText.slice(0, 220);
     throw new Error(`Serper error: ${res.status} — ${msg}`);
+  }
+
+  // Some accounts return HTTP 200 with a structured error (e.g. credits)
+  const anyErr = data as SerperSearchResponse & { error?: string; statusCode?: number };
+  if (typeof anyErr.error === 'string' && anyErr.error.trim()) {
+    throw new Error(`Serper error: ${anyErr.error}`);
   }
 
   return data;

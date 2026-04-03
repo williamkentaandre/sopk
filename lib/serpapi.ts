@@ -129,14 +129,13 @@ function extractOrganicLinkFromSerp(result: SerpOrganicRow): string {
   return '';
 }
 
-/** Serper `page` is 1-based (Google SERP page). `num` is typically 10 per page. */
-function mapSerperOrganic(
+/** Global rank 1…N: never trust Serper `position` alone (some responses repeat 1–10 per page). */
+function mapSerperOrganicWithOffset(
   items: SerperOrganicItem[],
-  page: number
+  offset: number
 ): OrganicResult[] {
-  const base = (page - 1) * 10;
   return items.map((item, idx) => ({
-    position: item.position ?? base + idx + 1,
+    position: offset + idx + 1,
     link: item.link || '',
     title: item.title,
     snippet: item.snippet,
@@ -145,10 +144,15 @@ function mapSerperOrganic(
 
 const SERPER_MAX_PAGES = 10;
 const SERPER_PAGE_SIZE = 10;
+const SERPER_PAGE_DELAY_MS = 150;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 /**
- * Serper often returns at most 10 organic rows per request regardless of `num`.
- * We always walk Google pages 1…10 (num=10 each) so matching covers ranks 1–100, not only the first page.
+ * Walk Google SERP pages 1…10 (num=10 each). Ranks are always offset+index+1 so we never rely on
+ * ambiguous Serper `position` fields. Stops on empty page, short page, or duplicate of page 1 (broken pagination).
  */
 async function fetchSerperOrganicUpTo100(
   keyword: string,
@@ -160,13 +164,24 @@ async function fetchSerperOrganicUpTo100(
   const organic: OrganicResult[] = [];
 
   for (let page = 1; page <= SERPER_MAX_PAGES; page++) {
+    if (page > 1) await sleep(SERPER_PAGE_DELAY_MS);
     const r = await callSerperGoogleSearch(
       { q: keyword, hl, gl, num: SERPER_PAGE_SIZE, page },
       options
     );
     pagesQueried += 1;
-    const batch = mapSerperOrganic(r.organic || [], page);
+    const offset = (page - 1) * SERPER_PAGE_SIZE;
+    const batch = mapSerperOrganicWithOffset(r.organic || [], offset);
     if (batch.length === 0) break;
+    if (
+      page > 1 &&
+      organic.length > 0 &&
+      batch[0]?.link &&
+      organic[0]?.link &&
+      batch[0].link === organic[0].link
+    ) {
+      break;
+    }
     organic.push(...batch);
     if (organic.length >= SERPER_MAX_PAGES * SERPER_PAGE_SIZE) break;
     if (batch.length < SERPER_PAGE_SIZE) break;
@@ -209,8 +224,7 @@ export type TrackKeywordResult = MatchResult & {
 };
 
 /**
- * Serper-backed: up to 10 HTTP calls (Google pages 1–10, 10 results each) to cover the top 100.
- * Matching uses extractDomain + sameRegistrableBrand.
+ * Serper-backed: up to 10 HTTP calls (pages 1–10 × 10 results). Matching: extractDomain + sameRegistrableBrand.
  */
 export async function trackKeyword(
   keyword: string,
