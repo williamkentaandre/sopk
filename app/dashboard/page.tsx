@@ -8,6 +8,7 @@ import {
   useCallback,
   type KeyboardEvent,
   type ClipboardEvent,
+  type MouseEvent as ReactMouseEvent,
 } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
@@ -679,6 +680,23 @@ export default function DashboardPage() {
     });
   };
 
+  const pairTableRowSelectionTarget = (target: EventTarget | null): Element | null => {
+    if (!target || !(target instanceof Node)) return null;
+    return target instanceof Element ? target : target.parentElement;
+  };
+
+  const pairRowClickIgnoresSelection = (target: EventTarget | null) => {
+    const el = pairTableRowSelectionTarget(target);
+    if (!el?.closest) return true;
+    return !!el.closest('a, button, input, textarea, label');
+  };
+
+  const onPairTableRowClick = (pairId: string, e: ReactMouseEvent<HTMLTableRowElement>) => {
+    if (pairId.startsWith('temp_')) return;
+    if (pairRowClickIgnoresSelection(e.target)) return;
+    togglePairRowSelected(pairId);
+  };
+
   const toggleSelectAllSavedRows = () => {
     const allSelected =
       selectablePairIds.length > 0 && selectablePairIds.every((id) => selectedPairIds.has(id));
@@ -1341,7 +1359,21 @@ export default function DashboardPage() {
                 </tr>
               )}
               {pairs.map((pair) => (
-                <tr key={pair.pair_id}>
+                <tr
+                  key={pair.pair_id}
+                  className={
+                    pair.pair_id.startsWith('temp_')
+                      ? undefined
+                      : `pairs-table-row--selectable${selectedPairIds.has(pair.pair_id) ? ' pairs-table-row--selected' : ''}`
+                  }
+                  aria-selected={
+                    pair.pair_id.startsWith('temp_') ? undefined : selectedPairIds.has(pair.pair_id)
+                  }
+                  title={
+                    pair.pair_id.startsWith('temp_') ? undefined : t('dashboard.table.rowClickToSelect')
+                  }
+                  onClick={(e) => onPairTableRowClick(pair.pair_id, e)}
+                >
                   <td className="pairs-table-select">
                     <input
                       type="checkbox"
@@ -1350,6 +1382,7 @@ export default function DashboardPage() {
                       onChange={() => togglePairRowSelected(pair.pair_id)}
                       disabled={pair.pair_id.startsWith('temp_')}
                       aria-label={t('dashboard.table.selectRowAria')}
+                      onClick={(e) => e.stopPropagation()}
                     />
                   </td>
                   <td>

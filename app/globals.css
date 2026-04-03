@@ -439,6 +439,22 @@ body {
   background: rgba(45, 212, 191, 0.04);
 }
 
+.pairs-table tbody tr.pairs-table-row--selectable {
+  cursor: pointer;
+}
+
+.pairs-table tbody tr.pairs-table-row--selectable:hover {
+  background: rgba(45, 212, 191, 0.08);
+}
+
+.pairs-table tbody tr.pairs-table-row--selected {
+  background: rgba(45, 212, 191, 0.12);
+}
+
+.pairs-table tbody tr.pairs-table-row--selected:hover {
+  background: rgba(45, 212, 191, 0.16);
+}
+
 .pairs-table tbody tr:last-child td {
   border-bottom: none;
 }

@@ -158,6 +158,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.table.selectColumn': 'Select',
     'dashboard.table.selectAllAria': 'Select all saved rows',
     'dashboard.table.selectRowAria': 'Select this row for bulk measure or delete',
+    'dashboard.table.rowClickToSelect': 'Click the row to select or clear (links and buttons work as usual)',
     'dashboard.table.deleteSelected': 'Delete selected ({count})',
     'dashboard.table.positionNotInTop100': '> 100',
     'dashboard.table.domain': 'Domain',
@@ -508,6 +509,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.table.selectColumn': 'Sél.',
     'dashboard.table.selectAllAria': 'Tout sélectionner (lignes enregistrées)',
     'dashboard.table.selectRowAria': 'Sélectionner cette ligne pour mesure ou suppression groupée',
+    'dashboard.table.rowClickToSelect':
+      'Cliquez sur la ligne pour sélectionner ou désélectionner (liens et boutons inchangés)',
     'dashboard.table.deleteSelected': 'Supprimer la sélection ({count})',
     'dashboard.table.positionNotInTop100': '> 100',
     'dashboard.table.domain': 'Domaine',
