@@ -322,9 +322,20 @@ export default function DashboardPage() {
     showToast(`${t('dashboard.toast.error')}: ${msg}`, 'error');
   };
 
-  const displayPosition = (pos: number | null) => {
-    if (pos == null) return '> 100';
-    return String(pos);
+  /** SERP rank 1…100; anything else → null */
+  const normalizeMeasuredRank = (value: unknown): number | null => {
+    if (value == null || value === '') return null;
+    const n = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(n) || n < 1) return null;
+    return Math.floor(n);
+  };
+
+  const displayPosition = (pos: number | null, lastCheckedAt: string | null | undefined) => {
+    if (loading) return '';
+    const normalized = normalizeMeasuredRank(pos);
+    if (normalized != null) return String(normalized);
+    if (lastCheckedAt) return t('dashboard.table.positionNotInTop100');
+    return '';
   };
 
   /** Same source as page load: GET balance (no reliance on search/track parsing). */
@@ -639,14 +650,7 @@ export default function DashboardPage() {
       const result = await response.json();
       if (response.ok) {
         const day = result.checked_at ? getParisDateString(result.checked_at) : null;
-        const pos =
-          result.position == null || result.position === ''
-            ? null
-            : typeof result.position === 'number'
-              ? result.position
-              : Number(result.position);
-        const normalizedPos =
-          pos != null && Number.isFinite(pos) && pos >= 1 ? pos : null;
+        const normalizedPos = normalizeMeasuredRank(result.position);
         setPairs((prev) =>
           prev.map((p) =>
             p.pair_id === pairId
@@ -695,9 +699,41 @@ export default function DashboardPage() {
       showToast(t('dashboard.toast.completeSearchSettings'), 'error');
       return;
     }
+    const persistedPairs = pairs.filter((p) => !p.pair_id.startsWith('temp_'));
+    if (persistedPairs.length === 0) {
+      showToast(t('dashboard.toast.measureAllNoPairs'), 'error');
+      return;
+    }
+    if (persistedPairs.length < pairs.length) {
+      showToast(t('dashboard.toast.measureAllWaitForSave'), 'error');
+      return;
+    }
     if (!confirm(t('dashboard.confirm.measureAll'))) return;
+
+    const lockIds = persistedPairs.map((p) => p.pair_id);
+    for (const id of lockIds) {
+      pairMeasureInFlightRef.current.add(id);
+    }
+    setTracking((prev) => {
+      const next = new Set(prev);
+      for (const id of lockIds) next.add(id);
+      return next;
+    });
+
     setSaving(true);
-    setMeasureAllProgress({ done: 0, total: pairs.length, startedAt: Date.now() });
+    setMeasureAllProgress({ done: 0, total: persistedPairs.length, startedAt: Date.now() });
+
+    const releaseLocks = () => {
+      for (const id of lockIds) {
+        pairMeasureInFlightRef.current.delete(id);
+      }
+      setTracking((prev) => {
+        const next = new Set(prev);
+        for (const id of lockIds) next.delete(id);
+        return next;
+      });
+    };
+
     try {
       const response = await fetch('/api/v1/track', {
         method: 'POST',
@@ -706,32 +742,34 @@ export default function DashboardPage() {
       });
       if (response.ok) {
         const result = await response.json();
-        const total = Number(result.total || pairs.length || 0);
-        setMeasureAllProgress((p) => (p ? { ...p, total, done: total } : { done: total, total, startedAt: Date.now() }));
+        const total = Number(result.total || persistedPairs.length || 0);
+        setMeasureAllProgress((p) =>
+          p ? { ...p, total, done: total } : { done: total, total, startedAt: Date.now() }
+        );
         const failedCount = Number(result.failed || 0);
         setPairs((prev) =>
           prev.map((pair) => {
             const updated =
-              result.results?.find((r: any) => r.pair_id === pair.pair_id) ||
+              result.results?.find((r: { pair_id?: string }) => r.pair_id === pair.pair_id) ||
               result.results?.find(
-                (r: any) =>
+                (r: { keyword?: string; url?: string }) =>
                   r.keyword?.toLowerCase() === pair.keyword.toLowerCase() &&
                   normalizeUrlForCompare(r.url || '') === normalizeUrlForCompare(pair.url || '')
               );
             if (updated) {
-              // Keep last known position when the measure failed or API error for this pair.
               if (updated.error) {
                 return pair;
               }
               const day = updated.checked_at ? getParisDateString(updated.checked_at) : null;
+              const normalizedPos = normalizeMeasuredRank(updated.position);
               return {
                 ...pair,
                 last_position:
-                  updated.position != null ? updated.position : pair.last_position ?? null,
+                  normalizedPos != null ? normalizedPos : pair.last_position ?? null,
                 last_checked_at: updated.checked_at,
                 last_matched_url: updated.matched_url ?? pair.last_matched_url ?? null,
                 history_by_date: day
-                  ? { ...(pair.history_by_date || {}), [day]: updated.position }
+                  ? { ...(pair.history_by_date || {}), [day]: normalizedPos }
                   : pair.history_by_date,
               };
             }
@@ -754,6 +792,7 @@ export default function DashboardPage() {
     } catch {
       showToast(t('dashboard.toast.serpError'), 'error');
     } finally {
+      releaseLocks();
       setSaving(false);
       window.setTimeout(() => setMeasureAllProgress(null), 2500);
     }
@@ -1107,7 +1146,16 @@ export default function DashboardPage() {
             <tbody>
               <tr>
                 <td colSpan={6} style={{ textAlign: 'right', padding: '0.5rem 0.75rem' }}>
-                  <button type="button" className="btn btn-primary" onClick={trackAll} disabled={saving || pairs.length === 0}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={trackAll}
+                    disabled={
+                      saving ||
+                      pairs.length === 0 ||
+                      pairs.some((p) => p.pair_id.startsWith('temp_'))
+                    }
+                  >
                     {t('dashboard.table.measureAll')}
                   </button>
                 </td>
@@ -1189,7 +1237,7 @@ export default function DashboardPage() {
                     )}
                   </td>
                   <td>
-                    <strong>{displayPosition(pair.last_position)}</strong>
+                    <strong>{displayPosition(pair.last_position, pair.last_checked_at)}</strong>
                   </td>
                   <td>
                     {pair.last_checked_at
@@ -1244,9 +1292,15 @@ export default function DashboardPage() {
                     <tr key={pair.pair_id}>
                       <td>{pair.keyword}</td>
                       <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>{pair.url}</td>
-                      {historyDates.map((date) => (
-                        <td key={date}>{pair.history_by_date?.[date] != null ? pair.history_by_date[date] : '-'}</td>
-                      ))}
+                      {historyDates.map((date) => {
+                        const byDate = pair.history_by_date;
+                        if (!byDate || !Object.prototype.hasOwnProperty.call(byDate, date)) {
+                          return <td key={date}>-</td>;
+                        }
+                        const n = normalizeMeasuredRank(byDate[date]);
+                        if (n != null) return <td key={date}>{n}</td>;
+                        return <td key={date}>{t('dashboard.table.positionNotInTop100')}</td>;
+                      })}
                     </tr>
                   ))}
                 </tbody>
