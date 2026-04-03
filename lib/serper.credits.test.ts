@@ -1,5 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { pickCreditsFromSearchBodyTopLevel, pickCreditsFromUnknown } from './serper';
+import {
+  creditsBalanceFromSearchHeaders,
+  pickCreditsFromSearchBodyTopLevel,
+  pickCreditsFromUnknown,
+} from './serper';
+
+describe('creditsBalanceFromSearchHeaders', () => {
+  it('ignores generic x-credits (often per-request, not balance)', () => {
+    const h = new Headers();
+    h.set('x-credits', '1');
+    expect(creditsBalanceFromSearchHeaders(h)).toBeNull();
+  });
+
+  it('reads x-credits-remaining', () => {
+    const h = new Headers();
+    h.set('x-credits-remaining', '2500');
+    expect(creditsBalanceFromSearchHeaders(h)).toBe(2500);
+  });
+});
 
 describe('pickCreditsFromSearchBodyTopLevel', () => {
   it('does not treat nested usage/position as credits', () => {
@@ -15,6 +33,10 @@ describe('pickCreditsFromSearchBodyTopLevel', () => {
   it('reads explicit top-level credit fields', () => {
     expect(pickCreditsFromSearchBodyTopLevel({ creditsRemaining: 500 })).toBe(500);
     expect(pickCreditsFromSearchBodyTopLevel({ credits_remaining: 42 })).toBe(42);
+  });
+
+  it('does not use ambiguous top-level credits key', () => {
+    expect(pickCreditsFromSearchBodyTopLevel({ credits: 1 })).toBeNull();
   });
 });
 

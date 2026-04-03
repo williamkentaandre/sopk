@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import ExcelJS from 'exceljs';
@@ -103,6 +103,20 @@ export default function DashboardPage() {
     return String(pos);
   };
 
+  /** Same source as page load: GET balance (no reliance on search/track parsing). */
+  const refreshSerperCreditsFromApi = useCallback(async () => {
+    try {
+      const r = await fetch('/api/v1/serper-credits');
+      if (!r.ok) return;
+      const cd = await r.json().catch(() => ({}));
+      if (typeof cd.credits === 'number' && Number.isFinite(cd.credits)) {
+        setSerperCredits(cd.credits);
+      }
+    } catch {
+      /* keep previous */
+    }
+  }, []);
+
   const measureCreatedPair = async (created: Pair): Promise<Pair | undefined> => {
     if (pairMeasureInFlightRef.current.has(created.pair_id)) {
       return undefined;
@@ -147,9 +161,7 @@ export default function DashboardPage() {
         result.pages_queried != null
           ? ` (${result.pages_queried} pages, ${result.elapsed_ms ?? 0} ms)`
           : '';
-      if (typeof result.serper_credits_remaining === 'number') {
-        setSerperCredits(result.serper_credits_remaining);
-      }
+      void refreshSerperCreditsFromApi();
       const kwLabel = created.keyword ? `"${created.keyword}" · ` : '';
       showToast(`${t('dashboard.toast.measureDone')} — ${kwLabel}${positionText}${debugText}`, 'success');
       return updated;
@@ -555,9 +567,7 @@ export default function DashboardPage() {
           result.pages_queried != null
             ? ` (${result.pages_queried} pages, ${result.elapsed_ms ?? 0} ms)`
             : '';
-        if (typeof result.serper_credits_remaining === 'number') {
-          setSerperCredits(result.serper_credits_remaining);
-        }
+        void refreshSerperCreditsFromApi();
         const kwLabel = keywordHint ? `"${keywordHint}" · ` : '';
         showToast(`${t('dashboard.toast.measureDone')} — ${kwLabel}${positionText}${debugText}`, 'success');
       } else {
@@ -624,13 +634,7 @@ export default function DashboardPage() {
             return pair;
           })
         );
-        const resultsArr = (result.results || []) as { serper_credits_remaining?: number }[];
-        const creditNums = resultsArr
-          .map((r) => r.serper_credits_remaining)
-          .filter((c): c is number => typeof c === 'number' && Number.isFinite(c));
-        if (creditNums.length > 0) {
-          setSerperCredits(Math.min(...creditNums));
-        }
+        void refreshSerperCreditsFromApi();
         if (failedCount > 0) {
           showToast(
             `${t('dashboard.toast.measurementsDone')} (${result.successful || 0} OK, ${failedCount} erreurs)`,

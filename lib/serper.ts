@@ -87,14 +87,12 @@ export function pickCreditsFromUnknown(v: unknown, depth = 0): number | null {
 export function pickCreditsFromSearchBodyTopLevel(data: unknown): number | null {
   if (data == null || typeof data !== 'object' || Array.isArray(data)) return null;
   const o = data as Record<string, unknown>;
+  // Exclude generic `credits` / `remaining` / `balance` — Serper may echo unrelated small numbers.
   const topKeys = [
     'creditsRemaining',
     'credits_remaining',
     'remainingCredits',
     'creditRemaining',
-    'credits',
-    'balance',
-    'remaining',
     'queriesLeft',
     'totalCredits',
   ];
@@ -103,6 +101,27 @@ export function pickCreditsFromSearchBodyTopLevel(data: unknown): number | null 
     const v = o[key];
     if (typeof v === 'number' && Number.isFinite(v) && v >= 0) {
       return Math.floor(v);
+    }
+  }
+  return null;
+}
+
+/**
+ * Unambiguous "credits remaining" headers. Do **not** use generic `x-credits` on POST /search:
+ * Serper often sends `X-Credits: 1` (per-request cost or similar), which is not the account balance.
+ */
+export function creditsBalanceFromSearchHeaders(headers: Headers): number | null {
+  const names = [
+    'x-credits-remaining',
+    'x-serper-credits',
+    'x-remaining-credits',
+    'x-credit-balance',
+  ];
+  for (const name of names) {
+    const raw = headers.get(name);
+    if (raw) {
+      const n = parseInt(raw, 10);
+      if (Number.isFinite(n) && n >= 0) return n;
     }
   }
   return null;
@@ -185,7 +204,7 @@ async function postSerperSearch(
   });
   clearTimeout(timeout);
 
-  const hdrCredits = creditsFromHeaders(res.headers);
+  const hdrCredits = creditsBalanceFromSearchHeaders(res.headers);
   const rawText = await res.text();
   let data: SerperSearchResponse;
   try {
