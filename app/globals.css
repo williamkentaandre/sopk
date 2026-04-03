@@ -698,6 +698,30 @@ body {
   font-weight: 500;
 }
 
+.multi-add-chip--draft {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding-right: 0.25rem;
+}
+
+.multi-add-chip-label-btn {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 4px;
+}
+
+.multi-add-chip-label-btn:hover {
+  text-decoration: underline;
+}
+
 .multi-add-chip-remove {
   display: inline-flex;
   align-items: center;

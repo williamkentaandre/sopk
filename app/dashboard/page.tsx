@@ -82,9 +82,30 @@ export default function DashboardPage() {
 
   const splitLines = (text: string) =>
     (text || '')
-      .split('\n')
+      .split(/\r\n|\n|\r/)
       .map((l) => l.trim())
       .filter(Boolean);
+
+  const bulkKeywordTaRef = useRef<HTMLTextAreaElement | null>(null);
+  const bulkUrlTaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const removeFirstKeywordLineFromText = (text: string, trimmedTarget: string) => {
+    const lines = text.split(/\r\n|\n|\r/);
+    const idx = lines.findIndex((line) => line.trim() === trimmedTarget);
+    if (idx === -1) return text;
+    lines.splice(idx, 1);
+    return lines.join('\n');
+  };
+
+  const removeFirstUrlLineByDomain = (text: string, domain: string) => {
+    const lines = text.split(/\r\n|\n|\r/);
+    const idx = lines.findIndex(
+      (line) => toDomainOnly(line).toLowerCase() === domain.toLowerCase()
+    );
+    if (idx === -1) return text;
+    lines.splice(idx, 1);
+    return lines.join('\n');
+  };
 
   const draftUrlDomains = useMemo(() => {
     const stagedLower = new Set(stagedUrls.map((u) => u.toLowerCase()));
@@ -184,9 +205,40 @@ export default function DashboardPage() {
     setStagedUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const returnStagedKeywordToDraft = (index: number) => {
+    setStagedKeywords((prev) => {
+      const kw = prev[index];
+      if (kw == null) return prev;
+      const next = prev.filter((_, i) => i !== index);
+      setBulkKeywordText((text) => (text.trim() ? `${text.trim()}\n${kw}` : kw));
+      requestAnimationFrame(() => bulkKeywordTaRef.current?.focus());
+      return next;
+    });
+  };
+
+  const returnStagedUrlToDraft = (index: number) => {
+    setStagedUrls((prev) => {
+      const u = prev[index];
+      if (u == null) return prev;
+      const next = prev.filter((_, i) => i !== index);
+      setBulkUrlText((text) => (text.trim() ? `${text.trim()}\n${u}` : u));
+      requestAnimationFrame(() => bulkUrlTaRef.current?.focus());
+      return next;
+    });
+  };
+
+  const removeDraftKeywordLine = (trimmedLine: string) => {
+    setBulkKeywordText((text) => removeFirstKeywordLineFromText(text, trimmedLine));
+  };
+
+  const removeDraftUrlLine = (domain: string) => {
+    setBulkUrlText((text) => removeFirstUrlLineByDomain(text, domain));
+  };
+
   const pasteKeywordsFromClipboard = (e: ClipboardEvent<HTMLTextAreaElement>) => {
     const pasted = e.clipboardData.getData('text/plain');
-    if (!pasted || !/\r?\n/.test(pasted)) return;
+    const pastedLines = splitLines(pasted);
+    if (!pasted || pastedLines.length < 2) return;
     e.preventDefault();
     const el = e.currentTarget;
     const start = el.selectionStart;
@@ -194,12 +246,10 @@ export default function DashboardPage() {
     const v = el.value;
     const before = v.slice(0, start);
     const after = v.slice(end);
-    const lines = splitLines(pasted);
-    if (lines.length === 0) return;
     setStagedKeywords((prev) => {
       const seen = new Set(prev.map((k) => k.toLowerCase()));
       const next = [...prev];
-      for (const line of lines) {
+      for (const line of pastedLines) {
         const key = line.toLowerCase();
         if (seen.has(key)) continue;
         seen.add(key);
@@ -217,7 +267,8 @@ export default function DashboardPage() {
 
   const pasteUrlsFromClipboard = (e: ClipboardEvent<HTMLTextAreaElement>) => {
     const pasted = e.clipboardData.getData('text/plain');
-    if (!pasted || !/\r?\n/.test(pasted)) return;
+    const pastedLines = splitLines(pasted);
+    if (!pasted || pastedLines.length < 2) return;
     e.preventDefault();
     const el = e.currentTarget;
     const start = el.selectionStart;
@@ -225,7 +276,7 @@ export default function DashboardPage() {
     const v = el.value;
     const before = v.slice(0, start);
     const after = v.slice(end);
-    const domains = splitLines(pasted)
+    const domains = pastedLines
       .map((line) => toDomainOnly(line))
       .filter((d) => d.length >= 3);
     if (domains.length === 0) return;
@@ -921,6 +972,7 @@ export default function DashboardPage() {
             <div className="multi-add-col">
               <h3 className="multi-add-section-title">{t('dashboard.pairs.bulkUrlsTitle')}</h3>
               <textarea
+                ref={bulkUrlTaRef}
                 value={bulkUrlText}
                 onChange={(e) => setBulkUrlText(e.target.value)}
                 onKeyDown={commitUrlLineAtCursor}
@@ -934,11 +986,21 @@ export default function DashboardPage() {
                 <div className="multi-add-chip-row" aria-live="polite">
                   {stagedUrls.map((u, idx) => (
                     <span key={`s-${u}-${idx}`} className="multi-add-chip multi-add-chip--staged">
-                      <span>✓ {u}</span>
+                      <button
+                        type="button"
+                        className="multi-add-chip-label-btn"
+                        onClick={() => returnStagedUrlToDraft(idx)}
+                        title={t('dashboard.pairs.chipClickToEdit')}
+                      >
+                        ✓ {u}
+                      </button>
                       <button
                         type="button"
                         className="multi-add-chip-remove"
-                        onClick={() => removeStagedUrlAt(idx)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeStagedUrlAt(idx);
+                        }}
                         aria-label={`${t('dashboard.pairs.removeChip')}: ${u}`}
                       >
                         ×
@@ -946,8 +1008,16 @@ export default function DashboardPage() {
                     </span>
                   ))}
                   {draftUrlDomains.map((u, idx) => (
-                    <span key={`d-${u}-${idx}`} className="multi-add-chip">
-                      {u}
+                    <span key={`d-${u}-${idx}`} className="multi-add-chip multi-add-chip--draft">
+                      <span>{u}</span>
+                      <button
+                        type="button"
+                        className="multi-add-chip-remove"
+                        onClick={() => removeDraftUrlLine(u)}
+                        aria-label={`${t('dashboard.pairs.removeDraftLine')}: ${u}`}
+                      >
+                        ×
+                      </button>
                     </span>
                   ))}
                 </div>
@@ -956,6 +1026,7 @@ export default function DashboardPage() {
             <div className="multi-add-col">
               <h3 className="multi-add-section-title">{t('dashboard.pairs.bulkKeywordsTitle')}</h3>
               <textarea
+                ref={bulkKeywordTaRef}
                 value={bulkKeywordText}
                 onChange={(e) => setBulkKeywordText(e.target.value)}
                 onKeyDown={commitKeywordLineAtCursor}
@@ -970,11 +1041,21 @@ export default function DashboardPage() {
                 <div className="multi-add-chip-row" aria-live="polite">
                   {stagedKeywords.map((k, idx) => (
                     <span key={`sk-${k}-${idx}`} className="multi-add-chip multi-add-chip--staged">
-                      <span>✓ {k}</span>
+                      <button
+                        type="button"
+                        className="multi-add-chip-label-btn"
+                        onClick={() => returnStagedKeywordToDraft(idx)}
+                        title={t('dashboard.pairs.chipClickToEdit')}
+                      >
+                        ✓ {k}
+                      </button>
                       <button
                         type="button"
                         className="multi-add-chip-remove"
-                        onClick={() => removeStagedKeywordAt(idx)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeStagedKeywordAt(idx);
+                        }}
                         aria-label={`${t('dashboard.pairs.removeChip')}: ${k}`}
                       >
                         ×
@@ -982,8 +1063,16 @@ export default function DashboardPage() {
                     </span>
                   ))}
                   {draftKeywordLines.map((k, idx) => (
-                    <span key={`dk-${k}-${idx}`} className="multi-add-chip">
-                      {k}
+                    <span key={`dk-${k}-${idx}`} className="multi-add-chip multi-add-chip--draft">
+                      <span>{k}</span>
+                      <button
+                        type="button"
+                        className="multi-add-chip-remove"
+                        onClick={() => removeDraftKeywordLine(k)}
+                        aria-label={`${t('dashboard.pairs.removeDraftLine')}: ${k}`}
+                      >
+                        ×
+                      </button>
                     </span>
                   ))}
                 </div>

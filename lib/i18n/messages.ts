@@ -128,6 +128,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.pairs.keywordEnterHint':
       'Enter confirms a line (green chip). Paste a list to chip each line. × removes a confirmed item.',
     'dashboard.pairs.removeChip': 'Remove',
+    'dashboard.pairs.chipClickToEdit': 'Click to edit in the field',
+    'dashboard.pairs.removeDraftLine': 'Remove this line from the field',
     'dashboard.pairs.placeholderUrl': 'e.g. example.com',
     'dashboard.pairs.placeholderUrls': 'URLs/domains (1 line = 1 URL)\nexample.com\nexample.org',
     'dashboard.pairs.placeholderKeyword': 'Keyword',
@@ -450,6 +452,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.pairs.keywordEnterHint':
       'Entrée valide une ligne (puce verte). Coller une liste crée une puce par ligne. × retire un élément confirmé.',
     'dashboard.pairs.removeChip': 'Retirer',
+    'dashboard.pairs.chipClickToEdit': 'Cliquer pour modifier dans le champ',
+    'dashboard.pairs.removeDraftLine': 'Retirer cette ligne du champ',
     'dashboard.pairs.placeholderUrl': 'ex: example.com',
     'dashboard.pairs.placeholderUrls': 'URLs/domaines (1 ligne = 1 URL)\nexample.com\nexample.org',
     'dashboard.pairs.placeholderKeyword': 'Mot-clé',
