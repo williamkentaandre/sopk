@@ -129,13 +129,17 @@ function extractOrganicLinkFromSerp(result: SerpOrganicRow): string {
   return '';
 }
 
-/** Global rank 1…N: never trust Serper `position` alone (some responses repeat 1–10 per page). */
-function mapSerperOrganicWithOffset(
+/**
+ * Assign ranks in strict SERP order: 1, 2, 3… from the first organic row onward.
+ * Page 2 does not always start at 11 (page 1 can have fewer than 10 organics); `startRank` is
+ * `organic.length + 1` before appending this batch.
+ */
+function mapSerperOrganicSequential(
   items: SerperOrganicItem[],
-  offset: number
+  startRank: number
 ): OrganicResult[] {
   return items.map((item, idx) => ({
-    position: offset + idx + 1,
+    position: startRank + idx,
     link: item.link || '',
     title: item.title,
     snippet: item.snippet,
@@ -151,8 +155,8 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Walk Google SERP pages 1…10 (num=10 each). Ranks are always offset+index+1 so we never rely on
- * ambiguous Serper `position` fields. Stops on empty page, short page, or duplicate of page 1 (broken pagination).
+ * Walk Google SERP pages 1…10 (num=10 each). Ranks are sequential from 1 (never assume page 2 ⇒ rank 11).
+ * Stops on empty page, duplicate of page 1 (broken pagination), or 100 rows.
  */
 async function fetchSerperOrganicUpTo100(
   keyword: string,
@@ -170,8 +174,8 @@ async function fetchSerperOrganicUpTo100(
       options
     );
     pagesQueried += 1;
-    const offset = (page - 1) * SERPER_PAGE_SIZE;
-    const batch = mapSerperOrganicWithOffset(r.organic || [], offset);
+    const startRank = organic.length + 1;
+    const batch = mapSerperOrganicSequential(r.organic || [], startRank);
     if (batch.length === 0) break;
     if (
       page > 1 &&
@@ -184,7 +188,6 @@ async function fetchSerperOrganicUpTo100(
     }
     organic.push(...batch);
     if (organic.length >= SERPER_MAX_PAGES * SERPER_PAGE_SIZE) break;
-    if (batch.length < SERPER_PAGE_SIZE) break;
   }
 
   return { organic: organic.slice(0, 100), pagesQueried };
