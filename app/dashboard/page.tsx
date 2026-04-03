@@ -881,11 +881,7 @@ export default function DashboardPage() {
                 {t('dashboard.status.languageCountry')}: {searchLocaleDisplay.label}
               </Link>
               {hasSerpApiKey === true && (
-                <span
-                  className="status-badge"
-                  style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#334155' }}
-                  title={t('dashboard.serpCreditsHint')}
-                >
+                <span className="status-badge surface-credits-pill" title={t('dashboard.serpCreditsHint')}>
                   {t('dashboard.serpCredits')}:{' '}
                   {typeof serperCredits === 'number' ? serperCredits.toLocaleString(dateLocale) : '—'}
                 </span>
@@ -896,12 +892,13 @@ export default function DashboardPage() {
 
       {(hasSerpApiKey !== true) && (
         <div className="onboarding-with-image" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-          <div className="card-onboarding" style={{ flex: '1 1 20rem', maxWidth: '36rem', borderColor: '#fecaca', background: '#fef2f2' }}>
-            <h2 style={{ color: '#991b1b' }}>{t('dashboard.onboarding.title')}</h2>
-            <p style={{ margin: '0 0 1rem', color: '#7f1d1d', lineHeight: 1.5 }}>
+          <div className="card-onboarding card-onboarding--danger" style={{ flex: '1 1 20rem', maxWidth: '36rem' }}>
+            <h2>{t('dashboard.onboarding.title')}</h2>
+            <div className="onboarding-danger-text">
+            <p style={{ margin: '0 0 1rem', lineHeight: 1.5 }}>
               {t('dashboard.onboarding.desc')}
             </p>
-            <ol style={{ margin: '0 0 1.25rem', paddingLeft: '1.25rem', color: '#7f1d1d', lineHeight: 1.7 }}>
+            <ol style={{ margin: '0 0 1.25rem', paddingLeft: '1.25rem', lineHeight: 1.7 }}>
               <li>{t("dashboard.onboarding.step1")}</li>
               <li>{t("dashboard.onboarding.step2")}</li>
               <li>{t("dashboard.onboarding.step3")}</li>
@@ -913,6 +910,7 @@ export default function DashboardPage() {
               <Link href="/settings" className="btn btn-secondary">
                 {t('dashboard.onboarding.goSettings')}
               </Link>
+            </div>
             </div>
           </div>
           <SerpApiOnboardingIllustration />
@@ -932,20 +930,18 @@ export default function DashboardPage() {
 
       {hasSerpApiKey === true && !searchSettingsDone && searchSettingsAlertVisible && (
         <div
-          className="settings-card"
+          className="settings-card settings-flash-alert--danger"
           style={{
             marginBottom: '1.5rem',
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
             textAlign: 'center',
             padding: '2rem 1.25rem',
           }}
         >
-          <h2 style={{ color: '#991b1b', marginBottom: '0.75rem' }}>{t('dashboard.searchSettings.title')}</h2>
-          <p style={{ color: '#7f1d1d', fontWeight: 600, fontSize: '1rem', marginBottom: '1rem' }}>
+          <h2 style={{ marginBottom: '0.75rem' }}>{t('dashboard.searchSettings.title')}</h2>
+          <p style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '1rem' }}>
             {t('dashboard.searchSettings.missing')}
           </p>
-          <p style={{ color: '#7f1d1d', marginBottom: '0' }}>{t('dashboard.searchSettings.goToSettings')}</p>
+          <p style={{ marginBottom: '0' }}>{t('dashboard.searchSettings.goToSettings')}</p>
         </div>
       )}
 
@@ -1231,13 +1227,13 @@ export default function DashboardPage() {
                               href={`https://${pair.url.replace(/^www\./, '')}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              style={{ color: '#1a73e8' }}
+                              className="table-link"
                             >
                               {pair.url.replace(/\/$/, '')}
                             </a>
                           </span>
                         ) : (
-                          <a href={pair.url} target="_blank" rel="noopener noreferrer" style={{ color: '#1a73e8' }}>
+                          <a href={pair.url} target="_blank" rel="noopener noreferrer" className="table-link">
                             {pair.url}
                           </a>
                         )}
@@ -1250,14 +1246,15 @@ export default function DashboardPage() {
                         href={pair.last_matched_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ color: '#059669', fontSize: '0.85rem' }}
+                        className="table-link table-link--matched"
+                        style={{ fontSize: '0.85rem' }}
                       >
                         {pair.last_matched_url.length > 50
                           ? pair.last_matched_url.substring(0, 50) + '...'
                           : pair.last_matched_url}
                       </a>
                     ) : (
-                      <span style={{ color: '#999', fontSize: '0.85rem' }}>-</span>
+                      <span className="table-cell-muted">-</span>
                     )}
                   </td>
                   <td className="pairs-table-cell--rank">

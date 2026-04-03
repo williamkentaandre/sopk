@@ -267,23 +267,25 @@ export default function SettingsPage() {
 
         <div style={!hasSerpApiKey ? { display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: '1.5rem' } : undefined}>
         <div
-          className={!hasSerpApiKey ? 'card-onboarding' : 'settings-card'}
-          style={!hasSerpApiKey ? { flex: '1 1 20rem', maxWidth: '36rem', borderColor: '#fecaca', background: '#fef2f2' } : { borderColor: '#86efac', background: '#f0fdf4' }}
+          className={
+            !hasSerpApiKey
+              ? 'settings-card settings-key-card settings-key-card--danger'
+              : 'settings-card settings-key-card settings-key-card--ok'
+          }
+          style={!hasSerpApiKey ? { flex: '1 1 20rem', maxWidth: '36rem' } : undefined}
         >
-        <h2 style={{ color: hasSerpApiKey ? '#166534' : '#991b1b' }}>
+        <h2>
           {hasSerpApiKey ? t('settings.key.title') : t('settings.key.firstTitle')}
         </h2>
         {!hasSerpApiKey && (
-          <p style={{ marginBottom: '0.75rem', color: '#333', lineHeight: 1.5 }}>
-            {t('settings.key.withoutDesc')}
-          </p>
-        )}
-        {!hasSerpApiKey && (
-          <ol style={{ margin: '0 0 1rem', paddingLeft: '1.25rem', color: '#555', lineHeight: 1.6, fontSize: '0.95rem' }}>
-            <li>{t("settings.key.step1")}</li>
-            <li>{t("settings.key.step2")}</li>
-            <li>{t("settings.key.step3")}</li>
-          </ol>
+          <div className="settings-muted-block">
+            <p style={{ marginBottom: '0.75rem', lineHeight: 1.5 }}>{t('settings.key.withoutDesc')}</p>
+            <ol style={{ margin: '0 0 1rem', paddingLeft: '1.25rem', lineHeight: 1.6, fontSize: '0.95rem' }}>
+              <li>{t("settings.key.step1")}</li>
+              <li>{t("settings.key.step2")}</li>
+              <li>{t("settings.key.step3")}</li>
+            </ol>
+          </div>
         )}
         <p style={{ marginTop: '0.5rem', marginBottom: '0.75rem' }}>
           <span className={`status-badge ${hasSerpApiKey ? 'success' : 'pending'}`}>
@@ -292,7 +294,8 @@ export default function SettingsPage() {
         </p>
         {hasSerpApiKey && (
           <p
-            style={{ marginBottom: '0.75rem', fontSize: '0.9rem', color: '#475569' }}
+            className="settings-soft-text"
+            style={{ marginBottom: '0.75rem', fontSize: '0.9rem' }}
             title={t('dashboard.serpCreditsHint')}
           >
             {t('settings.serpCredits')}:{' '}
@@ -302,13 +305,13 @@ export default function SettingsPage() {
           </p>
         )}
         {hasSerpApiKey && !serpApiKey && !showReplaceKey ? (
-          <p style={{ marginBottom: '1rem', color: '#666' }}>
+          <p className="settings-soft-text" style={{ marginBottom: '1rem' }}>
             <a href="https://serper.dev/api-keys" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ display: 'inline-block', marginTop: '0.25rem' }}>{t('settings.key.getKey')}</a>
           </p>
         ) : null}
         {hasSerpApiKey && !serpApiKey && !showReplaceKey ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.9rem', color: '#34a853' }}>{t('settings.key.configured')}</span>
+            <span className="settings-success-inline">{t('settings.key.configured')}</span>
             <button type="button" className="btn btn-secondary" onClick={() => setShowReplaceKey(true)}>
               {t('settings.key.replace')}
             </button>
@@ -318,7 +321,7 @@ export default function SettingsPage() {
           </div>
         ) : (
           <>
-            <p style={{ marginBottom: '0.5rem', color: '#666', fontSize: '0.95rem' }}>
+            <p className="settings-soft-text" style={{ marginBottom: '0.5rem', fontSize: '0.95rem' }}>
               <a href="https://serper.dev/api-keys" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ display: 'inline-block', marginBottom: '0.5rem' }}>{t('settings.key.getKey')}</a>
             </p>
             <form onSubmit={handleSaveSerpKey} className="settings-form">
@@ -349,9 +352,11 @@ export default function SettingsPage() {
         {!hasSerpApiKey && <SerpApiOnboardingIllustration variant="settings" />}
         </div>
 
-        <div className="settings-card" style={{ borderColor: searchSettings.hl && searchSettings.gl ? '#86efac' : '#fecaca', background: searchSettings.hl && searchSettings.gl ? '#f0fdf4' : '#fef2f2' }}>
-          <h2 style={{ color: searchSettings.hl && searchSettings.gl ? '#166534' : '#991b1b' }}>{t('dashboard.searchSettings.title')}</h2>
-          <p style={{ color: searchSettings.hl && searchSettings.gl ? '#14532d' : '#7f1d1d', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
+        <div
+          className={`settings-card ${searchSettings.hl && searchSettings.gl ? 'settings-search-card--ok' : 'settings-search-card--warn'}`}
+        >
+          <h2>{t('dashboard.searchSettings.title')}</h2>
+          <p className="settings-search-lead" style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>
             {searchSettings.hl && searchSettings.gl ? t('dashboard.searchSettings.current') : t('dashboard.searchSettings.missing')}
           </p>
           <p style={{ marginBottom: '0.75rem' }}>
