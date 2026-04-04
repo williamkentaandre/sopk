@@ -5,6 +5,7 @@ import { signIn, useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLocale } from '@/app/LocaleContext';
+import { nextAuthGoogleErrorMessage } from '@/lib/next-auth-oauth-errors';
 
 function SignupFallback() {
   const { t } = useLocale();
@@ -26,6 +27,7 @@ function SignupForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const oauthErrorBanner = nextAuthGoogleErrorMessage(searchParams.get('error'), t);
 
   // Pré-remplir l'email : URL (?email=...) ou session (ex. déjà connecté avec Google)
   useEffect(() => {
@@ -64,6 +66,11 @@ function SignupForm() {
       <div className="auth-card">
         <h1>{t('auth.signup')}</h1>
         <p>{t('auth.signupDesc')}</p>
+        {oauthErrorBanner && (
+          <p className="auth-error" role="alert" style={{ marginBottom: '1rem', fontSize: '0.9rem' }}>
+            {oauthErrorBanner}
+          </p>
+        )}
         <div style={{ marginBottom: '1.25rem' }}>
           <button
             type="button"

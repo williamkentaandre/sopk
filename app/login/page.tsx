@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLocale } from '@/app/LocaleContext';
+import { nextAuthGoogleErrorMessage } from '@/lib/next-auth-oauth-errors';
 
 function LoginFallback() {
   const { t } = useLocale();
@@ -27,6 +28,7 @@ function LoginForm() {
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const paymentSuccess = searchParams.get('payment') === 'success';
   const registered = searchParams.get('registered') === '1';
+  const oauthErrorBanner = nextAuthGoogleErrorMessage(searchParams.get('error'), t);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -60,6 +62,11 @@ function LoginForm() {
         )}
         {registered && (
           <div className="auth-success">{t('auth.registered')}</div>
+        )}
+        {oauthErrorBanner && (
+          <p className="auth-error" role="alert" style={{ marginBottom: '1rem', fontSize: '0.9rem' }}>
+            {oauthErrorBanner}
+          </p>
         )}
         <div style={{ marginBottom: '1.25rem' }}>
           <button

@@ -149,6 +149,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.table.newKeyword': 'New keyword',
     'dashboard.table.add': 'Add',
     'dashboard.table.measureAll': 'Measure all',
+    'dashboard.table.measureLastAdded': 'Measure last added ({count})',
     'dashboard.table.measureSelected': 'Measure selected ({count})',
     'dashboard.table.measureAllHint':
       'Runs one real Google search per row, one after another. Large lists take several minutes. Drag the ⋮⋮ handle to reorder (several selected rows move together).',
@@ -204,6 +205,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.toast.measureAllWaitForSave':
       'Finish adding pairs (wait until they are saved) before using Measure all.',
     'dashboard.toast.measureSelectedNone': 'Select at least one saved row (checkbox) to measure a subset.',
+    'dashboard.toast.measureLastAddedNone':
+      'No saved rows from your last bulk add (they may have been removed). Add keywords again to use this action.',
     'dashboard.confirm.deletePair': 'Are you sure you want to delete this pair?',
     'dashboard.confirm.deleteSelected':
       'Delete {count} selected pair(s)? This cannot be undone.',
@@ -213,6 +216,8 @@ export const messages: Record<Locale, Record<string, string>> = {
       'Measure all pairs now? Each row is measured in turn and may take a few seconds.',
     'dashboard.confirm.measureSelected':
       'Measure {count} selected pair(s) now? Each row is measured in turn and may take a few seconds.',
+    'dashboard.confirm.measureLastAdded':
+      'Measure only the {count} pair(s) from your last bulk add? Each row is measured in turn and may take a few seconds.',
 
     // Settings
     'settings.back': '← Back to dashboard',
@@ -302,6 +307,11 @@ export const messages: Record<Locale, Record<string, string>> = {
     'auth.backToLogin': 'Back to login',
     'auth.loginWithGoogle': 'Continue with Google',
     'auth.orEmailPassword': 'Or email / password',
+    'auth.oauthError.default': 'Sign-in with Google failed. Please try again or use email and password.',
+    'auth.oauthError.misconfig':
+      'Google sign-in is misconfigured for this site. The owner must set NEXTAUTH_URL to this domain on the host (e.g. Vercel) and in Google Cloud Console add: JavaScript origin https://YOUR-DOMAIN and redirect URI https://YOUR-DOMAIN/api/auth/callback/google.',
+    'auth.oauthError.OAuthAccountNotLinked':
+      'This Google account is not linked to an existing account. Sign in with the method you used when you registered, or create a new account.',
     'auth.verifyEmail.sent': 'We sent you a verification email. Click the link to continue.',
 
     // Payment
@@ -505,6 +515,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'dashboard.table.newKeyword': 'Nouveau mot-clé',
     'dashboard.table.add': 'Ajouter',
     'dashboard.table.measureAll': 'Mesurer tout',
+    'dashboard.table.measureLastAdded': 'Mesurer les derniers ajouts ({count})',
     'dashboard.table.measureSelected': 'Mesurer la sélection ({count})',
     'dashboard.table.measureAllHint':
       'Une vraie recherche Google par ligne, l’une après l’autre. Les longues listes peuvent prendre plusieurs minutes. Glissez la poignée ⋮⋮ pour réordonner (plusieurs lignes sélectionnées bougent ensemble).',
@@ -563,6 +574,8 @@ export const messages: Record<Locale, Record<string, string>> = {
       'Terminez l’ajout des couples (attendez qu’ils soient enregistrés) avant « Mesurer tout ».',
     'dashboard.toast.measureSelectedNone':
       'Cochez au moins une ligne enregistrée pour mesurer une partie du tableau.',
+    'dashboard.toast.measureLastAddedNone':
+      'Aucune ligne enregistrée issue du dernier ajout groupé (elles ont peut‑être été supprimées). Ajoutez à nouveau des mots-clés pour utiliser cette action.',
     'dashboard.confirm.deletePair': 'Êtes-vous sûr de vouloir supprimer ce couple ?',
     'dashboard.confirm.deleteSelected':
       'Supprimer {count} couple(s) sélectionné(s) ? Cette action est irréversible.',
@@ -572,6 +585,8 @@ export const messages: Record<Locale, Record<string, string>> = {
       'Mesurer tous les couples maintenant ? Chaque ligne est mesurée à la suite et peut prendre quelques secondes.',
     'dashboard.confirm.measureSelected':
       'Mesurer {count} couple(s) sélectionné(s) maintenant ? Chaque ligne est mesurée à la suite et peut prendre quelques secondes.',
+    'dashboard.confirm.measureLastAdded':
+      'Mesurer uniquement les {count} couple(s) du dernier ajout groupé ? Chaque ligne est mesurée à la suite et peut prendre quelques secondes.',
 
     'settings.back': '← Retour au dashboard',
     'settings.title': 'Paramètres',
@@ -659,6 +674,12 @@ export const messages: Record<Locale, Record<string, string>> = {
     'auth.backToLogin': 'Retour à la connexion',
     'auth.loginWithGoogle': 'Continuer avec Google',
     'auth.orEmailPassword': 'Ou email / mot de passe',
+    'auth.oauthError.default':
+      'La connexion Google a échoué. Réessaie ou utilise email et mot de passe.',
+    'auth.oauthError.misconfig':
+      'La connexion Google n’est pas configurée pour ce domaine. Il faut mettre NEXTAUTH_URL sur ce domaine (ex. Vercel) et dans Google Cloud Console ajouter : origine JavaScript https://TON-DOMAINE et URI de redirection https://TON-DOMAINE/api/auth/callback/google.',
+    'auth.oauthError.OAuthAccountNotLinked':
+      'Ce compte Google n’est pas lié à un compte existant. Connecte-toi avec la méthode utilisée à l’inscription, ou crée un compte.',
     'auth.verifyEmail.sent': "Nous t'avons envoyé un email de vérification. Clique sur le lien pour continuer.",
 
     'payment.required.title': 'Paiement requis',

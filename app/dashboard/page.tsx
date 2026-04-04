@@ -18,6 +18,19 @@ import { formatSearchLocaleLine } from '@/lib/search-locale-labels';
 import { useLocale } from '@/app/LocaleContext';
 import { SerpApiOnboardingIllustration } from '@/app/components/SerpApiOnboardingIllustration';
 
+/** Survit à un rechargement : permet de proposer « mesurer les derniers ajouts » après un bulk add. */
+const LAST_BULK_ADDED_PAIR_IDS_KEY = 'ranking-force-last-bulk-added-pair-ids';
+
+function persistLastBulkAddedPairIds(ids: string[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (ids.length === 0) sessionStorage.removeItem(LAST_BULK_ADDED_PAIR_IDS_KEY);
+    else sessionStorage.setItem(LAST_BULK_ADDED_PAIR_IDS_KEY, JSON.stringify(ids));
+  } catch {
+    /* quota / navigation privée */
+  }
+}
+
 interface Settings {
   hl: string;
   gl: string;
@@ -71,6 +84,8 @@ export default function DashboardPage() {
   const [bulkUrlText, setBulkUrlText] = useState('');
   const [bulkKeywordText, setBulkKeywordText] = useState('');
   const [bulkAddedKeywords, setBulkAddedKeywords] = useState<string[]>([]);
+  /** Pair IDs from the last successful bulk add (keywords × URLs), for « measure new only ». */
+  const [lastBulkAddedPairIds, setLastBulkAddedPairIds] = useState<string[]>([]);
   /** Confirmed with Enter — shown as reassuring chips */
   const [stagedKeywords, setStagedKeywords] = useState<string[]>([]);
   const [stagedUrls, setStagedUrls] = useState<string[]>([]);
@@ -114,6 +129,21 @@ export default function DashboardPage() {
     () => pairs.filter((p) => !p.pair_id.startsWith('temp_')).map((p) => p.pair_id),
     [pairs]
   );
+
+  const lastBulkAddedIdSet = useMemo(() => new Set(lastBulkAddedPairIds), [lastBulkAddedPairIds]);
+  const lastBulkAddedMeasurableCount = useMemo(
+    () =>
+      pairs.filter((p) => lastBulkAddedIdSet.has(p.pair_id) && !p.pair_id.startsWith('temp_')).length,
+    [pairs, lastBulkAddedIdSet]
+  );
+
+  const stripLastBulkAddedIds = useCallback((remove: Set<string>) => {
+    setLastBulkAddedPairIds((prev) => {
+      const next = prev.filter((id) => !remove.has(id));
+      persistLastBulkAddedPairIds(next);
+      return next;
+    });
+  }, []);
 
   const selectedDeletableCount = useMemo(
     () => selectablePairIds.filter((id) => selectedPairIds.has(id)).length,
@@ -535,13 +565,28 @@ export default function DashboardPage() {
         setSearchSettingsDone(!!(settingsData.hl && settingsData.gl));
         const rawItems = (pairsData.items || []) as Pair[];
         const seenIds = new Set<string>();
-        setPairs(
-          rawItems.filter((p) => {
-            if (seenIds.has(p.pair_id)) return false;
-            seenIds.add(p.pair_id);
-            return true;
-          })
-        );
+        const items = rawItems.filter((p) => {
+          if (seenIds.has(p.pair_id)) return false;
+          seenIds.add(p.pair_id);
+          return true;
+        });
+        setPairs(items);
+        const validPairIds = new Set(items.map((p) => p.pair_id));
+        let restoredLastBulk: string[] = [];
+        try {
+          const raw =
+            typeof window !== 'undefined' ? sessionStorage.getItem(LAST_BULK_ADDED_PAIR_IDS_KEY) : null;
+          if (raw) {
+            const parsed = JSON.parse(raw) as unknown;
+            if (Array.isArray(parsed) && parsed.every((x) => typeof x === 'string')) {
+              restoredLastBulk = parsed.filter((id) => validPairIds.has(id));
+            }
+          }
+        } catch {
+          /* ignore */
+        }
+        setLastBulkAddedPairIds(restoredLastBulk);
+        persistLastBulkAddedPairIds(restoredLastBulk);
         if (creditsRes.ok) {
           const cd = await creditsRes.json().catch(() => ({}));
           if (typeof cd.credits === 'number' && Number.isFinite(cd.credits)) {
@@ -559,6 +604,8 @@ export default function DashboardPage() {
         setHasSerpApiKey(null);
         setSearchSettingsDone(false);
         setPairs([]);
+        setLastBulkAddedPairIds([]);
+        persistLastBulkAddedPairIds([]);
         setSerperCredits(null);
       }
     } catch {
@@ -566,6 +613,8 @@ export default function DashboardPage() {
       setHasSerpApiKey(null);
       setSearchSettingsDone(false);
       setPairs([]);
+      setLastBulkAddedPairIds([]);
+      persistLastBulkAddedPairIds([]);
       setSerperCredits(null);
     } finally {
       window.clearTimeout(tid);
@@ -776,6 +825,9 @@ export default function DashboardPage() {
       }
 
       const createdItems = (result.items || []) as Pair[];
+      const newIds = createdItems.map((i) => i.pair_id).filter(Boolean);
+      setLastBulkAddedPairIds(newIds);
+      persistLastBulkAddedPairIds(newIds);
       // Replace optimistic rows with created rows in the same order (best-effort)
       setPairs((prev) => {
         const tempIds = new Set(tempPairs.map((p) => p.pair_id));
@@ -875,6 +927,7 @@ export default function DashboardPage() {
       const response = await fetch(`/api/v1/pairs/${pairId}`, { method: 'DELETE' });
       if (response.ok) {
         setPairs((prev) => prev.filter((p) => p.pair_id !== pairId));
+        stripLastBulkAddedIds(new Set([pairId]));
         setSelectedPairIds((prev) => {
           if (!prev.has(pairId)) return prev;
           const next = new Set(prev);
@@ -905,6 +958,7 @@ export default function DashboardPage() {
         const data = (await response.json()) as { deleted?: number };
         const deleted = typeof data.deleted === 'number' ? data.deleted : ids.length;
         setPairs((prev) => prev.filter((p) => !ids.includes(p.pair_id)));
+        stripLastBulkAddedIds(new Set(ids));
         setSelectedPairIds(new Set());
         showToast(t('dashboard.toast.bulkPairsDeleted').replace('{count}', String(deleted)), 'success');
       } else {
@@ -932,6 +986,8 @@ export default function DashboardPage() {
         showToast(`${result.deleted} ${t('dashboard.toast.pairsDeleted')}`, 'success');
         setPairs([]);
         setSelectedPairIds(new Set());
+        setLastBulkAddedPairIds([]);
+        persistLastBulkAddedPairIds([]);
       } else {
         const errorData = await response.json().catch(() => ({}));
         showToast(`${t('dashboard.toast.error')}: ${errorData.error?.message || t('dashboard.toast.unknownError')}`, 'error');
@@ -940,6 +996,29 @@ export default function DashboardPage() {
       showToast(t('dashboard.toast.deleteError'), 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const trackLastAddedOnly = async () => {
+    if (!searchSettingsDone) {
+      showSearchSettingsAlert();
+      showToast(t('dashboard.toast.completeSearchSettings'), 'error');
+      return;
+    }
+    const toMeasure = pairs.filter(
+      (p) => lastBulkAddedIdSet.has(p.pair_id) && !p.pair_id.startsWith('temp_')
+    );
+    if (toMeasure.length === 0) {
+      showToast(t('dashboard.toast.measureLastAddedNone'), 'error');
+      setLastBulkAddedPairIds([]);
+      persistLastBulkAddedPairIds([]);
+      return;
+    }
+    if (!confirm(t('dashboard.confirm.measureLastAdded').replace('{count}', String(toMeasure.length)))) return;
+    const { failedCount } = await runMeasureSequenceForPairs(toMeasure);
+    if (failedCount === 0) {
+      setLastBulkAddedPairIds([]);
+      persistLastBulkAddedPairIds([]);
     }
   };
 
@@ -993,7 +1072,7 @@ export default function DashboardPage() {
     });
   };
 
-  const runMeasureSequenceForPairs = async (rows: Pair[]) => {
+  const runMeasureSequenceForPairs = async (rows: Pair[]): Promise<{ failedCount: number }> => {
     const total = rows.length;
     setSaving(true);
     setMeasureAllProgress({ done: 0, total, startedAt: Date.now() });
@@ -1055,6 +1134,7 @@ export default function DashboardPage() {
       } else {
         showToast(t('dashboard.toast.measurementsDone'), 'success');
       }
+      return { failedCount };
     } finally {
       setSaving(false);
       window.setTimeout(() => setMeasureAllProgress(null), 2500);
@@ -1450,6 +1530,20 @@ export default function DashboardPage() {
                 >
                   {t('dashboard.table.measureAll')}
                 </button>
+                {lastBulkAddedMeasurableCount > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={trackLastAddedOnly}
+                    disabled={loading || saving || bulkDeleting || reordering}
+                    aria-busy={saving}
+                  >
+                    {t('dashboard.table.measureLastAdded').replace(
+                      '{count}',
+                      String(lastBulkAddedMeasurableCount)
+                    )}
+                  </button>
+                )}
                 {selectedDeletableCount > 0 && (
                   <button
                     type="button"
