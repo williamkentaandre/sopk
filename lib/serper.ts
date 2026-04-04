@@ -273,9 +273,8 @@ async function postSerperSearch(
 
 /**
  * Low-level Serper search call (for settings validation or custom use).
- * Use `page` for the first window; for continuation after a partial first page, prefer `start`
- * (1-based index of the next organic result, Google-style) instead of `page`, which advances
- * in steps of `num` and can skip a rank when page 1 had fewer than `num` organics.
+ * Serper’s supported pagination is `page` (see their client); optional `start` is passed through
+ * for experiments only — production ranking uses `page` because `start` is not reliably applied upstream.
  */
 export async function callSerperGoogleSearch(
   params: {
@@ -284,7 +283,6 @@ export async function callSerperGoogleSearch(
     gl: string;
     num?: number;
     page?: number;
-    /** 1-based index of the first organic result to return; do not combine with `page`. */
     start?: number;
   },
   options?: SerperGoogleSearchOptions

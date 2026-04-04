@@ -56,12 +56,12 @@ describe('trackKeyword / fetchSerperOrganicUpTo100', () => {
 
     expect(mocked).toHaveBeenCalledTimes(3);
     expect(mocked.mock.calls[0]![0]).toMatchObject({ num: 100, page: 1 });
-    expect(mocked.mock.calls[1]![0]).toMatchObject({ num: 10, start: 11 });
-    expect(mocked.mock.calls[2]![0]).toMatchObject({ num: 10, start: 21 });
+    expect(mocked.mock.calls[1]![0]).toMatchObject({ num: 10, page: 2 });
+    expect(mocked.mock.calls[2]![0]).toMatchObject({ num: 10, page: 3 });
     expect(r.position).toBe(16);
   });
 
-  it('uses start=10 after only 9 organics on the first batch (no skipped rank)', async () => {
+  it('continues with page=2 when the first batch has only 9 organics', async () => {
     const batch9 = Array.from({ length: 9 }, (_, i) => ({
       title: `t${i}`,
       link: `https://b.com/${i}`,
@@ -76,7 +76,7 @@ describe('trackKeyword / fetchSerperOrganicUpTo100', () => {
       apiKey: 'test-key',
     });
 
-    expect(mocked.mock.calls[1]![0]).toMatchObject({ num: 10, start: 10 });
+    expect(mocked.mock.calls[1]![0]).toMatchObject({ num: 10, page: 2 });
     expect(r.position).toBe(10);
   });
 
@@ -95,7 +95,7 @@ describe('trackKeyword / fetchSerperOrganicUpTo100', () => {
     expect(mocked).toHaveBeenCalledTimes(3);
     expect(mocked.mock.calls[0]![0]).toMatchObject({ num: 100, page: 1 });
     expect(mocked.mock.calls[1]![0]).toMatchObject({ num: 10, page: 1 });
-    expect(mocked.mock.calls[2]![0]).toMatchObject({ num: 10, start: 2 });
+    expect(mocked.mock.calls[2]![0]).toMatchObject({ num: 10, page: 2 });
     expect(r.position).toBe(1);
   });
 });
