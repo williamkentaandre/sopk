@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   creditsBalanceFromSearchHeaders,
+  pickCreditsFromCreditsApiBody,
   pickCreditsFromSearchBodyTopLevel,
   pickCreditsFromUnknown,
 } from './serper';
@@ -37,6 +38,30 @@ describe('pickCreditsFromSearchBodyTopLevel', () => {
 
   it('does not use ambiguous top-level credits key', () => {
     expect(pickCreditsFromSearchBodyTopLevel({ credits: 1 })).toBeNull();
+  });
+});
+
+describe('pickCreditsFromCreditsApiBody', () => {
+  it('reads top-level remaining fields', () => {
+    expect(pickCreditsFromCreditsApiBody({ creditsRemaining: 2400 })).toBe(2400);
+    expect(pickCreditsFromCreditsApiBody({ remaining: 99 })).toBe(99);
+  });
+
+  it('reads one nested credits / data object', () => {
+    expect(
+      pickCreditsFromCreditsApiBody({ credits: { creditsRemaining: 1234 } })
+    ).toBe(1234);
+    expect(pickCreditsFromCreditsApiBody({ data: 500 })).toBe(500);
+  });
+
+  it('does not deep-scan into arbitrary nested numbers', () => {
+    expect(
+      pickCreditsFromCreditsApiBody({
+        meta: { usage: 1, cost: 1 },
+        creditsRemaining: 2500,
+      })
+    ).toBe(2500);
+    expect(pickCreditsFromCreditsApiBody({ meta: { usage: 1 } })).toBeNull();
   });
 });
 

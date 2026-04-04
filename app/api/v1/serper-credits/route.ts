@@ -19,10 +19,17 @@ export async function GET(_request: NextRequest) {
   }
   try {
     const credits = await fetchSerperCredits(user.serpApiKey);
-    return NextResponse.json({
-      credits,
-      available: credits != null,
-    });
+    return NextResponse.json(
+      {
+        credits,
+        available: credits != null,
+      },
+      {
+        headers: {
+          'Cache-Control': 'private, no-store, max-age=0',
+        },
+      }
+    );
   } catch (e) {
     console.error('serper-credits:', e);
     return NextResponse.json({ credits: null, available: false });

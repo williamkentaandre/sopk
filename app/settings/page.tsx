@@ -25,7 +25,10 @@ export default function SettingsPage() {
 
   const refreshSerperCredits = useCallback(async () => {
     try {
-      const r = await fetch('/api/v1/serper-credits');
+      const r = await fetch('/api/v1/serper-credits', {
+        cache: 'no-store',
+        credentials: 'same-origin',
+      });
       if (!r.ok) {
         setSerperCredits(null);
         return;

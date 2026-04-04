@@ -127,20 +127,53 @@ export function creditsBalanceFromSearchHeaders(headers: Headers): number | null
   return null;
 }
 
-function creditsFromHeaders(headers: Headers): number | null {
-  const names = [
-    'x-credits-remaining',
-    'x-serper-credits',
-    'x-credits',
-    'x-remaining-credits',
-    'x-credit-balance',
+/**
+ * Headers for GET /credits (and similar read endpoints). Same rule as search: never use generic
+ * `x-credits` — Serper often sends `X-Credits: 1` (per-request), which is not the account balance.
+ */
+function creditsBalanceFromReadEndpointHeaders(headers: Headers): number | null {
+  return creditsBalanceFromSearchHeaders(headers);
+}
+
+/**
+ * Parse GET /credits (or /account) JSON without deep-scanning: nested `usage`, `num`, etc. must not
+ * be mistaken for the remaining balance (pickCreditsFromUnknown is unsafe here).
+ */
+export function pickCreditsFromCreditsApiBody(data: unknown): number | null {
+  if (data == null || typeof data !== 'object' || Array.isArray(data)) return null;
+  const o = data as Record<string, unknown>;
+  const readNumber = (v: unknown): number | null => {
+    if (typeof v === 'number' && Number.isFinite(v) && v >= 0) return Math.floor(v);
+    return null;
+  };
+  const keys = [
+    'creditsRemaining',
+    'credits_remaining',
+    'remainingCredits',
+    'creditRemaining',
+    'queriesLeft',
+    'credit',
+    'creditsLeft',
+    'balance',
+    'remaining',
   ];
-  for (const name of names) {
-    const raw = headers.get(name);
-    if (raw) {
-      const n = parseInt(raw, 10);
-      if (Number.isFinite(n) && n >= 0) return n;
+  for (const key of keys) {
+    if (!(key in o)) continue;
+    const n = readNumber(o[key]);
+    if (n != null) return n;
+  }
+  const nested = o.credits ?? o.data ?? o.account;
+  if (nested != null && typeof nested === 'object' && !Array.isArray(nested)) {
+    const no = nested as Record<string, unknown>;
+    for (const key of keys) {
+      if (!(key in no)) continue;
+      const n = readNumber(no[key]);
+      if (n != null) return n;
     }
+  }
+  if (nested != null) {
+    const n = readNumber(nested);
+    if (n != null) return n;
   }
   return null;
 }
@@ -160,6 +193,7 @@ export async function fetchSerperCredits(apiKey: string): Promise<number | null>
     try {
       const res = await fetch(url, {
         method: 'GET',
+        cache: 'no-store',
         headers: {
           'X-API-KEY': key,
           'User-Agent': 'RankingForce/1.0 (https://rankingforce.com)',
@@ -167,7 +201,7 @@ export async function fetchSerperCredits(apiKey: string): Promise<number | null>
         },
       });
       const text = await res.text();
-      const hdr = creditsFromHeaders(res.headers);
+      const hdr = creditsBalanceFromReadEndpointHeaders(res.headers);
       if (hdr != null) return hdr;
       if (!res.ok) continue;
       let data: unknown;
@@ -176,7 +210,7 @@ export async function fetchSerperCredits(apiKey: string): Promise<number | null>
       } catch {
         continue;
       }
-      const n = pickCreditsFromUnknown(data);
+      const n = pickCreditsFromCreditsApiBody(data);
       if (n != null) return n;
     } catch {
       /* try next URL */
@@ -194,6 +228,7 @@ async function postSerperSearch(
   const timeout = setTimeout(() => controller.abort(), 15000);
   const res = await fetch('https://google.serper.dev/search', {
     method: 'POST',
+    cache: 'no-store',
     headers: {
       'Content-Type': 'application/json',
       'X-API-KEY': apiKey,

@@ -464,12 +464,19 @@ export default function DashboardPage() {
       checked_at?: string;
       position?: unknown;
       matched_url?: string | null;
+      serper_credits_remaining?: number | null;
     }
   ) => {
     const effectivePairId =
       typeof result.pair_id === 'string' && result.pair_id.trim() ? result.pair_id.trim() : pairId;
     const day = result.checked_at ? getParisDateString(result.checked_at) : null;
     const normalizedPos = normalizeMeasuredRank(result.position);
+    if (
+      typeof result.serper_credits_remaining === 'number' &&
+      Number.isFinite(result.serper_credits_remaining)
+    ) {
+      setSerperCredits(Math.floor(result.serper_credits_remaining));
+    }
     setPairs((prev) =>
       prev.map((p) =>
         p.pair_id === effectivePairId
@@ -493,7 +500,10 @@ export default function DashboardPage() {
   /** Same source as page load: GET balance (no reliance on search/track parsing). */
   const refreshSerperCreditsFromApi = useCallback(async () => {
     try {
-      const r = await fetch('/api/v1/serper-credits');
+      const r = await fetch('/api/v1/serper-credits', {
+        cache: 'no-store',
+        credentials: 'same-origin',
+      });
       if (!r.ok) return;
       const cd = await r.json().catch(() => ({}));
       if (typeof cd.credits === 'number' && Number.isFinite(cd.credits)) {
@@ -550,7 +560,11 @@ export default function DashboardPage() {
   const loadData = async () => {
     const ac = new AbortController();
     const tid = window.setTimeout(() => ac.abort(), 32000);
-    const fetchInit: RequestInit = { signal: ac.signal, credentials: 'same-origin' };
+    const fetchInit: RequestInit = {
+      signal: ac.signal,
+      credentials: 'same-origin',
+      cache: 'no-store',
+    };
     try {
       const [settingsRes, pairsRes, creditsRes] = await Promise.all([
         fetch('/api/v1/settings', fetchInit),
@@ -1053,7 +1067,10 @@ export default function DashboardPage() {
             result.pages_queried != null
               ? ` (${result.pages_queried} pages, ${result.elapsed_ms ?? 0} ms)`
               : '';
-          void refreshSerperCreditsFromApi();
+          const cr = result.serper_credits_remaining;
+          if (!(typeof cr === 'number' && Number.isFinite(cr))) {
+            void refreshSerperCreditsFromApi();
+          }
           const kwLabel = keywordHint ? `"${keywordHint}" · ` : '';
           showToast(`${t('dashboard.toast.measureDone')} — ${kwLabel}${positionText}${debugText}`, 'success');
         } else {
@@ -1096,7 +1113,10 @@ export default function DashboardPage() {
             const result = await response.json();
             if (response.ok) {
               mergeTrackApiResultIntoState(p.pair_id, result);
-              void refreshSerperCreditsFromApi();
+              const cr = result.serper_credits_remaining;
+              if (!(typeof cr === 'number' && Number.isFinite(cr))) {
+                void refreshSerperCreditsFromApi();
+              }
             } else {
               failedCount++;
               if (
