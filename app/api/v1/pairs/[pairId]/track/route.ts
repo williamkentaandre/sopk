@@ -53,13 +53,17 @@ export async function POST(
       error = String(e);
     }
 
-    // On API/throw failure: do not touch lastPosition. On success with "not in top 100", keep lastPosition too.
+    // On API/throw failure: do not touch lastPosition / lastMatchedUrl. On success, persist the measured state (including null when not in SERP).
     await prisma.pair.update({
       where: { id: pairId },
       data: {
-        ...(error ? {} : position != null ? { lastPosition: position } : {}),
         lastCheckedAt: checkedAt,
-        ...(error ? {} : { lastMatchedUrl: matchResult?.matchedUrl ?? null }),
+        ...(error
+          ? {}
+          : {
+              lastPosition: position,
+              lastMatchedUrl: matchResult?.matchedUrl ?? null,
+            }),
       },
     });
 

@@ -59,18 +59,16 @@ export async function POST(request: NextRequest) {
         apiKey: user.serpApiKey!,
       });
 
-      // Do not wipe lastPosition when the site is simply not in the top 100 (same idea as "failure" UX).
       await prisma.pair.update({
         where: { id: pair.id },
         data: {
-          ...(matchResult.position != null ? { lastPosition: matchResult.position } : {}),
+          lastPosition: matchResult.position,
           lastCheckedAt: checkedAt,
           lastMatchedUrl: matchResult.matchedUrl ?? null,
         },
       });
 
-      // Always persist a history row (single-pair /track does too). Omitting null positions made
-      // "Mesurer tout" leave date columns empty on reload while still clearing last_position.
+      // Always persist a history row (single-pair /track does too).
       await prisma.pairHistory.create({
         data: {
           pairId: pair.id,

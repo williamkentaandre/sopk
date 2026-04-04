@@ -438,10 +438,12 @@ export default function DashboardPage() {
         p.pair_id === pairId
           ? {
               ...p,
-              last_position:
-                normalizedPos != null ? normalizedPos : p.last_position ?? null,
+              last_position: normalizedPos,
               last_checked_at: result.checked_at ?? null,
-              last_matched_url: result.matched_url ?? p.last_matched_url,
+              last_matched_url:
+                result.matched_url !== undefined
+                  ? result.matched_url ?? null
+                  : p.last_matched_url,
               history_by_date: day
                 ? { ...(p.history_by_date || {}), [day]: normalizedPos }
                 : p.history_by_date,
