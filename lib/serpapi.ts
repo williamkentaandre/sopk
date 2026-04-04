@@ -2,6 +2,8 @@ import {
   extractDomain,
   extractUrlFromDisplayedLink,
   resolveSerpResultDestination,
+  isDomain,
+  urlsPathCompatibleForTracking,
 } from './url-utils';
 import { callSerperGoogleSearch } from './serper';
 import type { SerperOrganicItem } from './serper';
@@ -147,7 +149,7 @@ function mapSerperOrganicSequential(
 
 const SERPER_MAX_PAGES = 10;
 const SERPER_PAGE_SIZE = 10;
-const SERPER_PAGE_DELAY_MS = 150;
+const SERPER_PAGE_DELAY_MS = 220;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -205,13 +207,31 @@ async function fetchSerperOrganicUpTo100(
 }
 
 /**
- * Domain match: same hostname root as extractDomain() (e.g. blog.example.com → example.com).
- * TLD must match exactly: example.com ≠ example.fr.
+ * Domain match on extractDomain() roots (TLD-safe for co.uk, com.au, etc.).
+ * For full URLs (not domain-only input), prefer the first organic row whose path matches
+ * the target URL, so another page on the same host does not steal the rank.
  */
 export function matchUrlInResults(targetUrl: string, organicResults: OrganicResult[]): MatchResult {
   const targetRoot = extractDomain(targetUrl);
   if (!targetRoot) {
     return { position: null, matchedUrl: null, matchType: 'none' };
+  }
+
+  const targetIsDomainOnly = isDomain(targetUrl.trim());
+
+  if (!targetIsDomainOnly) {
+    for (const result of organicResults) {
+      const resolved = extractOrganicLinkFromSerp(result as SerpOrganicRow);
+      if (!resolved) continue;
+      if (extractDomain(resolved) !== targetRoot) continue;
+      if (urlsPathCompatibleForTracking(targetUrl, resolved)) {
+        return {
+          position: result.position,
+          matchedUrl: resolved,
+          matchType: 'domain',
+        };
+      }
+    }
   }
 
   for (const result of organicResults) {

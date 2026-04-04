@@ -90,6 +90,17 @@ export default function DashboardPage() {
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
   /** Sync guard: React state for `tracking` can lag one frame — double-clicks could otherwise fire two measures and the slower response would overwrite the row. */
   const pairMeasureInFlightRef = useRef<Set<string>>(new Set());
+  /** One Serper-backed measure at a time (avoids overlapping /track and state mix-ups). */
+  const measureSerialRef = useRef<Promise<unknown>>(Promise.resolve());
+
+  const enqueueSerialMeasure = useCallback(<T,>(fn: () => Promise<T>): Promise<T> => {
+    const run = measureSerialRef.current.then(() => fn());
+    measureSerialRef.current = run.then(
+      () => undefined,
+      () => undefined
+    );
+    return run;
+  }, []);
   const [selectedPairIds, setSelectedPairIds] = useState<Set<string>>(() => new Set());
   const selectAllCheckboxRef = useRef<HTMLInputElement>(null);
   const [bulkDeleting, setBulkDeleting] = useState(false);
@@ -917,45 +928,47 @@ export default function DashboardPage() {
       showToast(t('dashboard.toast.completeSearchSettings'), 'error');
       return;
     }
-    if (pairMeasureInFlightRef.current.has(pairId)) {
-      return;
-    }
-    pairMeasureInFlightRef.current.add(pairId);
-    setTracking((prev) => new Set(prev).add(pairId));
-    try {
-      const response = await fetch(`/api/v1/pairs/${pairId}/track`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hl: settings.hl, gl: settings.gl }),
-      });
-      const result = await response.json();
-      if (response.ok) {
-        mergeTrackApiResultIntoState(pairId, result);
-        const normalizedPos = normalizeMeasuredRank(result.position);
-        const positionText =
-          normalizedPos != null
-            ? `${t('dashboard.toast.position')}: ${normalizedPos}`
-            : t('dashboard.toast.notFound');
-        const debugText =
-          result.pages_queried != null
-            ? ` (${result.pages_queried} pages, ${result.elapsed_ms ?? 0} ms)`
-            : '';
-        void refreshSerperCreditsFromApi();
-        const kwLabel = keywordHint ? `"${keywordHint}" · ` : '';
-        showToast(`${t('dashboard.toast.measureDone')} — ${kwLabel}${positionText}${debugText}`, 'success');
-      } else {
-        showActionableError(result.error?.message || '');
+    return enqueueSerialMeasure(async () => {
+      if (pairMeasureInFlightRef.current.has(pairId)) {
+        return;
       }
-    } catch {
-      showToast(t('dashboard.toast.serpError'), 'error');
-    } finally {
-      pairMeasureInFlightRef.current.delete(pairId);
-      setTracking((prev) => {
-        const next = new Set(prev);
-        next.delete(pairId);
-        return next;
-      });
-    }
+      pairMeasureInFlightRef.current.add(pairId);
+      setTracking((prev) => new Set(prev).add(pairId));
+      try {
+        const response = await fetch(`/api/v1/pairs/${pairId}/track`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hl: settings.hl, gl: settings.gl }),
+        });
+        const result = await response.json();
+        if (response.ok) {
+          mergeTrackApiResultIntoState(pairId, result);
+          const normalizedPos = normalizeMeasuredRank(result.position);
+          const positionText =
+            normalizedPos != null
+              ? `${t('dashboard.toast.position')}: ${normalizedPos}`
+              : t('dashboard.toast.notFound');
+          const debugText =
+            result.pages_queried != null
+              ? ` (${result.pages_queried} pages, ${result.elapsed_ms ?? 0} ms)`
+              : '';
+          void refreshSerperCreditsFromApi();
+          const kwLabel = keywordHint ? `"${keywordHint}" · ` : '';
+          showToast(`${t('dashboard.toast.measureDone')} — ${kwLabel}${positionText}${debugText}`, 'success');
+        } else {
+          showActionableError(result.error?.message || '');
+        }
+      } catch {
+        showToast(t('dashboard.toast.serpError'), 'error');
+      } finally {
+        pairMeasureInFlightRef.current.delete(pairId);
+        setTracking((prev) => {
+          const next = new Set(prev);
+          next.delete(pairId);
+          return next;
+        });
+      }
+    });
   };
 
   const runMeasureSequenceForPairs = async (rows: Pair[]) => {
@@ -969,43 +982,45 @@ export default function DashboardPage() {
     try {
       for (let i = 0; i < rows.length; i++) {
         const p = rows[i];
-        pairMeasureInFlightRef.current.add(p.pair_id);
-        setTracking((prev) => new Set(prev).add(p.pair_id));
-        try {
-          const response = await fetch(`/api/v1/pairs/${p.pair_id}/track`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ hl: settings.hl, gl: settings.gl }),
-          });
-          const result = await response.json();
-          if (response.ok) {
-            mergeTrackApiResultIntoState(p.pair_id, result);
-            void refreshSerperCreditsFromApi();
-          } else {
-            failedCount++;
-            if (
-              !shownConfigError &&
-              (response.status === 400 || response.status === 401)
-            ) {
-              shownConfigError = true;
-              showActionableError(result.error?.message || '');
+        await enqueueSerialMeasure(async () => {
+          pairMeasureInFlightRef.current.add(p.pair_id);
+          setTracking((prev) => new Set(prev).add(p.pair_id));
+          try {
+            const response = await fetch(`/api/v1/pairs/${p.pair_id}/track`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ hl: settings.hl, gl: settings.gl }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+              mergeTrackApiResultIntoState(p.pair_id, result);
+              void refreshSerperCreditsFromApi();
+            } else {
+              failedCount++;
+              if (
+                !shownConfigError &&
+                (response.status === 400 || response.status === 401)
+              ) {
+                shownConfigError = true;
+                showActionableError(result.error?.message || '');
+              }
             }
+          } catch {
+            failedCount++;
+          } finally {
+            pairMeasureInFlightRef.current.delete(p.pair_id);
+            setTracking((prev) => {
+              const next = new Set(prev);
+              next.delete(p.pair_id);
+              return next;
+            });
+            setMeasureAllProgress((prog) =>
+              prog
+                ? { ...prog, done: Math.min(prog.done + 1, prog.total) }
+                : { done: i + 1, total, startedAt: Date.now() }
+            );
           }
-        } catch {
-          failedCount++;
-        } finally {
-          pairMeasureInFlightRef.current.delete(p.pair_id);
-          setTracking((prev) => {
-            const next = new Set(prev);
-            next.delete(p.pair_id);
-            return next;
-          });
-          setMeasureAllProgress((prog) =>
-            prog
-              ? { ...prog, done: Math.min(prog.done + 1, prog.total) }
-              : { done: i + 1, total, startedAt: Date.now() }
-          );
-        }
+        });
       }
 
       if (failedCount > 0) {

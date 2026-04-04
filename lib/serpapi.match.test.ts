@@ -1,17 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { matchUrlInResults, type OrganicResult } from './serpapi';
 
-describe('matchUrlInResults (domain root only)', () => {
-  it('returns first result in order with same extractDomain as target URL path', () => {
+describe('matchUrlInResults (domain root + path preference)', () => {
+  it('for a full URL, picks a path-compatible row over an earlier same-domain row', () => {
     const target = 'https://www.example.com/pricing';
     const rows: OrganicResult[] = [
       { position: 1, link: 'https://competitor.com/' },
       { position: 2, link: 'https://blog.example.com/article' },
-      { position: 3, link: 'https://example.com/' },
+      { position: 3, link: 'https://example.com/pricing' },
     ];
     const m = matchUrlInResults(target, rows);
-    expect(m.position).toBe(2);
-    expect(m.matchedUrl).toBe('https://blog.example.com/article');
+    expect(m.position).toBe(3);
+    expect(m.matchedUrl).toContain('example.com');
     expect(m.matchType).toBe('domain');
   });
 

@@ -170,26 +170,94 @@ export function normalizeUrl(url: string): string {
 }
 
 /**
- * Extracts the registrable-style host (last two labels): hostname without leading www., subdomains stripped.
- * Used for SERP matching: roots must be equal, so example.com and example.fr never match.
+ * Multi-label public suffixes: taking only the last two hostname labels would collapse
+ * different sites to the same "root" (e.g. foo.co.uk and bar.co.uk → both "co.uk").
+ */
+const MULTI_LABEL_PUBLIC_SUFFIXES = new Set([
+  'co.uk',
+  'gov.uk',
+  'ac.uk',
+  'ltd.uk',
+  'plc.uk',
+  'net.uk',
+  'org.uk',
+  'sch.uk',
+  'nhs.uk',
+  'com.au',
+  'net.au',
+  'org.au',
+  'edu.au',
+  'gov.au',
+  'asn.au',
+  'co.jp',
+  'ne.jp',
+  'or.jp',
+  'go.jp',
+  'ac.jp',
+  'ed.jp',
+  'co.kr',
+  'ne.kr',
+  'or.kr',
+  're.kr',
+  'pe.kr',
+  'co.nz',
+  'net.nz',
+  'org.nz',
+  'govt.nz',
+  'ac.nz',
+  'school.nz',
+  'co.za',
+  'net.za',
+  'org.za',
+  'gov.za',
+  'ac.za',
+  'com.br',
+  'net.br',
+  'org.br',
+  'gov.br',
+  'edu.br',
+  'com.mx',
+  'org.mx',
+  'gob.mx',
+  'edu.mx',
+  'com.ar',
+  'com.tr',
+  'com.co',
+  'co.in',
+  'com.cn',
+  'com.tw',
+  'com.hk',
+  'com.sg',
+  'co.id',
+  'com.my',
+  'com.ph',
+  'com.vn',
+  'com.pl',
+  'co.it',
+  'gov.it',
+  'edu.it',
+]);
+
+/**
+ * Extracts registrable-style host (subdomains stripped). Uses common multi-part TLD rules
+ * so foo.co.uk ≠ bar.co.uk (unlike naive "last two labels" only).
  * Examples:
  * - "https://fr.outscale.com" → "outscale.com"
- * - "https://blog.outscale.com" → "outscale.com"
- * - "https://www.google.com" → "google.com"
  * - "https://shop.example.fr" → "example.fr"
+ * - "https://www.bbc.co.uk" → "bbc.co.uk"
  */
 export function extractDomain(url: string): string {
   try {
     // Clean up the URL first
     let cleanUrl = url.trim();
-    
+
     // Remove trailing slash if no protocol
     if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
       cleanUrl = cleanUrl.replace(/\/$/, '');
     }
-    
+
     let urlObj: URL;
-    
+
     if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
       urlObj = new URL('https://' + cleanUrl);
     } else {
@@ -197,30 +265,47 @@ export function extractDomain(url: string): string {
     }
 
     let hostname = urlObj.hostname.toLowerCase();
-    
-    // Remove www. prefix
+
     if (hostname.startsWith('www.')) {
       hostname = hostname.substring(4);
     }
 
-    // Extract root domain (remove subdomains)
-    // Split by dots and take last 2 parts (domain.tld)
     const parts = hostname.split('.');
-    
-    // Handle edge cases
-    if (parts.length <= 2) {
-      // Already a root domain (e.g., "google.com", "localhost")
+    if (parts.length < 2) {
       return hostname;
     }
-    
-    // For subdomains (e.g., "fr.outscale.com" → "outscale.com")
-    // Take last 2 parts
-    const rootDomain = parts.slice(-2).join('.');
-    
-    return rootDomain;
+
+    const last2 = parts.slice(-2).join('.').toLowerCase();
+    if (parts.length >= 3 && MULTI_LABEL_PUBLIC_SUFFIXES.has(last2)) {
+      return parts.slice(-3).join('.');
+    }
+
+    if (parts.length === 2) {
+      return hostname;
+    }
+
+    return parts.slice(-2).join('.');
   } catch (error) {
     console.error('extractDomain error for URL:', url, error);
     return '';
+  }
+}
+
+/**
+ * Same host (per extractDomain) and URL path comparable after normalizeUrl (exact or prefix).
+ * Used to prefer the correct organic row when several results share a domain.
+ */
+export function urlsPathCompatibleForTracking(targetUrl: string, resultUrl: string): boolean {
+  try {
+    const norm = (raw: string) => normalizeUrl(raw).toLowerCase().replace(/\/+$/, '');
+    const a = norm(targetUrl);
+    const b = norm(resultUrl);
+    if (!a || !b) return false;
+    if (a === b) return true;
+    if (b.startsWith(`${a}/`) || a.startsWith(`${b}/`)) return true;
+    return false;
+  } catch {
+    return false;
   }
 }
 
