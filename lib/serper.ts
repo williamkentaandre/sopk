@@ -162,7 +162,7 @@ export async function fetchSerperCredits(apiKey: string): Promise<number | null>
         method: 'GET',
         headers: {
           'X-API-KEY': key,
-          'User-Agent': 'SEO-Ranker/1.0 (https://serper.dev)',
+          'User-Agent': 'RankingForce/1.0 (https://rankingforce.com)',
           Accept: 'application/json',
         },
       });
@@ -197,7 +197,7 @@ async function postSerperSearch(
     headers: {
       'Content-Type': 'application/json',
       'X-API-KEY': apiKey,
-      'User-Agent': 'SEO-Ranker/1.0 (https://serper.dev)',
+      'User-Agent': 'RankingForce/1.0 (https://rankingforce.com)',
     },
     body: JSON.stringify(body),
     signal: controller.signal,

@@ -54,7 +54,7 @@ function LoginForm() {
     <div className="auth-page">
       <div className="auth-card">
         <h1>{t('auth.login')}</h1>
-        <p>SEO Ranker - {t('auth.tagline')}</p>
+        <p>Ranking Force - {t('auth.tagline')}</p>
         {paymentSuccess && (
           <div className="auth-success">{t('auth.paymentSuccess')}</div>
         )}

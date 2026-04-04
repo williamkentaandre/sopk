@@ -1,4 +1,4 @@
-# SEO Ranker - Suivi de positions Google
+# Ranking Force - Suivi de positions Google (rankingforce.com)
 
 Mini web app de suivi de positions Google par couple **mot-clé / URL** avec export Excel/CSV horizontal.
 

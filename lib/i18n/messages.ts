@@ -68,7 +68,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'landing.footer.signup': 'Create account',
 
     // Dashboard
-    'dashboard.title': 'SEO Ranker',
+    'dashboard.title': 'Ranking Force',
     'dashboard.subtitle': 'Google rank tracking by keyword / URL pair',
     'dashboard.settingsKey': '→ Configure my search key (Serper, free tier)',
     'dashboard.settings': 'Settings',
@@ -307,7 +307,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     // Payment
     'payment.required.title': 'Payment required',
     'payment.required.hello': 'Hello',
-    'payment.required.desc': 'To use SEO Ranker, complete a one-time payment.',
+    'payment.required.desc': 'To use Ranking Force, complete a one-time payment.',
     'payment.required.button': 'Pay and access the app',
     'payment.required.redirecting': 'Redirecting...',
     'payment.required.back': 'Back',
@@ -424,7 +424,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'landing.footer.login': 'Connexion',
     'landing.footer.signup': 'Créer un compte',
 
-    'dashboard.title': 'SEO Ranker',
+    'dashboard.title': 'Ranking Force',
     'dashboard.subtitle': 'Suivi de positions Google par couple mot-clé / URL',
     'dashboard.settingsKey': '→ Configurer ma clé de recherche (Serper, gratuit au départ)',
     'dashboard.settings': 'Paramètres',
@@ -663,7 +663,7 @@ export const messages: Record<Locale, Record<string, string>> = {
 
     'payment.required.title': 'Paiement requis',
     'payment.required.hello': 'Bonjour',
-    'payment.required.desc': 'Pour utiliser SEO Ranker, effectuez un paiement unique.',
+    'payment.required.desc': 'Pour utiliser Ranking Force, effectuez un paiement unique.',
     'payment.required.button': 'Payer et accéder à l\'app',
     'payment.required.redirecting': 'Redirection...',
     'payment.required.back': 'Retour',

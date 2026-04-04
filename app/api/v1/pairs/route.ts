@@ -120,3 +120,27 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+/** Delete every pair (and cascaded history) for the current user. Lives here — not under `pairs/delete-all` — so Next never treats `delete-all` as a `[pairId]`. */
+export async function DELETE(_request: NextRequest) {
+  const user = await getCurrentUser(_request);
+  if (!user) {
+    return NextResponse.json({ error: { code: 401, message: 'Non connecté' } }, { status: 401 });
+  }
+
+  try {
+    const result = await prisma.pair.deleteMany({
+      where: { userId: user.id },
+    });
+    return NextResponse.json({
+      success: true,
+      deleted: result.count,
+    });
+  } catch (e) {
+    console.error('DELETE /api/v1/pairs (delete all):', e);
+    return NextResponse.json(
+      { error: { code: 500, message: 'Impossible de supprimer les couples. Réessayez.' } },
+      { status: 500 }
+    );
+  }
+}

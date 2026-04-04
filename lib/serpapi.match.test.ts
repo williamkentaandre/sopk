@@ -43,9 +43,9 @@ describe('matchUrlInResults (domain root + path preference)', () => {
   it('matches when TLD matches (nike.fr target, nike.fr in SERP)', () => {
     const m = matchUrlInResults('nike.fr', [
       { position: 1, link: 'https://competitor.example/' },
-      { position: 7, link: 'https://www.nike.fr/fr/' },
+      { position: 2, link: 'https://www.nike.fr/fr/' },
     ]);
-    expect(m.position).toBe(7);
+    expect(m.position).toBe(2);
     expect(m.matchedUrl).toContain('nike.fr');
   });
 
@@ -58,19 +58,32 @@ describe('matchUrlInResults (domain root + path preference)', () => {
 
   it('resolves protocol-relative organic links when TLD matches', () => {
     const m = matchUrlInResults('nike.fr', [
-      { position: 4, link: '//www.nike.fr/fr/' },
+      { position: 1, link: '//www.nike.fr/fr/' },
     ]);
-    expect(m.position).toBe(4);
+    expect(m.position).toBe(1);
   });
 
   it('falls back to displayed_link when link is empty and TLD matches', () => {
     const m = matchUrlInResults('jules.fr', [
       {
-        position: 2,
+        position: 1,
         link: '',
         displayed_link: 'https://www.jules.fr › Chaussures',
       } as OrganicResult,
     ]);
-    expect(m.position).toBe(2);
+    expect(m.position).toBe(1);
+  });
+
+  it('uses list index for rank, not a misleading row.position from the API', () => {
+    const rows: OrganicResult[] = [
+      { position: 4, link: 'https://other.example/' },
+      { position: 4, link: 'https://a.example/' },
+      { position: 4, link: 'https://b.example/' },
+      { position: 4, link: 'https://www.amazon.com/dp/x' },
+      { position: 4, link: 'https://c.example/' },
+      { position: 4, link: 'https://www.chaussea.com/y' },
+    ];
+    expect(matchUrlInResults('amazon.com', rows).position).toBe(4);
+    expect(matchUrlInResults('chaussea.com', rows).position).toBe(6);
   });
 });

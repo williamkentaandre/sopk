@@ -1,4 +1,4 @@
-// SEO Ranker SaaS - Prisma schema
+// Ranking Force (rankingforce.com) - Prisma schema
 // PostgreSQL required for production (Vercel). Use Neon/Supabase/Vercel Postgres.
 
 generator client {

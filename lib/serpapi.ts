@@ -219,14 +219,18 @@ export function matchUrlInResults(targetUrl: string, organicResults: OrganicResu
 
   const targetIsDomainOnly = isDomain(targetUrl.trim());
 
+  /** Rank is always index in the merged organic list (1…n), never Serper's per-page `position` echo. */
+  const rankAt = (i: number) => i + 1;
+
   if (!targetIsDomainOnly) {
-    for (const result of organicResults) {
+    for (let i = 0; i < organicResults.length; i++) {
+      const result = organicResults[i]!;
       const resolved = extractOrganicLinkFromSerp(result as SerpOrganicRow);
       if (!resolved) continue;
       if (extractDomain(resolved) !== targetRoot) continue;
       if (urlsPathCompatibleForTracking(targetUrl, resolved)) {
         return {
-          position: result.position,
+          position: rankAt(i),
           matchedUrl: resolved,
           matchType: 'domain',
         };
@@ -234,13 +238,14 @@ export function matchUrlInResults(targetUrl: string, organicResults: OrganicResu
     }
   }
 
-  for (const result of organicResults) {
+  for (let i = 0; i < organicResults.length; i++) {
+    const result = organicResults[i]!;
     const resolved = extractOrganicLinkFromSerp(result as SerpOrganicRow);
     if (!resolved) continue;
     const resultRoot = extractDomain(resolved);
     if (resultRoot && targetRoot === resultRoot) {
       return {
-        position: result.position,
+        position: rankAt(i),
         matchedUrl: resolved,
         matchType: 'domain',
       };
@@ -281,7 +286,7 @@ export async function trackKeyword(
     const pageItems: SerpTrackDiagnosticItem[] = [];
     for (let i = 0; i < organic.length; i++) {
       const r = organic[i] as SerpOrganicRow;
-      const rank = r.position ?? i + 1;
+      const rank = i + 1;
       const resolved = extractOrganicLinkFromSerp(r);
       const resultRoot = resolved ? extractDomain(resolved) : '';
       pageItems.push({

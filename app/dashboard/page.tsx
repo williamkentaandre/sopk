@@ -429,13 +429,20 @@ export default function DashboardPage() {
 
   const mergeTrackApiResultIntoState = (
     pairId: string,
-    result: { checked_at?: string; position?: unknown; matched_url?: string | null }
+    result: {
+      pair_id?: string;
+      checked_at?: string;
+      position?: unknown;
+      matched_url?: string | null;
+    }
   ) => {
+    const effectivePairId =
+      typeof result.pair_id === 'string' && result.pair_id.trim() ? result.pair_id.trim() : pairId;
     const day = result.checked_at ? getParisDateString(result.checked_at) : null;
     const normalizedPos = normalizeMeasuredRank(result.position);
     setPairs((prev) =>
       prev.map((p) =>
-        p.pair_id === pairId
+        p.pair_id === effectivePairId
           ? {
               ...p,
               last_position: normalizedPos,
@@ -526,7 +533,15 @@ export default function DashboardPage() {
         setSettings({ hl: settingsData.hl ?? 'fr', gl: settingsData.gl ?? 'fr' });
         setHasSerpApiKey(!!settingsData.hasSerpApiKey);
         setSearchSettingsDone(!!(settingsData.hl && settingsData.gl));
-        setPairs(pairsData.items || []);
+        const rawItems = (pairsData.items || []) as Pair[];
+        const seenIds = new Set<string>();
+        setPairs(
+          rawItems.filter((p) => {
+            if (seenIds.has(p.pair_id)) return false;
+            seenIds.add(p.pair_id);
+            return true;
+          })
+        );
         if (creditsRes.ok) {
           const cd = await creditsRes.json().catch(() => ({}));
           if (typeof cd.credits === 'number' && Number.isFinite(cd.credits)) {
@@ -908,11 +923,15 @@ export default function DashboardPage() {
     if (!confirm(t('dashboard.confirm.deleteAllConfirm'))) return;
     try {
       setLoading(true);
-      const response = await fetch('/api/v1/pairs/delete-all', { method: 'DELETE' });
+      const response = await fetch('/api/v1/pairs', {
+        method: 'DELETE',
+        credentials: 'same-origin',
+      });
       if (response.ok) {
         const result = await response.json();
         showToast(`${result.deleted} ${t('dashboard.toast.pairsDeleted')}`, 'success');
         setPairs([]);
+        setSelectedPairIds(new Set());
       } else {
         const errorData = await response.json().catch(() => ({}));
         showToast(`${t('dashboard.toast.error')}: ${errorData.error?.message || t('dashboard.toast.unknownError')}`, 'error');
@@ -939,6 +958,7 @@ export default function DashboardPage() {
       try {
         const response = await fetch(`/api/v1/pairs/${pairId}/track`, {
           method: 'POST',
+          cache: 'no-store',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ hl: settings.hl, gl: settings.gl }),
         });
@@ -990,6 +1010,7 @@ export default function DashboardPage() {
           try {
             const response = await fetch(`/api/v1/pairs/${p.pair_id}/track`, {
               method: 'POST',
+              cache: 'no-store',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ hl: settings.hl, gl: settings.gl }),
             });

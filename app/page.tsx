@@ -15,7 +15,7 @@ export default function HomePage() {
         className="nav-with-lang-switcher"
         style={{ padding: '1.25rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 1100, margin: '0 auto' }}
       >
-        <span className="landing-brand">SEO Ranker</span>
+        <span className="landing-brand">Ranking Force</span>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <Link href="/login" className="landing-nav-link">
             {t('landing.nav.login')}
@@ -58,7 +58,7 @@ export default function HomePage() {
           >
             <iframe
               src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-              title="SEO Ranker demo video"
+              title="Ranking Force demo video"
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               referrerPolicy="strict-origin-when-cross-origin"

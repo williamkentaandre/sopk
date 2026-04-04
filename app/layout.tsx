@@ -12,7 +12,7 @@ const jakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'SEO Ranker - Suivi de positions Google',
+  title: 'Ranking Force - Suivi de positions Google',
   description: 'Outil minimal pour suivre le classement de vos mots-clés dans le temps. Simple, rapide, sans les coûts des suites SEO.',
 }
 

@@ -4,14 +4,14 @@ import { Resend } from 'resend';
  * Resend: onboarding@resend.dev can only send to YOUR Resend account email.
  * To send to any user (e.g. password reset, welcome), verify a domain in Resend
  * (Dashboard → Domains) then set RESEND_FROM_EMAIL in Vercel, e.g.:
- *   RESEND_FROM_EMAIL = "SEO Ranker <noreply@yourdomain.com>"
+ *   RESEND_FROM_EMAIL = "Ranking Force <noreply@rankingforce.com>"
  */
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'SEO Ranker <onboarding@resend.dev>';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Ranking Force <onboarding@resend.dev>';
 
 /**
  * Base URL for links in emails (reset password, welcome). Prefer APP_URL so
- * links always point to your production domain (e.g. https://googlerank.app).
+ * links always point to your production domain (e.g. https://rankingforce.com).
  * Set APP_URL in Vercel → Environment Variables.
  */
 function getBaseUrl(): string {
@@ -34,86 +34,86 @@ export type EmailLocale = 'en' | 'fr';
 
 const welcomeContent: Record<EmailLocale, { subject: string; html: (baseUrl: string) => string }> = {
   en: {
-    subject: 'Welcome to SEO Ranker',
+    subject: 'Welcome to Ranking Force',
     html: (baseUrl) => `
       <p>Your account has been created.</p>
       <p>Log in to complete your one-time payment and start tracking your keyword rankings:</p>
-      <p><a href="${baseUrl}/login">Log in to SEO Ranker</a></p>
-      <p>— SEO Ranker</p>
+      <p><a href="${baseUrl}/login">Log in to Ranking Force</a></p>
+      <p>— Ranking Force</p>
     `,
   },
   fr: {
-    subject: 'Bienvenue sur SEO Ranker',
+    subject: 'Bienvenue sur Ranking Force',
     html: (baseUrl) => `
       <p>Votre compte a été créé.</p>
       <p>Connectez-vous pour effectuer votre paiement unique et commencer à suivre vos positions :</p>
-      <p><a href="${baseUrl}/login">Se connecter à SEO Ranker</a></p>
-      <p>— SEO Ranker</p>
+      <p><a href="${baseUrl}/login">Se connecter à Ranking Force</a></p>
+      <p>— Ranking Force</p>
     `,
   },
 };
 
 const resetContent: Record<EmailLocale, { subject: string; html: (baseUrl: string, resetUrl: string) => string }> = {
   en: {
-    subject: 'Reset your password - SEO Ranker',
+    subject: 'Reset your password - Ranking Force',
     html: (baseUrl, resetUrl) => `
       <p>You requested a password reset.</p>
       <p>Click the link below to choose a new password (valid for 1 hour):</p>
       <p><a href="${resetUrl}">Reset my password</a></p>
       <p>If you didn't request this, you can ignore this email.</p>
-      <p>— SEO Ranker</p>
+      <p>— Ranking Force</p>
     `,
   },
   fr: {
-    subject: 'Réinitialisation de votre mot de passe - SEO Ranker',
+    subject: 'Réinitialisation de votre mot de passe - Ranking Force',
     html: (baseUrl, resetUrl) => `
       <p>Vous avez demandé une réinitialisation de mot de passe.</p>
       <p>Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe (valide 1 heure) :</p>
       <p><a href="${resetUrl}">Réinitialiser mon mot de passe</a></p>
       <p>Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.</p>
-      <p>— SEO Ranker</p>
+      <p>— Ranking Force</p>
     `,
   },
 };
 
 const verifyContent: Record<EmailLocale, { subject: string; html: (verifyUrl: string) => string }> = {
   en: {
-    subject: 'Verify your email - SEO Ranker',
+    subject: 'Verify your email - Ranking Force',
     html: (verifyUrl) => `
       <p>Confirm your email to secure your account.</p>
       <p><a href="${verifyUrl}">Verify my email</a></p>
       <p>This link is valid for 24 hours.</p>
-      <p>— SEO Ranker</p>
+      <p>— Ranking Force</p>
     `,
   },
   fr: {
-    subject: 'Vérifiez votre email - SEO Ranker',
+    subject: 'Vérifiez votre email - Ranking Force',
     html: (verifyUrl) => `
       <p>Confirmez votre email pour sécuriser votre compte.</p>
       <p><a href="${verifyUrl}">Vérifier mon email</a></p>
       <p>Ce lien est valide 24 heures.</p>
-      <p>— SEO Ranker</p>
+      <p>— Ranking Force</p>
     `,
   },
 };
 
 const changeEmailContent: Record<EmailLocale, { subject: string; html: (confirmUrl: string) => string }> = {
   en: {
-    subject: 'Confirm your new email - SEO Ranker',
+    subject: 'Confirm your new email - Ranking Force',
     html: (confirmUrl) => `
       <p>You requested to change your email.</p>
       <p><a href="${confirmUrl}">Confirm my new email</a></p>
       <p>This link is valid for 24 hours.</p>
-      <p>— SEO Ranker</p>
+      <p>— Ranking Force</p>
     `,
   },
   fr: {
-    subject: 'Confirmez votre nouvel email - SEO Ranker',
+    subject: 'Confirmez votre nouvel email - Ranking Force',
     html: (confirmUrl) => `
       <p>Vous avez demandé à changer votre email.</p>
       <p><a href="${confirmUrl}">Confirmer mon nouvel email</a></p>
       <p>Ce lien est valide 24 heures.</p>
-      <p>— SEO Ranker</p>
+      <p>— Ranking Force</p>
     `,
   },
 };
