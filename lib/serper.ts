@@ -1,6 +1,6 @@
 /**
  * Serper Google Search API — https://google.serper.dev/search
- * Callers typically set num=10 and page=1…10 to mirror Google pagination (top 100).
+ * Callers may use num=100 page=1 for a single top-100 snapshot, or num=10 with page=1…10 when capped.
  */
 
 export interface SerperGoogleSearchOptions {

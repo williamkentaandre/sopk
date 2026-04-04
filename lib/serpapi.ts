@@ -149,6 +149,8 @@ function mapSerperOrganicSequential(
 
 const SERPER_MAX_PAGES = 10;
 const SERPER_PAGE_SIZE = 10;
+/** When Serper honors this in one response, ranks 1…n come from a single SERP snapshot (no cross-request drift). */
+const SERPER_SINGLE_SHOT_NUM = 100;
 const SERPER_PAGE_DELAY_MS = 220;
 
 function sleep(ms: number): Promise<void> {
@@ -156,8 +158,8 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Walk Google SERP pages 1…10 (num=10 each). Ranks are sequential from 1 (never assume page 2 ⇒ rank 11).
- * Stops on empty page, duplicate of page 1 (broken pagination), or 100 rows.
+ * Prefer one request with `num=100` so positions 11+ share the same snapshot as 1–10.
+ * If Serper caps at 10 per response, fall back to pages 1…10 × num=10 (separate requests; less stable).
  */
 async function fetchSerperOrganicUpTo100(
   keyword: string,
@@ -169,19 +171,50 @@ async function fetchSerperOrganicUpTo100(
   pagesQueried: number;
   serperCreditsRemaining: number | null;
 }> {
-  let pagesQueried = 0;
-  const organic: OrganicResult[] = [];
   let serperCreditsRemaining: number | null = null;
 
-  for (let page = 1; page <= SERPER_MAX_PAGES; page++) {
-    if (page > 1) await sleep(SERPER_PAGE_DELAY_MS);
-    const r = await callSerperGoogleSearch(
-      { q: keyword, hl, gl, num: SERPER_PAGE_SIZE, page },
+  let rFirst: Awaited<ReturnType<typeof callSerperGoogleSearch>>;
+  try {
+    rFirst = await callSerperGoogleSearch(
+      { q: keyword, hl, gl, num: SERPER_SINGLE_SHOT_NUM, page: 1 },
       options
     );
-    pagesQueried += 1;
-    if (r.creditsRemaining != null) {
-      serperCreditsRemaining = r.creditsRemaining;
+  } catch {
+    rFirst = await callSerperGoogleSearch(
+      { q: keyword, hl, gl, num: SERPER_PAGE_SIZE, page: 1 },
+      options
+    );
+  }
+
+  let pagesQueried = 1;
+  if (rFirst.creditsRemaining != null) {
+    serperCreditsRemaining = rFirst.creditsRemaining;
+  }
+
+  const firstOrganic = rFirst.organic || [];
+  if (firstOrganic.length > SERPER_PAGE_SIZE) {
+    return {
+      organic: mapSerperOrganicSequential(firstOrganic, 1).slice(0, 100),
+      pagesQueried,
+      serperCreditsRemaining,
+    };
+  }
+
+  const organic: OrganicResult[] = [];
+  for (let page = 1; page <= SERPER_MAX_PAGES; page++) {
+    if (page > 1) await sleep(SERPER_PAGE_DELAY_MS);
+    const r =
+      page === 1
+        ? rFirst
+        : await callSerperGoogleSearch(
+            { q: keyword, hl, gl, num: SERPER_PAGE_SIZE, page },
+            options
+          );
+    if (page > 1) {
+      pagesQueried += 1;
+      if (r?.creditsRemaining != null) {
+        serperCreditsRemaining = r.creditsRemaining;
+      }
     }
     const startRank = organic.length + 1;
     const batch = mapSerperOrganicSequential(r.organic || [], startRank);
@@ -265,7 +298,8 @@ export type TrackKeywordResult = MatchResult & {
 };
 
 /**
- * Serper-backed: up to 10 HTTP calls (pages 1–10 × 10 results). Matching: extractDomain (strict TLD).
+ * Serper-backed: prefers one call with up to 100 organics; else up to 10 paginated calls.
+ * Matching: extractDomain (strict TLD).
  */
 export async function trackKeyword(
   keyword: string,
