@@ -1,10 +1,13 @@
 import { Resend } from 'resend';
 
 /**
- * Resend: onboarding@resend.dev can only send to YOUR Resend account email.
- * To send to any user (e.g. password reset, welcome), verify a domain in Resend
- * (Dashboard → Domains) then set RESEND_FROM_EMAIL in Vercel, e.g.:
- *   RESEND_FROM_EMAIL = "Ranking Force <noreply@rankingforce.com>"
+ * Resend: `onboarding@resend.dev` only delivers to the email on your Resend account.
+ * For real signups, verify your domain in Resend (Dashboard → Domains, add DNS records),
+ * then set RESEND_FROM_EMAIL to an address on that domain, e.g.:
+ *   RESEND_FROM_EMAIL = "Ranking Force <noreply@yourdomain.com>"
+ *
+ * After changing the site domain: add the new domain in Resend, wait for DNS verification,
+ * update RESEND_FROM_EMAIL and APP_URL / NEXTAUTH_URL on your host (e.g. Vercel).
  */
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Ranking Force <onboarding@resend.dev>';

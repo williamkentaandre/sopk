@@ -27,6 +27,7 @@ function SignupForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [verificationEmailSent, setVerificationEmailSent] = useState(true);
   const oauthErrorBanner = nextAuthGoogleErrorMessage(searchParams.get('error'), t);
 
   // Pré-remplir l'email : URL (?email=...) ou session (ex. déjà connecté avec Google)
@@ -53,6 +54,7 @@ function SignupForm() {
         setLoading(false);
         return;
       }
+      setVerificationEmailSent(data.verificationEmailSent !== false);
       setSent(true);
     } catch {
       setError(t('auth.errorNetwork'));
@@ -92,7 +94,18 @@ function SignupForm() {
         </div>
         {sent ? (
           <div className="auth-success">
-            {t('auth.verifyEmail.sent')}
+            {verificationEmailSent ? (
+              t('auth.verifyEmail.sent')
+            ) : (
+              <>
+                <p className="auth-error" role="alert" style={{ marginBottom: '0.75rem' }}>
+                  {t('auth.verifyEmail.sendFailed')}
+                </p>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                  {t('auth.verifyEmail.sendFailedHint')}
+                </p>
+              </>
+            )}
             <p style={{ marginTop: '0.75rem' }}>
               <Link href="/login">{t('auth.backToLogin')}</Link>
             </p>

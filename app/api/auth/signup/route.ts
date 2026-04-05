@@ -55,14 +55,16 @@ export async function POST(request: NextRequest) {
         expiresAt: new Date(Date.now() + TOKEN_EXPIRY_MS),
       },
     });
-    sendEmailVerificationEmail(user.email, rawToken, locale).catch((err) =>
-      console.error('[signup] Verification email failed:', err)
-    );
+    const emailResult = await sendEmailVerificationEmail(user.email, rawToken, locale);
+    if (!emailResult.ok) {
+      console.error('[signup] Verification email failed:', emailResult.error);
+    }
 
     return NextResponse.json({
       userId: user.id,
       email: user.email,
-      message: 'Verification email sent.',
+      message: emailResult.ok ? 'Verification email sent.' : 'Account created; verification email not sent.',
+      verificationEmailSent: emailResult.ok,
     });
   } catch (e) {
     console.error('Signup error:', e);

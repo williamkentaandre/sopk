@@ -28,7 +28,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'landing.pricing.price': '7 € per month',
     'landing.pricing.earlyAdopter':
       'Monthly access to the app. You connect your Serper API key to run searches (Serper has its own pricing, including a free quota).',
-    'landing.pricing.limit': 'Limit: up to 250 searches per month, enough for most users.',
+    'landing.pricing.limit':
+      'No search limit in the app. 2,500 searches are included when you sign up. If you ever need more, contact support—they’ll tell you what to do.',
     'landing.faq.title': 'FAQ',
     'landing.faq.q1': 'Where do the results come from?',
     'landing.faq.a1': 'Positions are provided by Serper. We use their API to run Google searches and return the same organic results you would see in a browser.',
@@ -64,19 +65,15 @@ export const messages: Record<Locale, Record<string, string>> = {
     'landing.preview.demo.dateLast': '05/04/26',
     'landing.preview.footer': 'Export CSV / Excel • Real Google results (Serper)',
     'landing.compare.title': 'How we compare',
-    'landing.compare.subtitle': 'Three types of alternatives exist. None offer real rank tracking at this price.',
+    'landing.compare.subtitle': 'Typical alternatives fall short. None offer real rank tracking at this price.',
     'landing.compare.big.title': 'All-in-one suites',
     'landing.compare.big.desc': 'Often expensive, with many features you don’t need. Overkill if you only want to track positions.',
     'landing.compare.gsc.title': 'Cheaper tools (Search Console only)',
     'landing.compare.gsc.desc': 'Your site only, data from Google Search Console: very limited. Only keywords visited by users who accepted cookies, approximate average position—not the real ranking—and you cannot track other domains.',
-    'landing.compare.api.title': 'Monthly services using a paid API',
-    'landing.compare.api.desc': 'They use a paid SERP API but charge a monthly fee on top. The total cost is higher.',
     'landing.compare.us.title': 'Us: cost-price, real positions',
     'landing.compare.us.desc': '7 €/month, real ranking positions, and a focused workflow. If you ever need higher volume, you can scale your usage without changing tools. No alternative currently offers this level of rank-tracking clarity at this price—except GSC-based tools, which provide approximate, cookie-dependent data and only for your own site.',
     'landing.compare.alts.title': 'Other market alternatives',
     'landing.compare.alts.desc': 'Some all-in-one tools are expensive and overloaded. Other low-cost options rely only on Google Search Console, limited to your own site and approximate data. Other services use paid APIs with monthly subscriptions, which increases the total cost.',
-    'landing.video.title': 'Quick demo',
-    'landing.video.subtitle': 'Short walkthrough of the workflow (placeholder video for now).',
     'landing.cta.title': 'Ready to track your rankings?',
     'landing.cta.subtitle': '7 €/month. Your Serper key. Real Google rankings.',
     'landing.footer.login': 'Log in',
@@ -328,6 +325,10 @@ export const messages: Record<Locale, Record<string, string>> = {
     'auth.oauthError.OAuthAccountNotLinked':
       'This Google account is not linked to an existing account. Sign in with the method you used when you registered, or create a new account.',
     'auth.verifyEmail.sent': 'We sent you a verification email. Click the link to continue.',
+    'auth.verifyEmail.sendFailed':
+      'Your account was created, but the verification email could not be sent (sending is likely misconfigured).',
+    'auth.verifyEmail.sendFailedHint':
+      'On the login page, use “Resend verification email” after signing in, or check spam. If you run the app: after a domain change, verify the new domain in Resend (DNS), set RESEND_FROM_EMAIL to an address on that domain, and ensure RESEND_API_KEY and APP_URL are set.',
 
     // Payment
     'payment.required.title': 'Payment required',
@@ -410,7 +411,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'landing.pricing.price': '7 € par mois',
     'landing.pricing.earlyAdopter':
       'Accès mensuel à l’app. Tu branches ta clé API Serper pour lancer les recherches (Serper a son propre tarif, avec un quota gratuit possible).',
-    'landing.pricing.limit': 'Limite : jusqu’à 250 recherches par mois, largement suffisant pour la plupart des personnes.',
+    'landing.pricing.limit':
+      'Aucune limite de recherches dans l’app. 2 500 recherches sont offertes dès l’inscription. Dans les rares cas où il en faut plus, contacte le support : on t’indiquera la marche à suivre.',
     'landing.faq.title': 'FAQ',
     'landing.faq.q1': 'D\'où viennent les résultats ?',
     'landing.faq.a1': 'Les positions viennent de Serper. On utilise leur API pour exécuter des recherches Google et récupérer les mêmes résultats organiques que dans un navigateur.',
@@ -446,19 +448,15 @@ export const messages: Record<Locale, Record<string, string>> = {
     'landing.preview.demo.dateLast': '05/04/26',
     'landing.preview.footer': 'Export CSV / Excel • Résultats Google réels (Serper)',
     'landing.compare.title': 'Comparaison avec les alternatives',
-    'landing.compare.subtitle': 'Trois types d’alternatives existent. Aucune ne propose un suivi de positions réel à ce tarif.',
+    'landing.compare.subtitle': 'Les alternatives courantes ne suffisent pas. Aucune ne propose un suivi de positions réel à ce tarif.',
     'landing.compare.big.title': 'Suites tout-en-un',
     'landing.compare.big.desc': 'Souvent chères, avec plein de fonctionnalités dont tu n’as pas besoin. Surdimensionné si tu veux seulement suivre des positions.',
     'landing.compare.gsc.title': 'Outils moins chers (Search Console uniquement)',
     'landing.compare.gsc.desc': 'Ton site uniquement, données via Google Search Console : très limité. Uniquement les mots-clés visités par des utilisateurs ayant accepté les cookies, position moyenne approximative — pas le classement concret — et impossible de suivre d’autres domaines.',
-    'landing.compare.api.title': 'Services mensuels qui utilisent une API payante',
-    'landing.compare.api.desc': 'Ils utilisent une API SERP payante mais facturent un abonnement en plus. Le coût total est plus élevé.',
     'landing.compare.us.title': 'Nous : au coûtant, positions réelles',
-    'landing.compare.us.desc': 'Prix unique, positions réelles, et workflow ultra focalisé. Si tu as un jour besoin de plus de volume, tu peux augmenter l’usage sans changer d’outil. Aucune alternative ne propose aujourd’hui ce niveau de clarté de suivi de positions à ce prix — à part celles basées sur Search Console, qui donnent des données approximatives, dépendantes des cookies, et uniquement pour ton site.',
+    'landing.compare.us.desc': '7 €/mois, positions réelles, et workflow ultra focalisé. Si tu as un jour besoin de plus de volume, tu peux augmenter l’usage sans changer d’outil. Aucune alternative ne propose aujourd’hui ce niveau de clarté de suivi de positions à ce prix — à part celles basées sur Search Console, qui donnent des données approximatives, dépendantes des cookies, et uniquement pour ton site.',
     'landing.compare.alts.title': 'Autres alternatives du marché',
     'landing.compare.alts.desc': 'Certaines suites tout-en-un sont chères et surchargées. D’autres options moins chères reposent uniquement sur Google Search Console, limité à ton site et à des données approximatives. D’autres services utilisent des API payantes avec abonnement mensuel, ce qui augmente le coût total.',
-    'landing.video.title': 'Démo rapide',
-    'landing.video.subtitle': 'Petite démonstration du workflow (vidéo temporaire pour le moment).',
     'landing.cta.title': 'Prêt à suivre vos positions ?',
     'landing.cta.subtitle': '7 €/mois. Ta clé Serper. Positions Google réelles.',
     'landing.footer.login': 'Connexion',
@@ -711,6 +709,10 @@ export const messages: Record<Locale, Record<string, string>> = {
     'auth.oauthError.OAuthAccountNotLinked':
       'Ce compte Google n’est pas lié à un compte existant. Connecte-toi avec la méthode utilisée à l’inscription, ou crée un compte.',
     'auth.verifyEmail.sent': "Nous t'avons envoyé un email de vérification. Clique sur le lien pour continuer.",
+    'auth.verifyEmail.sendFailed':
+      'Ton compte est créé, mais l’email de vérification n’a pas pu être envoyé (configuration d’envoi probablement incorrecte).',
+    'auth.verifyEmail.sendFailedHint':
+      'Sur la page de connexion, utilise « Renvoyer l’email de vérification » après t’être connecté, ou vérifie les courriers indésirables. Si tu gères l’app : après un changement de domaine, vérifie le nouveau domaine dans Resend (DNS), mets RESEND_FROM_EMAIL sur une adresse de ce domaine, et vérifie RESEND_API_KEY et APP_URL.',
 
     'payment.required.title': 'Paiement requis',
     'payment.required.hello': 'Bonjour',

@@ -41,33 +41,6 @@ export default function HomePage() {
         </Link>
       </section>
 
-      <section className="landing-section landing-section--alt">
-        <div style={{ maxWidth: 820, margin: '0 auto' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, textAlign: 'center', marginBottom: '0.5rem' }}>{t('landing.video.title')}</h2>
-          <p style={{ fontSize: '0.95rem', textAlign: 'center', marginBottom: '1.5rem' }}>{t('landing.video.subtitle')}</p>
-          <div
-            style={{
-              position: 'relative',
-              width: '100%',
-              paddingBottom: '56.25%',
-              borderRadius: 12,
-              overflow: 'hidden',
-              border: '1px solid var(--border)',
-              boxShadow: 'var(--shadow-md)',
-            }}
-          >
-            <iframe
-              src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-              title="Ranking Force demo video"
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-            />
-          </div>
-        </div>
-      </section>
-
       <section className="landing-section landing-section--deep">
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, textAlign: 'center', marginBottom: '2.5rem' }}>{t('landing.how.title')}</h2>
@@ -145,10 +118,6 @@ export default function HomePage() {
               <div className="landing-compare-bad-divider">
                 <h3>{t('landing.compare.gsc.title')}</h3>
                 <p>{t('landing.compare.gsc.desc')}</p>
-              </div>
-              <div style={{ paddingTop: '1.25rem', borderTop: '1px solid rgba(248, 113, 113, 0.2)' }}>
-                <h3>{t('landing.compare.api.title')}</h3>
-                <p>{t('landing.compare.api.desc')}</p>
               </div>
             </div>
             <div className="landing-compare-good" style={{ display: 'flex', flexDirection: 'column' }}>
