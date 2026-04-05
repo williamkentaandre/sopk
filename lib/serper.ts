@@ -21,6 +21,8 @@ export interface SerperOrganicItem {
   link: string;
   snippet?: string;
   position?: number;
+  /** Canonical / display URL on some Serper payloads */
+  cite?: string;
 }
 
 export interface SerperSearchResponse {

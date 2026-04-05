@@ -15,6 +15,23 @@ describe('matchUrlInResults (domain root + path preference)', () => {
     expect(m.matchType).toBe('domain');
   });
 
+  it('unwraps google.fr /url?url=… so the real nike.com path matches', () => {
+    const wrapped =
+      'https://www.google.fr/url?sa=t&url=' +
+      encodeURIComponent(
+        'https://www.nike.com/fr/w/vert-chaussures-bdkazy7ok'
+      );
+    const m = matchUrlInResults(
+      'https://www.nike.com/fr/w/vert-chaussures-bdkazy7ok',
+      [
+        { position: 1, link: 'https://competitor.example/' },
+        { position: 4, link: wrapped },
+      ]
+    );
+    expect(m.position).toBe(2);
+    expect(m.matchedUrl).toContain('nike.com/fr/w/vert-chaussures');
+  });
+
   it('for a full URL, does not fall back to homepage on same domain (waits for path match)', () => {
     const target = 'https://www.spartoo.com/chaussures-femmes-orange.html';
     const rows: OrganicResult[] = [

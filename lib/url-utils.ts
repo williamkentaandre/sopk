@@ -7,42 +7,88 @@
  * - Remove tracking params (utm_*)
  * - Remove anchor/hash
  */
+const isAbsoluteHttpUrl = (s: string) => /^https?:\/\//i.test(s);
+
+function decodeQueryValue(v: string): string {
+  try {
+    return decodeURIComponent(v.replace(/\+/g, ' '));
+  } catch {
+    return v;
+  }
+}
+
+/** Inner destination should not be another Google SERP (avoid bad unwrapping). */
+function isSkippableGoogleInnerDest(urlStr: string): boolean {
+  try {
+    const u = new URL(urlStr);
+    const h = u.hostname.toLowerCase();
+    if (!h.includes('google.')) return false;
+    const p = (u.pathname || '').toLowerCase();
+    return p.includes('/search') || p === '/' || p === '';
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Resolves Google's redirect wrapper (organic links often use the google.com/url?q=... form).
- * Without this, domain/URL matching compares "google.com" to the user's site and always fails.
+ * One layer: Google often wraps organic targets as `.../url?url=https%3A%2F%2F...` (param `url`)
+ * or `?q=https://...`. Regional hosts (`google.fr`, etc.) use the same pattern.
  */
-export function unwrapSerpResultLink(link: string): string {
-  const trimmed = (link || '').trim();
+function unwrapGoogleUrlLayer(trimmed: string): string {
   if (!trimmed) return trimmed;
   try {
-    const u = new URL(trimmed);
+    const u = new URL(trimmed.startsWith('//') ? 'https:' + trimmed : trimmed);
     const host = u.hostname.toLowerCase();
     if (!host.includes('google.')) return trimmed;
-    const path = u.pathname.replace(/\/$/, '') || '/';
-    if (path !== '/url') return trimmed;
-    const qRaw = u.searchParams.get('q');
-    if (qRaw) {
-      let q = qRaw;
-      try {
-        q = decodeURIComponent(qRaw.replace(/\+/g, ' '));
-      } catch {
-        /* keep qRaw */
+
+    const path = (u.pathname || '/').replace(/\/+$/, '') || '/';
+    const onUrlPath = path === '/url' || path.endsWith('/url');
+
+    const paramKeysPriority = ['q', 'url', 'adurl', 'u', 'rurl', 'dest', 'target'];
+
+    const tryValue = (raw: string | null): string | null => {
+      if (!raw) return null;
+      const d = decodeQueryValue(raw);
+      if (!isAbsoluteHttpUrl(d)) return null;
+      if (isSkippableGoogleInnerDest(d)) return null;
+      return d;
+    };
+
+    if (onUrlPath) {
+      for (const key of paramKeysPriority) {
+        const inner = tryValue(u.searchParams.get(key));
+        if (inner) return inner;
       }
-      if (/^https?:\/\//i.test(q)) return q;
     }
-    const urlParam = u.searchParams.get('url');
-    if (urlParam) {
-      try {
-        const decoded = decodeURIComponent(urlParam.replace(/\+/g, ' '));
-        if (/^https?:\/\//i.test(decoded)) return decoded;
-      } catch {
-        if (/^https?:\/\//i.test(urlParam)) return urlParam;
-      }
+
+    for (const key of paramKeysPriority) {
+      const inner = tryValue(u.searchParams.get(key));
+      if (inner) return inner;
+    }
+
+    for (const v of u.searchParams.values()) {
+      if (!v || v.length < 14) continue;
+      const inner = tryValue(v);
+      if (inner) return inner;
     }
   } catch {
     // ignore
   }
   return trimmed;
+}
+
+/**
+ * Resolves Google's redirect wrapper(s). Chains unwrapping — some SERPs nest redirects.
+ */
+export function unwrapSerpResultLink(link: string): string {
+  let s = (link || '').trim();
+  if (!s) return s;
+  for (let i = 0; i < 12; i++) {
+    const next = unwrapGoogleUrlLayer(s);
+    if (next === s) break;
+    s = next;
+  }
+  return s;
 }
 
 /**
@@ -53,8 +99,12 @@ export function resolveSerpResultDestination(raw: string): string {
   let s = (raw || '').trim();
   if (!s) return '';
   if (s.startsWith('//')) s = 'https:' + s;
-  s = unwrapSerpResultLink(s);
-  s = unwrapAmpCacheLink(s);
+  for (let i = 0; i < 12; i++) {
+    const before = s;
+    s = unwrapSerpResultLink(s);
+    s = unwrapAmpCacheLink(s);
+    if (s === before) break;
+  }
   return s;
 }
 
@@ -317,6 +367,24 @@ export function trackingTargetUrlHasNonRootPath(targetUrl: string): boolean {
   }
 }
 
+/** Host + pathname only (no query), lowercase, strip trailing slash on path — stable for SERP vs user URL. */
+function hostPathKeyForTracking(raw: string): string {
+  try {
+    let clean = (raw || '').trim();
+    if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+      clean = 'https://' + clean;
+    }
+    const u = new URL(clean);
+    let h = u.hostname.toLowerCase();
+    if (h.startsWith('www.')) h = h.slice(4);
+    let p = u.pathname;
+    if (p.endsWith('/') && p.length > 1) p = p.slice(0, -1);
+    return (h + p).toLowerCase();
+  } catch {
+    return '';
+  }
+}
+
 export function urlsPathCompatibleForTracking(targetUrl: string, resultUrl: string): boolean {
   try {
     const norm = (raw: string) => normalizeUrl(raw).toLowerCase().replace(/\/+$/, '');
@@ -328,6 +396,16 @@ export function urlsPathCompatibleForTracking(targetUrl: string, resultUrl: stri
     const pathB = normalizedHasNonRootPath(b);
     if (pathA && !pathB) return false;
     if (b.startsWith(`${a}/`) || a.startsWith(`${b}/`)) return true;
+
+    const hkA = hostPathKeyForTracking(targetUrl);
+    const hkB = hostPathKeyForTracking(resultUrl);
+    if (hkA && hkB) {
+      if (hkA === hkB) return true;
+      const hkPathA = normalizedHasNonRootPath(hkA);
+      const hkPathB = normalizedHasNonRootPath(hkB);
+      if (hkPathA && !hkPathB) return false;
+      if (hkB.startsWith(`${hkA}/`) || hkA.startsWith(`${hkB}/`)) return true;
+    }
     return false;
   } catch {
     return false;

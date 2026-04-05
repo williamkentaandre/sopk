@@ -107,6 +107,8 @@ export function googleDomainForGl(gl: string): string {
 
 type SerpOrganicRow = OrganicResult & {
   url?: string;
+  /** Serper sometimes echoes a canonical URL here */
+  cite?: string;
   displayed_link?: string;
   about_this_result?: { source?: { source_info_link?: string } };
 };
@@ -117,6 +119,7 @@ function extractOrganicLinkFromSerp(result: SerpOrganicRow): string {
     row.link,
     row.redirect_link,
     row.url,
+    row.cite,
     row.about_this_result?.source?.source_info_link,
   ];
   for (const raw of candidates) {
