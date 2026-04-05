@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { extractDomain, urlsPathCompatibleForTracking } from './url-utils';
+import {
+  extractDomain,
+  retailLocaleKeyFromHlGl,
+  urlsPathCompatibleForTracking,
+} from './url-utils';
 
 describe('extractDomain (multi-part TLD)', () => {
   it('does not collapse different .co.uk sites to co.uk', () => {
@@ -10,6 +14,17 @@ describe('extractDomain (multi-part TLD)', () => {
 
   it('still maps subdomains to same registrable .com', () => {
     expect(extractDomain('https://blog.example.com')).toBe('example.com');
+  });
+});
+
+describe('retailLocaleKeyFromHlGl', () => {
+  it('prefers gl over hl', () => {
+    expect(retailLocaleKeyFromHlGl('de', 'fr')).toBe('de');
+  });
+
+  it('falls back to hl language subtag', () => {
+    expect(retailLocaleKeyFromHlGl('', 'fr')).toBe('fr');
+    expect(retailLocaleKeyFromHlGl('', 'fr-FR')).toBe('fr');
   });
 });
 

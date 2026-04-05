@@ -335,6 +335,18 @@ export function urlsPathCompatibleForTracking(targetUrl: string, resultUrl: stri
 }
 
 /**
+ * ISO-ish locale key for retail domain aliasing: prefer `gl`, else first language tag segment of `hl`
+ * (e.g. `fr`, `fr-FR` → `fr`) so `nike.com` can match `nike.fr` even when `gl` is missing in the request.
+ */
+export function retailLocaleKeyFromHlGl(gl: string, hl: string): string {
+  const g = (gl || '').trim().toLowerCase();
+  if (g) return g.split(/[-_]/)[0]!;
+  const h = (hl || '').trim().toLowerCase();
+  const m = h.match(/^([a-z]{2})(?:[-_]|$)/);
+  return m?.[1] ?? '';
+}
+
+/**
  * For domain-only tracking: user entered `brand.com` but the localized SERP lists `brand.fr`
  * (same second-level label, gl-appropriate ccTLD). Does not match the reverse (amazon.fr vs amazon.com).
  */
@@ -386,6 +398,41 @@ export function registrableComMatchesLocaleCcTld(
   if (tp[1] !== 'com') return false;
   if (rp[1] !== want) return false;
   return true;
+}
+
+/**
+ * `brand.com` tracked, localized SERP shows `brand.fr`, `brand.co.uk`, `brand.co.jp`, etc.
+ * `localeKey` is from {@link retailLocaleKeyFromHlGl}.
+ */
+export function retailComTargetMatchesSerpDomain(
+  targetRoot: string,
+  resultRoot: string,
+  localeKey: string
+): boolean {
+  const k = (localeKey || '').trim().toLowerCase();
+  if (!k) return false;
+  if (registrableComMatchesLocaleCcTld(targetRoot, resultRoot, k)) return true;
+
+  const t = targetRoot.toLowerCase();
+  const r = resultRoot.toLowerCase();
+  const m = /^([a-z0-9-]+)\.com$/i.exec(t);
+  if (!m) return false;
+  const brand = m[1]!;
+  if (!brand || brand.includes('.')) return false;
+
+  const multiSuffix: Record<string, string> = {
+    gb: '.co.uk',
+    uk: '.co.uk',
+    au: '.com.au',
+    jp: '.co.jp',
+    kr: '.co.kr',
+    nz: '.co.nz',
+    in: '.co.in',
+    br: '.com.br',
+    mx: '.com.mx',
+  };
+  const suf = multiSuffix[k];
+  return suf ? r === `${brand}${suf}` : false;
 }
 
 /**

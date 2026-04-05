@@ -3,7 +3,8 @@ import {
   extractUrlFromDisplayedLink,
   resolveSerpResultDestination,
   isDomain,
-  registrableComMatchesLocaleCcTld,
+  retailComTargetMatchesSerpDomain,
+  retailLocaleKeyFromHlGl,
   trackingTargetUrlHasNonRootPath,
   urlsPathCompatibleForTracking,
 } from './url-utils';
@@ -249,12 +250,12 @@ async function fetchSerperOrganicUpTo100(
  * Domain match on extractDomain() roots (TLD-safe for co.uk, com.au, etc.).
  * For full URLs (not domain-only input), only rows with a path-compatible URL count — no fallback
  * to “first URL on this domain” (homepage would steal the rank from a deep product URL).
- * For domain-only tracking, optional `gl` maps `brand.com` to the same brand’s local ccTLD (e.g. nike.fr).
+ * For domain-only tracking, `gl` / `hl` map `brand.com` to localized retail hosts (e.g. nike.fr, nike.co.uk).
  */
 export function matchUrlInResults(
   targetUrl: string,
   organicResults: OrganicResult[],
-  options?: { gl?: string }
+  options?: { gl?: string; hl?: string }
 ): MatchResult {
   const targetRoot = extractDomain(targetUrl);
   if (!targetRoot) {
@@ -262,7 +263,10 @@ export function matchUrlInResults(
   }
 
   const targetIsDomainOnly = isDomain(targetUrl.trim());
-  const gl = options?.gl ?? '';
+  const localeKey = retailLocaleKeyFromHlGl(
+    options?.gl ?? '',
+    options?.hl ?? ''
+  );
 
   /** Rank is always index in the merged organic list (1…n), never Serper's per-page `position` echo. */
   const rankAt = (i: number) => i + 1;
@@ -296,7 +300,7 @@ export function matchUrlInResults(
           };
         }
       }
-      if (gl) {
+      if (localeKey) {
         for (let i = 0; i < organicResults.length; i++) {
           const result = organicResults[i]!;
           const resolved = extractOrganicLinkFromSerp(result as SerpOrganicRow);
@@ -304,7 +308,7 @@ export function matchUrlInResults(
           const resultRoot = extractDomain(resolved);
           if (
             resultRoot &&
-            registrableComMatchesLocaleCcTld(targetRoot, resultRoot, gl)
+            retailComTargetMatchesSerpDomain(targetRoot, resultRoot, localeKey)
           ) {
             return {
               position: rankAt(i),
@@ -332,7 +336,7 @@ export function matchUrlInResults(
     }
   }
 
-  if (gl) {
+  if (localeKey) {
     for (let i = 0; i < organicResults.length; i++) {
       const result = organicResults[i]!;
       const resolved = extractOrganicLinkFromSerp(result as SerpOrganicRow);
@@ -340,7 +344,7 @@ export function matchUrlInResults(
       const resultRoot = extractDomain(resolved);
       if (
         resultRoot &&
-        registrableComMatchesLocaleCcTld(targetRoot, resultRoot, gl)
+        retailComTargetMatchesSerpDomain(targetRoot, resultRoot, localeKey)
       ) {
         return {
           position: rankAt(i),
@@ -402,7 +406,7 @@ export async function trackKeyword(
     });
   }
 
-  const match = matchUrlInResults(url, organic, { gl });
+  const match = matchUrlInResults(url, organic, { gl, hl });
 
   return {
     ...match,

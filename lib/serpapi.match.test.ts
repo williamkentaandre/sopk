@@ -63,6 +63,32 @@ describe('matchUrlInResults (domain root + path preference)', () => {
     expect(m.matchedUrl).toContain('nike.fr');
   });
 
+  it('matches nike.fr when gl is empty but hl is fr (locale from language)', () => {
+    const m = matchUrlInResults(
+      'nike.com',
+      [
+        { position: 1, link: 'https://competitor.example/' },
+        { position: 4, link: 'https://www.nike.fr/fr/' },
+      ],
+      { gl: '', hl: 'fr' }
+    );
+    expect(m.position).toBe(2);
+    expect(m.matchedUrl).toContain('nike.fr');
+  });
+
+  it('matches nike.co.uk when tracking nike.com with gl gb', () => {
+    const m = matchUrlInResults(
+      'nike.com',
+      [
+        { position: 1, link: 'https://competitor.example/' },
+        { position: 3, link: 'https://www.nike.co.uk/' },
+      ],
+      { gl: 'gb' }
+    );
+    expect(m.position).toBe(2);
+    expect(m.matchedUrl).toContain('nike.co.uk');
+  });
+
   it('matches when TLD matches (nike.fr target, nike.fr in SERP)', () => {
     const m = matchUrlInResults('nike.fr', [
       { position: 1, link: 'https://competitor.example/' },
