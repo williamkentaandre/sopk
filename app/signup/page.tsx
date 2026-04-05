@@ -28,6 +28,7 @@ function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [verificationEmailSent, setVerificationEmailSent] = useState(true);
+  const [verificationEmailIssue, setVerificationEmailIssue] = useState<string | null>(null);
   const oauthErrorBanner = nextAuthGoogleErrorMessage(searchParams.get('error'), t);
 
   // Pré-remplir l'email : URL (?email=...) ou session (ex. déjà connecté avec Google)
@@ -54,7 +55,11 @@ function SignupForm() {
         setLoading(false);
         return;
       }
-      setVerificationEmailSent(data.verificationEmailSent !== false);
+      // API must explicitly return true; missing/undefined means do not claim the email was sent.
+      setVerificationEmailSent(data.verificationEmailSent === true);
+      setVerificationEmailIssue(
+        typeof data.verificationEmailIssue === 'string' ? data.verificationEmailIssue : null
+      );
       setSent(true);
     } catch {
       setError(t('auth.errorNetwork'));
@@ -101,6 +106,13 @@ function SignupForm() {
                 <p className="auth-error" role="alert" style={{ marginBottom: '0.75rem' }}>
                   {t('auth.verifyEmail.sendFailed')}
                 </p>
+                {verificationEmailIssue &&
+                  t(`auth.verifyEmail.issue.${verificationEmailIssue}`) !==
+                    `auth.verifyEmail.issue.${verificationEmailIssue}` && (
+                    <p style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                      {t(`auth.verifyEmail.issue.${verificationEmailIssue}`)}
+                    </p>
+                  )}
                 <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>
                   {t('auth.verifyEmail.sendFailedHint')}
                 </p>

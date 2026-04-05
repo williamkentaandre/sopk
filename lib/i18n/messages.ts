@@ -329,6 +329,20 @@ export const messages: Record<Locale, Record<string, string>> = {
       'Your account was created, but the verification email could not be sent (sending is likely misconfigured).',
     'auth.verifyEmail.sendFailedHint':
       'On the login page, use “Resend verification email” after signing in, or check spam. If you run the app: after a domain change, verify the new domain in Resend (DNS), set RESEND_FROM_EMAIL to an address on that domain, and ensure RESEND_API_KEY and APP_URL are set.',
+    'auth.verifyEmail.issue.missing_api_key':
+      'The server has no Resend API key (RESEND_API_KEY). Add it in your host’s environment variables and redeploy.',
+    'auth.verifyEmail.issue.testing_domain_recipient':
+      'With onboarding@resend.dev (or unverified domain), Resend only delivers to the email address on your Resend account. Verify your own domain in Resend and set RESEND_FROM_EMAIL to an address on that domain to reach real users.',
+    'auth.verifyEmail.issue.domain_not_verified':
+      'The domain in your “from” address is not verified in Resend yet. Finish DNS verification in Resend → Domains, then redeploy with RESEND_FROM_EMAIL matching that domain.',
+    'auth.verifyEmail.issue.invalid_from':
+      'The RESEND_FROM_EMAIL value is invalid. Use the form “Name <email@yourdomain.com>” with a verified domain.',
+    'auth.verifyEmail.issue.invalid_api_key':
+      'Resend rejected the API key. Create a new key in Resend → API Keys and update RESEND_API_KEY on your host.',
+    'auth.verifyEmail.issue.quota':
+      'Resend reported a quota limit. Check your Resend plan and usage, or wait and try again.',
+    'auth.verifyEmail.issue.unknown':
+      'Check server logs for “[email] Verify send error” and the Resend dashboard → Logs for this message.',
 
     // Payment
     'payment.required.title': 'Payment required',
@@ -713,6 +727,20 @@ export const messages: Record<Locale, Record<string, string>> = {
       'Ton compte est créé, mais l’email de vérification n’a pas pu être envoyé (configuration d’envoi probablement incorrecte).',
     'auth.verifyEmail.sendFailedHint':
       'Sur la page de connexion, utilise « Renvoyer l’email de vérification » après t’être connecté, ou vérifie les courriers indésirables. Si tu gères l’app : après un changement de domaine, vérifie le nouveau domaine dans Resend (DNS), mets RESEND_FROM_EMAIL sur une adresse de ce domaine, et vérifie RESEND_API_KEY et APP_URL.',
+    'auth.verifyEmail.issue.missing_api_key':
+      'Le serveur n’a pas de clé Resend (RESEND_API_KEY). Ajoute-la dans les variables d’environnement de ton hébergeur et redéploie.',
+    'auth.verifyEmail.issue.testing_domain_recipient':
+      'Avec onboarding@resend.dev (ou un domaine non vérifié), Resend n’envoie qu’à l’adresse email de ton compte Resend. Vérifie ton propre domaine dans Resend et mets RESEND_FROM_EMAIL sur une adresse de ce domaine pour joindre de vrais utilisateurs.',
+    'auth.verifyEmail.issue.domain_not_verified':
+      'Le domaine de l’adresse « from » n’est pas encore vérifié dans Resend. Termine la vérification DNS dans Resend → Domains, puis redéploie avec un RESEND_FROM_EMAIL sur ce domaine.',
+    'auth.verifyEmail.issue.invalid_from':
+      'La valeur RESEND_FROM_EMAIL est invalide. Utilise la forme « Nom <email@tondomaine.com> » avec un domaine vérifié.',
+    'auth.verifyEmail.issue.invalid_api_key':
+      'Resend a refusé la clé API. Crée une nouvelle clé dans Resend → API Keys et mets à jour RESEND_API_KEY sur ton hébergeur.',
+    'auth.verifyEmail.issue.quota':
+      'Resend signale une limite de quota. Vérifie ton offre et l’usage, ou réessaie plus tard.',
+    'auth.verifyEmail.issue.unknown':
+      'Consulte les logs serveur « [email] Verify send error » et le tableau Resend → Logs pour ce message.',
 
     'payment.required.title': 'Paiement requis',
     'payment.required.hello': 'Bonjour',

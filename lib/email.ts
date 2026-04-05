@@ -33,6 +33,50 @@ function getResend(): Resend | null {
   return new Resend(RESEND_API_KEY);
 }
 
+/** Resend error payloads vary; normalize for logs and optional client hints. */
+function messageFromResendError(error: unknown): string {
+  if (error == null) return '';
+  if (typeof error === 'string') return error;
+  if (typeof error !== 'object') return String(error);
+  const o = error as Record<string, unknown>;
+  if (typeof o.message === 'string' && o.message) return o.message;
+  if (Array.isArray(o.errors)) {
+    const first = o.errors[0];
+    if (first && typeof first === 'object' && typeof (first as { message?: string }).message === 'string') {
+      return (first as { message: string }).message;
+    }
+  }
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return 'Unknown Resend error';
+  }
+}
+
+/** Safe, stable codes for signup UI (no raw API text). */
+export type EmailSendIssue =
+  | 'missing_api_key'
+  | 'testing_domain_recipient'
+  | 'domain_not_verified'
+  | 'invalid_from'
+  | 'invalid_api_key'
+  | 'quota'
+  | 'unknown';
+
+export function classifyEmailSendIssue(message: string): EmailSendIssue {
+  const m = message.toLowerCase();
+  if (!m) return 'unknown';
+  if (m.includes('missing api key') || m.includes('missing_api_key') || m.includes('resend_api_key')) {
+    return 'missing_api_key';
+  }
+  if (m.includes('invalid_api_key') || m.includes('api key is invalid')) return 'invalid_api_key';
+  if (m.includes('only send testing') || m.includes('your own email address')) return 'testing_domain_recipient';
+  if (m.includes('not verified') && m.includes('domain')) return 'domain_not_verified';
+  if (m.includes('invalid `from`') || m.includes('invalid from')) return 'invalid_from';
+  if (m.includes('quota')) return 'quota';
+  return 'unknown';
+}
+
 export type EmailLocale = 'en' | 'fr';
 
 const welcomeContent: Record<EmailLocale, { subject: string; html: (baseUrl: string) => string }> = {
@@ -189,11 +233,11 @@ export async function sendEmailVerificationEmail(
   to: string,
   token: string,
   locale: EmailLocale = 'en'
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; issue?: EmailSendIssue }> {
   const resend = getResend();
   if (!resend) {
     console.error('[email] RESEND_API_KEY is missing. Email verification NOT sent.');
-    return { ok: false, error: 'RESEND_API_KEY not configured' };
+    return { ok: false, error: 'RESEND_API_KEY not configured', issue: 'missing_api_key' };
   }
   const baseUrl = getBaseUrl();
   const verifyUrl = `${baseUrl}/verify-email?token=${encodeURIComponent(token)}`;
@@ -206,14 +250,16 @@ export async function sendEmailVerificationEmail(
       html: content.html(verifyUrl),
     });
     if (error) {
-      console.error('[email] Verify send error:', JSON.stringify(error));
-      return { ok: false, error: error.message };
+      const errText = messageFromResendError(error);
+      console.error('[email] Verify send error:', errText, JSON.stringify(error));
+      return { ok: false, error: errText, issue: classifyEmailSendIssue(errText) };
     }
-    console.log('[email] Verification email sent to', to, 'id:', data?.id);
+    console.log('[email] Verification email sent to', to, 'id:', data?.id, 'from:', FROM_EMAIL);
     return { ok: true };
   } catch (e) {
+    const errText = e instanceof Error ? e.message : String(e);
     console.error('[email] Verify send exception:', e);
-    return { ok: false, error: String(e) };
+    return { ok: false, error: errText, issue: classifyEmailSendIssue(errText) };
   }
 }
 

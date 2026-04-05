@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
       email: user.email,
       message: emailResult.ok ? 'Verification email sent.' : 'Account created; verification email not sent.',
       verificationEmailSent: emailResult.ok,
+      ...(emailResult.ok ? {} : { verificationEmailIssue: emailResult.issue ?? 'unknown' }),
     });
   } catch (e) {
     console.error('Signup error:', e);
