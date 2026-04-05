@@ -14,8 +14,26 @@ describe('extractDomain (multi-part TLD)', () => {
 });
 
 describe('urlsPathCompatibleForTracking', () => {
-  it('treats home as prefix of deeper path', () => {
+  it('treats site root as prefix of deeper path when target is root', () => {
     expect(urlsPathCompatibleForTracking('https://x.com', 'https://x.com/a')).toBe(true);
-    expect(urlsPathCompatibleForTracking('https://x.com/a', 'https://x.com')).toBe(true);
+  });
+
+  it('does not treat homepage organic as matching a deep target URL', () => {
+    expect(urlsPathCompatibleForTracking('https://x.com/a', 'https://x.com')).toBe(false);
+    expect(
+      urlsPathCompatibleForTracking(
+        'https://www.spartoo.com/chaussures-femmes-orange.html',
+        'https://www.spartoo.com/'
+      )
+    ).toBe(false);
+  });
+
+  it('still allows ancestor path prefix when both have paths', () => {
+    expect(
+      urlsPathCompatibleForTracking(
+        'https://x.com/cat/shoes',
+        'https://x.com/cat'
+      )
+    ).toBe(true);
   });
 });

@@ -292,9 +292,31 @@ export function extractDomain(url: string): string {
 }
 
 /**
+ * True when normalized `host+path+query` has a real path segment (not only site root).
+ */
+export function normalizedHasNonRootPath(norm: string): boolean {
+  const i = norm.indexOf('/');
+  if (i === -1) return false;
+  const rest = norm.slice(i + 1);
+  return rest.length > 0 && !rest.startsWith('?');
+}
+
+/**
  * Same host (per extractDomain) and URL path comparable after normalizeUrl (exact or prefix).
  * Used to prefer the correct organic row when several results share a domain.
+ * A homepage organic must not satisfy a deep target URL (otherwise the first SERP row for the
+ * domain steals the rank from the real product/category URL).
  */
+/** True if the tracking target is a full URL with a real path (not only site root). */
+export function trackingTargetUrlHasNonRootPath(targetUrl: string): boolean {
+  try {
+    const n = normalizeUrl(targetUrl).toLowerCase().replace(/\/+$/, '');
+    return normalizedHasNonRootPath(n);
+  } catch {
+    return false;
+  }
+}
+
 export function urlsPathCompatibleForTracking(targetUrl: string, resultUrl: string): boolean {
   try {
     const norm = (raw: string) => normalizeUrl(raw).toLowerCase().replace(/\/+$/, '');
@@ -302,11 +324,68 @@ export function urlsPathCompatibleForTracking(targetUrl: string, resultUrl: stri
     const b = norm(resultUrl);
     if (!a || !b) return false;
     if (a === b) return true;
+    const pathA = normalizedHasNonRootPath(a);
+    const pathB = normalizedHasNonRootPath(b);
+    if (pathA && !pathB) return false;
     if (b.startsWith(`${a}/`) || a.startsWith(`${b}/`)) return true;
     return false;
   } catch {
     return false;
   }
+}
+
+/**
+ * For domain-only tracking: user entered `brand.com` but the localized SERP lists `brand.fr`
+ * (same second-level label, gl-appropriate ccTLD). Does not match the reverse (amazon.fr vs amazon.com).
+ */
+export function registrableComMatchesLocaleCcTld(
+  targetRoot: string,
+  resultRoot: string,
+  gl: string
+): boolean {
+  const g = (gl || '').toLowerCase().trim().split(/[-_]/)[0]!;
+  if (!g) return false;
+  /** Retail ccTLD expected for `gl` (two-label registrables only). */
+  const map: Record<string, string> = {
+    fr: 'fr',
+    de: 'de',
+    es: 'es',
+    it: 'it',
+    pt: 'pt',
+    nl: 'nl',
+    be: 'be',
+    at: 'at',
+    ch: 'ch',
+    pl: 'pl',
+    se: 'se',
+    no: 'no',
+    dk: 'dk',
+    fi: 'fi',
+    ie: 'ie',
+    uk: 'co.uk',
+    gb: 'co.uk',
+    us: 'com',
+    ca: 'ca',
+    mx: 'com.mx',
+    br: 'com.br',
+    ar: 'com.ar',
+    in: 'co.in',
+    jp: 'co.jp',
+    kr: 'co.kr',
+    au: 'com.au',
+    nz: 'co.nz',
+  };
+  const want = map[g];
+  if (!want || want === 'com') return false;
+  const t = targetRoot.toLowerCase();
+  const r = resultRoot.toLowerCase();
+  const tp = t.split('.');
+  const rp = r.split('.');
+  if (tp.length !== 2 || rp.length !== 2) return false;
+  if (tp[0] !== rp[0]) return false;
+  if (tp[1] !== 'com') return false;
+  if (rp[1] !== want) return false;
+  return true;
 }
 
 /**

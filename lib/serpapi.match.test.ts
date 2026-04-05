@@ -15,6 +15,16 @@ describe('matchUrlInResults (domain root + path preference)', () => {
     expect(m.matchType).toBe('domain');
   });
 
+  it('for a full URL, does not fall back to homepage on same domain (waits for path match)', () => {
+    const target = 'https://www.spartoo.com/chaussures-femmes-orange.html';
+    const rows: OrganicResult[] = [
+      { position: 1, link: 'https://www.spartoo.com/' },
+      { position: 2, link: 'https://www.spartoo.com/chaussures-femmes-orange.html' },
+    ];
+    const m = matchUrlInResults(target, rows);
+    expect(m.position).toBe(2);
+  });
+
   it('returns none when no row shares root domain', () => {
     const m = matchUrlInResults('https://foo.com', [
       { position: 1, link: 'https://bar.com' },
@@ -31,13 +41,26 @@ describe('matchUrlInResults (domain root + path preference)', () => {
     expect(m.position).toBe(2);
   });
 
-  it('does not match different public suffixes (e.g. nike.com vs nike.fr)', () => {
+  it('does not match nike.fr to nike.com without gl (strict registrable)', () => {
     const m = matchUrlInResults('nike.com', [
       { position: 1, link: 'https://competitor.example/' },
       { position: 7, link: 'https://www.nike.fr/fr/' },
     ]);
     expect(m.position).toBeNull();
     expect(m.matchType).toBe('none');
+  });
+
+  it('matches nike.fr organic when tracking nike.com with gl fr (localized retail domain)', () => {
+    const m = matchUrlInResults(
+      'nike.com',
+      [
+        { position: 1, link: 'https://competitor.example/' },
+        { position: 7, link: 'https://www.nike.fr/fr/' },
+      ],
+      { gl: 'fr' }
+    );
+    expect(m.position).toBe(2);
+    expect(m.matchedUrl).toContain('nike.fr');
   });
 
   it('matches when TLD matches (nike.fr target, nike.fr in SERP)', () => {

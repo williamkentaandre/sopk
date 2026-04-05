@@ -3,6 +3,8 @@ import {
   extractUrlFromDisplayedLink,
   resolveSerpResultDestination,
   isDomain,
+  registrableComMatchesLocaleCcTld,
+  trackingTargetUrlHasNonRootPath,
   urlsPathCompatibleForTracking,
 } from './url-utils';
 import { callSerperGoogleSearch } from './serper';
@@ -254,16 +256,22 @@ async function fetchSerperOrganicUpTo100(
 
 /**
  * Domain match on extractDomain() roots (TLD-safe for co.uk, com.au, etc.).
- * For full URLs (not domain-only input), prefer the first organic row whose path matches
- * the target URL, so another page on the same host does not steal the rank.
+ * For full URLs (not domain-only input), only rows with a path-compatible URL count — no fallback
+ * to “first URL on this domain” (homepage would steal the rank from a deep product URL).
+ * For domain-only tracking, optional `gl` maps `brand.com` to the same brand’s local ccTLD (e.g. nike.fr).
  */
-export function matchUrlInResults(targetUrl: string, organicResults: OrganicResult[]): MatchResult {
+export function matchUrlInResults(
+  targetUrl: string,
+  organicResults: OrganicResult[],
+  options?: { gl?: string }
+): MatchResult {
   const targetRoot = extractDomain(targetUrl);
   if (!targetRoot) {
     return { position: null, matchedUrl: null, matchType: 'none' };
   }
 
   const targetIsDomainOnly = isDomain(targetUrl.trim());
+  const gl = options?.gl ?? '';
 
   /** Rank is always index in the merged organic list (1…n), never Serper's per-page `position` echo. */
   const rankAt = (i: number) => i + 1;
@@ -282,6 +290,41 @@ export function matchUrlInResults(targetUrl: string, organicResults: OrganicResu
         };
       }
     }
+    // `https://brand.com` (no path): treat like domain root — first hit on same registrable.
+    if (!trackingTargetUrlHasNonRootPath(targetUrl)) {
+      for (let i = 0; i < organicResults.length; i++) {
+        const result = organicResults[i]!;
+        const resolved = extractOrganicLinkFromSerp(result as SerpOrganicRow);
+        if (!resolved) continue;
+        const resultRoot = extractDomain(resolved);
+        if (resultRoot && resultRoot === targetRoot) {
+          return {
+            position: rankAt(i),
+            matchedUrl: resolved,
+            matchType: 'domain',
+          };
+        }
+      }
+      if (gl) {
+        for (let i = 0; i < organicResults.length; i++) {
+          const result = organicResults[i]!;
+          const resolved = extractOrganicLinkFromSerp(result as SerpOrganicRow);
+          if (!resolved) continue;
+          const resultRoot = extractDomain(resolved);
+          if (
+            resultRoot &&
+            registrableComMatchesLocaleCcTld(targetRoot, resultRoot, gl)
+          ) {
+            return {
+              position: rankAt(i),
+              matchedUrl: resolved,
+              matchType: 'domain',
+            };
+          }
+        }
+      }
+    }
+    return { position: null, matchedUrl: null, matchType: 'none' };
   }
 
   for (let i = 0; i < organicResults.length; i++) {
@@ -295,6 +338,25 @@ export function matchUrlInResults(targetUrl: string, organicResults: OrganicResu
         matchedUrl: resolved,
         matchType: 'domain',
       };
+    }
+  }
+
+  if (gl) {
+    for (let i = 0; i < organicResults.length; i++) {
+      const result = organicResults[i]!;
+      const resolved = extractOrganicLinkFromSerp(result as SerpOrganicRow);
+      if (!resolved) continue;
+      const resultRoot = extractDomain(resolved);
+      if (
+        resultRoot &&
+        registrableComMatchesLocaleCcTld(targetRoot, resultRoot, gl)
+      ) {
+        return {
+          position: rankAt(i),
+          matchedUrl: resolved,
+          matchType: 'domain',
+        };
+      }
     }
   }
 
@@ -349,7 +411,7 @@ export async function trackKeyword(
     });
   }
 
-  const match = matchUrlInResults(url, organic);
+  const match = matchUrlInResults(url, organic, { gl });
 
   return {
     ...match,
