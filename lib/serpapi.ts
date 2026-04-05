@@ -160,10 +160,9 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Ranks 1–10 always come from `num=10, page=1` (Serper’s real first page). A `num=100` response
- * can disagree with that window and made page‑1 URLs “disappear” from the merged list.
- * When page 1 is full (10 organics) and `num=100` returns more than 10, we append only
- * `organic[10..]` as ranks 11+. Otherwise we paginate `page` 2…10 × num=10.
+ * Prefer **one** `num=100` response for ranks 1…n so repeated measures are not a mix of two
+ * Google snapshots (`num=10` + `num=100` tail caused large rank jumps within minutes).
+ * If Serper caps at ≤10 organics or `num=100` errors, fall back to `num=10` page 1 then pages 2…10.
  */
 async function fetchSerperOrganicUpTo100(
   keyword: string,
@@ -178,49 +177,41 @@ async function fetchSerperOrganicUpTo100(
   let serperCreditsRemaining: number | null = null;
   let pagesQueried = 0;
 
-  const rPage1 = await callSerperGoogleSearch(
-    { q: keyword, hl, gl, num: SERPER_PAGE_SIZE, page: 1 },
-    options
-  );
-  pagesQueried += 1;
-  if (rPage1.creditsRemaining != null) {
-    serperCreditsRemaining = rPage1.creditsRemaining;
-  }
-
-  const topBatch = mapSerperOrganicSequential(rPage1.organic || [], 1);
-  if (topBatch.length === 0) {
-    return { organic: [], pagesQueried, serperCreditsRemaining };
-  }
-
-  const organic: OrganicResult[] = [...topBatch];
-
+  let rFirst: Awaited<ReturnType<typeof callSerperGoogleSearch>>;
+  let attemptedWideFirst = false;
   try {
-    const rWide = await callSerperGoogleSearch(
+    rFirst = await callSerperGoogleSearch(
       { q: keyword, hl, gl, num: SERPER_SINGLE_SHOT_NUM, page: 1 },
       options
     );
-    pagesQueried += 1;
-    if (rWide.creditsRemaining != null) {
-      serperCreditsRemaining = rWide.creditsRemaining;
-    }
-    const wideOrganic = rWide.organic || [];
-    if (
-      topBatch.length === SERPER_PAGE_SIZE &&
-      wideOrganic.length > SERPER_PAGE_SIZE
-    ) {
-      const tail = mapSerperOrganicSequential(
-        wideOrganic.slice(SERPER_PAGE_SIZE),
-        SERPER_PAGE_SIZE + 1
-      );
-      organic.push(...tail);
-      return {
-        organic: organic.slice(0, 100),
-        pagesQueried,
-        serperCreditsRemaining,
-      };
-    }
+    attemptedWideFirst = true;
   } catch {
-    /* optional wide fetch */
+    rFirst = await callSerperGoogleSearch(
+      { q: keyword, hl, gl, num: SERPER_PAGE_SIZE, page: 1 },
+      options
+    );
+  }
+
+  pagesQueried += 1;
+  if (rFirst.creditsRemaining != null) {
+    serperCreditsRemaining = rFirst.creditsRemaining;
+  }
+
+  const firstOrganic = rFirst.organic || [];
+
+  if (attemptedWideFirst && firstOrganic.length > SERPER_PAGE_SIZE) {
+    return {
+      organic: mapSerperOrganicSequential(firstOrganic, 1).slice(0, 100),
+      pagesQueried,
+      serperCreditsRemaining,
+    };
+  }
+
+  const organic: OrganicResult[] = [
+    ...mapSerperOrganicSequential(firstOrganic, 1),
+  ];
+  if (organic.length === 0) {
+    return { organic: [], pagesQueried, serperCreditsRemaining };
   }
 
   for (let page = 2; page <= SERPER_MAX_PAGES; page++) {
@@ -373,7 +364,7 @@ export type TrackKeywordResult = MatchResult & {
 };
 
 /**
- * Serper-backed: top 10 from `num=10` page 1; ranks 11+ from `num=100` tail or paginated pages.
+ * Serper-backed: one `num=100` snapshot when available; else paginated `num=10`.
  * Matching: extractDomain (strict TLD).
  */
 export async function trackKeyword(

@@ -1,6 +1,6 @@
 /**
  * Serper Google Search API — https://google.serper.dev/search
- * Callers use num=10 page=1 for the real top 10, then num=100 page=1 for a long tail slice, or page=2…10.
+ * Callers often use num=100 page=1 for a single top-100 snapshot, or num=10 with page=1…10 when capped.
  */
 
 export interface SerperGoogleSearchOptions {
