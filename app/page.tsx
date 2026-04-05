@@ -163,51 +163,125 @@ export default function HomePage() {
       </section>
 
       <section className="landing-section landing-section--alt">
-        <div style={{ maxWidth: 800, margin: '0 auto' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, textAlign: 'center', marginBottom: '2rem' }}>{t('landing.preview.title')}</h2>
-          <div className="landing-preview-shell">
-            <div className="landing-preview-toolbar">
-              <span style={{ fontWeight: 600 }}>{t('landing.preview.table.caption')}</span>
-              <span className="landing-preview-badge landing-preview-badge--cyan">{t('landing.preview.import')}</span>
-              <span className="landing-preview-badge landing-preview-badge--cyan">{t('landing.preview.measureAll')}</span>
-              <span className="landing-preview-badge landing-preview-badge--violet">{t('landing.preview.export')}</span>
+        <div className="landing-showcase-wrap">
+          <h2 className="landing-showcase-title">{t('landing.preview.title')}</h2>
+          <p className="landing-showcase-sub">{t('landing.preview.subtitle')}</p>
+
+          <div className="landing-showcase-stack">
+            <div className="landing-showcase-block">
+              <p className="landing-showcase-panel-label">{t('landing.preview.panelLive')}</p>
+              <div className="landing-preview-shell">
+                <div className="landing-preview-toolbar">
+                  <span style={{ fontWeight: 600 }}>{t('landing.preview.table.captionWithCount')}</span>
+                  <span className="landing-preview-badge landing-preview-badge--cyan">{t('landing.preview.measureAll')}</span>
+                  <span className="landing-preview-badge landing-preview-badge--violet">{t('landing.preview.export')}</span>
+                </div>
+                <div className="landing-showcase-table-scroll">
+                  <table className="landing-showcase-table landing-showcase-table--live">
+                    <thead>
+                      <tr>
+                        <th>{t('landing.preview.keyword')}</th>
+                        <th>{t('landing.preview.url')}</th>
+                        <th>{t('landing.preview.matchedUrl')}</th>
+                        <th>{t('landing.preview.position')}</th>
+                        <th>{t('landing.preview.lastMeasure')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>{t('landing.preview.demo.keyword')}</td>
+                        <td>
+                          <span className="landing-domain-pill">{t('landing.preview.domainTag')}</span>
+                          spartoo.com
+                        </td>
+                        <td>
+                          <span className="landing-matched-url" title={t('landing.preview.demo.matched.spartoo')}>
+                            {t('landing.preview.demo.matched.spartoo')}
+                          </span>
+                        </td>
+                        <td className="landing-showcase-pos">12</td>
+                        <td className="landing-showcase-muted">{t('landing.preview.demo.lastAt')}</td>
+                      </tr>
+                      <tr>
+                        <td>{t('landing.preview.demo.keyword')}</td>
+                        <td>
+                          <span className="landing-domain-pill">{t('landing.preview.domainTag')}</span>
+                          nike.com
+                        </td>
+                        <td>
+                          <span className="landing-matched-url" title={t('landing.preview.demo.matched.nike')}>
+                            {t('landing.preview.demo.matched.nike')}
+                          </span>
+                        </td>
+                        <td className="landing-showcase-pos">2</td>
+                        <td className="landing-showcase-muted">{t('landing.preview.demo.lastAt')}</td>
+                      </tr>
+                      <tr>
+                        <td>{t('landing.preview.demo.keyword')}</td>
+                        <td>
+                          <span className="landing-domain-pill">{t('landing.preview.domainTag')}</span>
+                          zalando.com
+                        </td>
+                        <td>
+                          <span className="landing-matched-url" title={t('landing.preview.demo.matched.zalando')}>
+                            {t('landing.preview.demo.matched.zalando')}
+                          </span>
+                        </td>
+                        <td className="landing-showcase-pos">1</td>
+                        <td className="landing-showcase-muted">{t('landing.preview.demo.lastAt')}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              <table style={{ width: '100%', minWidth: 420, borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                <thead>
-                  <tr style={{ background: 'rgba(15, 23, 42, 0.8)' }}>
-                    <th style={{ textAlign: 'left', padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--text-subtle)' }}>{t('landing.preview.keyword')}</th>
-                    <th style={{ textAlign: 'left', padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--text-subtle)' }}>{t('landing.preview.url')}</th>
-                    <th style={{ textAlign: 'left', padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--text-subtle)' }}>{t('landing.preview.position')}</th>
-                    <th style={{ textAlign: 'left', padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--text-subtle)' }}>{t('landing.preview.lastMeasure')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '0.75rem 1rem' }}>{t('landing.preview.exampleKeyword')}</td>
-                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>{t('landing.preview.exampleUrl')}</td>
-                    <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--primary)' }}>3</td>
-                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>14/03/2026</td>
-                  </tr>
-                  <tr style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '0.75rem 1rem' }}>{t('landing.preview.exampleKeyword2')}</td>
-                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>{t('landing.preview.exampleUrl')}</td>
-                    <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--primary)' }}>7</td>
-                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>14/03/2026</td>
-                  </tr>
-                  <tr style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-subtle)' }}>—</td>
-                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-subtle)' }}>—</td>
-                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-subtle)' }}>—</td>
-                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-subtle)' }}>—</td>
-                  </tr>
-                </tbody>
-              </table>
+
+            <div className="landing-showcase-bridge" aria-hidden="true">
+              <span className="landing-showcase-bridge-line" />
+              <span className="landing-showcase-bridge-text">{t('landing.preview.bridge')}</span>
+              <span className="landing-showcase-bridge-line" />
             </div>
-            <div style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: 'var(--text-subtle)', borderTop: '1px solid var(--border)' }}>
-              {t('landing.preview.footer')}
+
+            <div className="landing-showcase-block">
+              <p className="landing-showcase-panel-label">{t('landing.preview.panelEvolution')}</p>
+              <div className="landing-preview-shell landing-preview-shell--evolution">
+                <div className="landing-showcase-table-scroll">
+                  <table className="landing-showcase-table landing-showcase-table--evolution">
+                    <thead>
+                      <tr>
+                        <th>{t('landing.preview.keyword')}</th>
+                        <th>{t('landing.preview.url')}</th>
+                        <th>{t('landing.preview.demo.datePrev')}</th>
+                        <th>{t('landing.preview.demo.dateLast')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>{t('landing.preview.demo.keyword')}</td>
+                        <td className="landing-showcase-muted">spartoo.com</td>
+                        <td className="landing-showcase-muted">14</td>
+                        <td className="landing-showcase-pos">12</td>
+                      </tr>
+                      <tr>
+                        <td>{t('landing.preview.demo.keyword')}</td>
+                        <td className="landing-showcase-muted">nike.com</td>
+                        <td className="landing-showcase-muted">3</td>
+                        <td className="landing-showcase-pos">2</td>
+                      </tr>
+                      <tr>
+                        <td>{t('landing.preview.demo.keyword')}</td>
+                        <td className="landing-showcase-muted">zalando.com</td>
+                        <td className="landing-showcase-muted">2</td>
+                        <td className="landing-showcase-pos">1</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
+
+          <p className="landing-showcase-foot">{t('landing.preview.footer')}</p>
         </div>
       </section>
 
