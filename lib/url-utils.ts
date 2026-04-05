@@ -367,7 +367,30 @@ export function trackingTargetUrlHasNonRootPath(targetUrl: string): boolean {
   }
 }
 
-/** Host + pathname only (no query), lowercase, strip trailing slash on path — stable for SERP vs user URL. */
+/**
+ * Many shops serve the same category page as `/path` (desktop) and `/mobile/path` (mobile SERP).
+ * Only strips a leading `/mobile` segment (not arbitrary `/m/` to avoid breaking paths like `/fr/m/…`).
+ */
+function stripRetailMobilePathPrefix(pathname: string): string {
+  let p = pathname || '/';
+  if (!p.startsWith('/')) p = '/' + p;
+  const low = p.toLowerCase();
+  if (low === '/mobile' || low.startsWith('/mobile/')) {
+    p = p.slice('/mobile'.length) || '/';
+    if (!p.startsWith('/')) p = '/' + p;
+  }
+  return p;
+}
+
+/** Drop trailing `.php` / `.html` so equivalent CMS URLs still match (e.g. Spartoo desktop vs alternate). */
+function pathnameStripTrivialTrailingExt(pathname: string): string {
+  let p = pathname.replace(/\/+$/, '') || '/';
+  if (p === '/') return p;
+  const stripped = p.replace(/\.(php|html?|htm)$/i, '');
+  return stripped.length ? stripped : '/';
+}
+
+/** Host + pathname only (no query), lowercase — stable for SERP vs user URL after retail normalizations. */
 function hostPathKeyForTracking(raw: string): string {
   try {
     let clean = (raw || '').trim();
@@ -377,8 +400,9 @@ function hostPathKeyForTracking(raw: string): string {
     const u = new URL(clean);
     let h = u.hostname.toLowerCase();
     if (h.startsWith('www.')) h = h.slice(4);
-    let p = u.pathname;
+    let p = stripRetailMobilePathPrefix(u.pathname);
     if (p.endsWith('/') && p.length > 1) p = p.slice(0, -1);
+    p = pathnameStripTrivialTrailingExt(p);
     return (h + p).toLowerCase();
   } catch {
     return '';

@@ -42,6 +42,20 @@ describe('matchUrlInResults (domain root + path preference)', () => {
     expect(m.position).toBe(2);
   });
 
+  it('matches desktop .php target to mobile organic URL (same Spartoo category)', () => {
+    const target = 'https://www.spartoo.com/chaussures-femmes-orange.php';
+    const rows: OrganicResult[] = [
+      { position: 1, link: 'https://competitor.example/' },
+      {
+        position: 16,
+        link: 'https://www.spartoo.com/mobile/chaussures-femmes-orange.php',
+      },
+    ];
+    const m = matchUrlInResults(target, rows);
+    expect(m.position).toBe(2);
+    expect(m.matchedUrl).toContain('spartoo.com');
+  });
+
   it('returns none when no row shares root domain', () => {
     const m = matchUrlInResults('https://foo.com', [
       { position: 1, link: 'https://bar.com' },

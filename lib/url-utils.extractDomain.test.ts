@@ -51,4 +51,37 @@ describe('urlsPathCompatibleForTracking', () => {
       )
     ).toBe(true);
   });
+
+  it('matches desktop category URL to mobile-prefixed SERP path (same page)', () => {
+    expect(
+      urlsPathCompatibleForTracking(
+        'https://www.spartoo.com/chaussures-femmes-orange.php',
+        'https://www.spartoo.com/mobile/chaussures-femmes-orange.php'
+      )
+    ).toBe(true);
+  });
+
+  it('matches .php target to .html organic when basename is the same (retail CMS)', () => {
+    expect(
+      urlsPathCompatibleForTracking(
+        'https://www.spartoo.com/chaussures-femmes-orange.php',
+        'https://www.spartoo.com/chaussures-femmes-orange.html'
+      )
+    ).toBe(true);
+  });
+
+  it('does not change Nike-style localized paths (no false mobile strip)', () => {
+    expect(
+      urlsPathCompatibleForTracking(
+        'https://www.nike.com/fr/w/vert-chaussures-bdkazy7ok',
+        'https://www.nike.com/fr/w/vert-chaussures-bdkazy7ok'
+      )
+    ).toBe(true);
+    expect(
+      urlsPathCompatibleForTracking(
+        'https://www.nike.com/fr/w/vert-chaussures-bdkazy7ok',
+        'https://www.nike.com/fr/w/other-slug'
+      )
+    ).toBe(false);
+  });
 });
