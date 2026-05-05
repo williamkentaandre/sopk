@@ -1,0 +1,38 @@
+[
+  {
+    "id": "fringale_1",
+    "titre": "Stop fringale en 10 minutes",
+    "description": "Bois un grand verre d’eau, prends une collation protéinée (skyr, œuf, amandes) puis marche 5 minutes.",
+    "categorie": "fringales"
+  },
+  {
+    "id": "energie_1",
+    "titre": "Énergie stable après le déjeuner",
+    "description": "Compose ton assiette avec 1/2 légumes, 1/4 protéines et 1/4 glucides complets.",
+    "categorie": "energie"
+  },
+  {
+    "id": "sommeil_1",
+    "titre": "Sommeil plus profond",
+    "description": "Coupe les écrans 45 minutes avant le coucher et prends une tisane non sucrée.",
+    "categorie": "sommeil"
+  },
+  {
+    "id": "stress_1",
+    "titre": "Réduire le stress hormonal",
+    "description": "Fais 3 cycles de respiration 4-6 (4 sec inspiration, 6 sec expiration).",
+    "categorie": "stress"
+  },
+  {
+    "id": "repas_1",
+    "titre": "Mieux gérer la glycémie",
+    "description": "Commence toujours le repas par les légumes et les protéines, puis les glucides.",
+    "categorie": "repas"
+  },
+  {
+    "id": "fringale_2",
+    "titre": "Alternative sucrée intelligente",
+    "description": "Choisis un yaourt nature avec cannelle et fruits rouges au lieu d’une pâtisserie.",
+    "categorie": "fringales"
+  }
+]
