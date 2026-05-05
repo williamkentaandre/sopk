@@ -15,7 +15,12 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 
   const update = (nextValue: T) => {
     setValue(nextValue);
-    window.localStorage.setItem(key, JSON.stringify(nextValue));
+    try {
+      window.localStorage.setItem(key, JSON.stringify(nextValue));
+    } catch {
+      // Some mobile/private contexts block localStorage writes.
+      // Keep in-memory state usable so app flow still works.
+    }
   };
 
   return { value, update };

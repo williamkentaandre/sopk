@@ -20,6 +20,7 @@ const defaultProfile: OnboardingData = {
 
 export function OnboardingForm({ onComplete }: OnboardingFormProps) {
   const [profile, setProfile] = useState<OnboardingData>(defaultProfile);
+  const [error, setError] = useState("");
 
   const valid = useMemo(() => {
     return (
@@ -32,6 +33,17 @@ export function OnboardingForm({ onComplete }: OnboardingFormProps) {
       profile.tailleCm < 210
     );
   }, [profile]);
+
+  function handleStart() {
+    if (!valid) {
+      setError(
+        "Vérifie les champs: prénom (2+ lettres), âge 18-55, poids 40-180 kg, taille 130-210 cm."
+      );
+      return;
+    }
+    setError("");
+    onComplete(profile);
+  }
 
   return (
     <section className="rounded-2xl border border-violet-100 bg-white p-4 shadow-sm">
@@ -56,6 +68,7 @@ export function OnboardingForm({ onComplete }: OnboardingFormProps) {
             Âge
             <input
               type="number"
+              inputMode="numeric"
               value={profile.age}
               onChange={(e) => setProfile((prev) => ({ ...prev, age: Number(e.target.value) }))}
               className="mt-1 w-full rounded-xl border border-violet-200 px-3 py-2 outline-none focus:border-violet-500"
@@ -65,6 +78,7 @@ export function OnboardingForm({ onComplete }: OnboardingFormProps) {
             Poids
             <input
               type="number"
+              inputMode="numeric"
               value={profile.poidsKg}
               onChange={(e) => setProfile((prev) => ({ ...prev, poidsKg: Number(e.target.value) }))}
               className="mt-1 w-full rounded-xl border border-violet-200 px-3 py-2 outline-none focus:border-violet-500"
@@ -74,6 +88,7 @@ export function OnboardingForm({ onComplete }: OnboardingFormProps) {
             Taille
             <input
               type="number"
+              inputMode="numeric"
               value={profile.tailleCm}
               onChange={(e) => setProfile((prev) => ({ ...prev, tailleCm: Number(e.target.value) }))}
               className="mt-1 w-full rounded-xl border border-violet-200 px-3 py-2 outline-none focus:border-violet-500"
@@ -122,6 +137,7 @@ export function OnboardingForm({ onComplete }: OnboardingFormProps) {
           Objectif hydratation (ml / jour)
           <input
             type="number"
+            inputMode="numeric"
             value={profile.hydratationCibleMl}
             onChange={(e) =>
               setProfile((prev) => ({
@@ -134,11 +150,12 @@ export function OnboardingForm({ onComplete }: OnboardingFormProps) {
         </label>
       </div>
 
+      {error ? <p className="mt-3 text-sm font-semibold text-rose-600">{error}</p> : null}
+
       <button
         type="button"
-        disabled={!valid}
-        onClick={() => onComplete(profile)}
-        className="mt-4 w-full rounded-xl bg-violet-600 px-4 py-3 font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40"
+        onClick={handleStart}
+        className="mt-4 w-full rounded-xl bg-violet-600 px-4 py-3 font-semibold text-white transition hover:bg-violet-700"
       >
         Démarrer mon programme
       </button>
