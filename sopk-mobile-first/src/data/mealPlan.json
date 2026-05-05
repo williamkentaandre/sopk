@@ -5,6 +5,7 @@
     {
       "jour": 1,
       "hydratationLitres": 2.2,
+      "rappelHydratation": "Jour 1: bien boire diminue les fausses sensations de faim et aide à tenir les portions.",
       "repas": [
         {
           "type": "petit_dejeuner",
@@ -43,6 +44,7 @@
     {
       "jour": 2,
       "hydratationLitres": 2.3,
+      "rappelHydratation": "Jour 2: l’eau soutient l’énergie et limite les envies sucrées de l’après-midi.",
       "repas": [
         {
           "type": "petit_dejeuner",
@@ -81,6 +83,7 @@
     {
       "jour": 3,
       "hydratationLitres": 2.4,
+      "rappelHydratation": "Jour 3: avec les fibres des repas, l’hydratation améliore le confort digestif.",
       "repas": [
         {
           "type": "petit_dejeuner",
@@ -119,6 +122,7 @@
     {
       "jour": 4,
       "hydratationLitres": 2.2,
+      "rappelHydratation": "Jour 4: une bonne hydratation aide à stabiliser l’appétit sur toute la journée.",
       "repas": [
         {
           "type": "petit_dejeuner",
@@ -157,6 +161,7 @@
     {
       "jour": 5,
       "hydratationLitres": 2.5,
+      "rappelHydratation": "Jour 5: boire régulièrement soutient le métabolisme et la récupération.",
       "repas": [
         {
           "type": "petit_dejeuner",
@@ -195,6 +200,7 @@
     {
       "jour": 6,
       "hydratationLitres": 2.4,
+      "rappelHydratation": "Jour 6: l’eau aide à réduire la fatigue liée à la déshydratation légère.",
       "repas": [
         {
           "type": "petit_dejeuner",
@@ -233,6 +239,7 @@
     {
       "jour": 7,
       "hydratationLitres": 2.3,
+      "rappelHydratation": "Jour 7: finir la semaine hydratée aide à garder de bonnes habitudes pour la suite.",
       "repas": [
         {
           "type": "petit_dejeuner",

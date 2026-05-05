@@ -11,6 +11,7 @@ export interface MealEntry {
 export interface DayPlan {
   jour: number;
   hydratationLitres: number;
+  rappelHydratation: string;
   repas: MealEntry[];
   conseils: string[];
 }

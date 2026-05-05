@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { OnboardingForm } from "@/components/OnboardingForm";
 import { PlanView } from "@/components/PlanView";
@@ -25,6 +25,7 @@ const initialTracking: DailyTrackingData = {
 
 export function AppShell() {
   const profileStore = useLocalStorage<OnboardingData | null>(STORAGE_KEYS.onboarding, null);
+  const [runtimeProfile, setRuntimeProfile] = useState<OnboardingData | null>(null);
   const trackingStore = useLocalStorage<DailyTrackingData>(STORAGE_KEYS.tracking, initialTracking);
   const hydrationStore = useLocalStorage<number>(STORAGE_KEYS.hydrationMl, 0);
   const hydrationDateStore = useLocalStorage<string>(STORAGE_KEYS.hydrationDate, todayIso());
@@ -32,11 +33,20 @@ export function AppShell() {
   const waterProgressStore = useLocalStorage<WaterProgressState>(STORAGE_KEYS.waterProgress, {});
 
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
-        return undefined;
+    if (!("serviceWorker" in navigator)) return;
+
+    if (process.env.NODE_ENV !== "production") {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => {
+          registration.unregister();
+        });
       });
+      return;
     }
+
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      return undefined;
+    });
   }, []);
 
   useEffect(() => {
@@ -53,15 +63,23 @@ export function AppShell() {
   }, [hydrationDateStore, hydrationStore, trackingStore]);
 
   const headerTitle = useMemo(() => {
-    if (!profileStore.value) return "NutriSOPK";
-    const name = profileStore.value.prenom;
+    const activeProfile = runtimeProfile ?? profileStore.value;
+    if (!activeProfile) return "NutriSOPK";
+    const name = activeProfile.prenom;
     return `NutriSOPK · ${name}`;
-  }, [profileStore.value]);
+  }, [profileStore.value, runtimeProfile]);
 
-  if (!profileStore.value) {
+  const activeProfile = runtimeProfile ?? profileStore.value;
+
+  if (!activeProfile) {
     return (
       <main className="mx-auto min-h-screen w-full max-w-md bg-[#f7f7ff] p-4 pb-20">
-        <OnboardingForm onComplete={profileStore.update} />
+        <OnboardingForm
+          onComplete={(profile) => {
+            setRuntimeProfile(profile);
+            profileStore.update(profile);
+          }}
+        />
       </main>
     );
   }
@@ -77,7 +95,7 @@ export function AppShell() {
       </header>
 
       <PlanView
-        profile={profileStore.value}
+        profile={activeProfile}
         mealChecklist={mealChecklistStore.value}
         waterProgress={waterProgressStore.value}
         onUpdateWaterProgress={(key, value) =>

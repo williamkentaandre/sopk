@@ -116,6 +116,9 @@ export function PlanView({
           <p className="mt-1 text-xs text-cyan-700">
             Cette quantité est définie automatiquement pour favoriser la perte de poids et limiter les fringales.
           </p>
+          <p className="mt-2 rounded-lg bg-white/80 px-2 py-1 text-xs font-semibold text-cyan-800">
+            💧 {selectedDay.rappelHydratation}
+          </p>
         </div>
 
         <article

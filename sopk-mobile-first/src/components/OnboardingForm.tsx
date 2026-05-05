@@ -42,7 +42,14 @@ export function OnboardingForm({ onComplete }: OnboardingFormProps) {
       return;
     }
     setError("");
-    onComplete(profile);
+    onComplete({
+      ...profile,
+      prenom: profile.prenom.trim(),
+      age: Number(profile.age),
+      poidsKg: Number(profile.poidsKg),
+      tailleCm: Number(profile.tailleCm),
+      hydratationCibleMl: Number(profile.hydratationCibleMl),
+    });
   }
 
   return (
