@@ -54,15 +54,4 @@ export interface AdviceEntry {
 
 export type MealChecklistState = Record<string, boolean>;
 
-export interface MealPhotoEstimate {
-  kcal: number;
-  fileName: string;
-  capturedAt: string;
-  source: "ai";
-  confidence: number;
-  surplusKcal: number;
-  waterBonusMl: number;
-  action: string;
-}
-
-export type MealPhotoEstimateState = Record<string, MealPhotoEstimate>;
+export type WaterProgressState = Record<string, number>;

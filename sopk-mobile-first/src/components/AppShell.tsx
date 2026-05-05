@@ -9,8 +9,8 @@ import { STORAGE_KEYS, todayIso } from "@/utils/storage";
 import {
   DailyTrackingData,
   MealChecklistState,
-  MealPhotoEstimateState,
   OnboardingData,
+  WaterProgressState,
 } from "@/utils/types";
 
 const initialTracking: DailyTrackingData = {
@@ -29,11 +29,7 @@ export function AppShell() {
   const hydrationStore = useLocalStorage<number>(STORAGE_KEYS.hydrationMl, 0);
   const hydrationDateStore = useLocalStorage<string>(STORAGE_KEYS.hydrationDate, todayIso());
   const mealChecklistStore = useLocalStorage<MealChecklistState>(STORAGE_KEYS.mealChecklist, {});
-  const mealPhotoEstimatesStore = useLocalStorage<MealPhotoEstimateState>(
-    STORAGE_KEYS.mealPhotoEstimates,
-    {}
-  );
-  const aiApiKeyStore = useLocalStorage<string>(STORAGE_KEYS.aiApiKey, "");
+  const waterProgressStore = useLocalStorage<WaterProgressState>(STORAGE_KEYS.waterProgress, {});
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
@@ -83,19 +79,17 @@ export function AppShell() {
       <PlanView
         profile={profileStore.value}
         mealChecklist={mealChecklistStore.value}
-        mealPhotoEstimates={mealPhotoEstimatesStore.value}
-        aiApiKey={aiApiKeyStore.value}
-        onChangeApiKey={aiApiKeyStore.update}
+        waterProgress={waterProgressStore.value}
+        onUpdateWaterProgress={(key, value) =>
+          waterProgressStore.update({
+            ...waterProgressStore.value,
+            [key]: value,
+          })
+        }
         onToggleMeal={(key) =>
           mealChecklistStore.update({
             ...mealChecklistStore.value,
             [key]: !mealChecklistStore.value[key],
-          })
-        }
-        onUpdateMealEstimate={(key, estimate) =>
-          mealPhotoEstimatesStore.update({
-            ...mealPhotoEstimatesStore.value,
-            [key]: estimate,
           })
         }
       />

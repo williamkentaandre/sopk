@@ -1,21 +1,22 @@
 import { useState } from "react";
 import Image from "next/image";
 
-import { estimateKcalWithAIOrFallback } from "@/utils/ai-kcal";
 import { getMealPlan, getPersonalizedCalories } from "@/utils/mealPlan";
-import { buildMealAdjustment } from "@/utils/meal-adjustment";
-import { MealChecklistState, MealPhotoEstimate, MealPhotoEstimateState, OnboardingData } from "@/utils/types";
+import { getMealPortionDetails } from "@/utils/meal-portions";
+import {
+  MealChecklistState,
+  OnboardingData,
+  WaterProgressState,
+} from "@/utils/types";
 
 import { SectionCard } from "./SectionCard";
 
 interface PlanViewProps {
   profile: OnboardingData;
   mealChecklist: MealChecklistState;
-  mealPhotoEstimates: MealPhotoEstimateState;
-  aiApiKey: string;
-  onChangeApiKey: (value: string) => void;
+  waterProgress: WaterProgressState;
+  onUpdateWaterProgress: (key: string, value: number) => void;
   onToggleMeal: (key: string) => void;
-  onUpdateMealEstimate: (key: string, estimate: MealPhotoEstimate) => void;
 }
 
 const labelByType = {
@@ -28,20 +29,20 @@ const labelByType = {
 export function PlanView({
   profile,
   mealChecklist,
-  mealPhotoEstimates,
-  aiApiKey,
-  onChangeApiKey,
+  waterProgress,
+  onUpdateWaterProgress,
   onToggleMeal,
-  onUpdateMealEstimate,
 }: PlanViewProps) {
   const data = getMealPlan();
   const todayIndex = (new Date().getDay() + 6) % 7;
   const [selectedDayIndex, setSelectedDayIndex] = useState(todayIndex);
-  const [analyzingKey, setAnalyzingKey] = useState<string | null>(null);
-  const [mealErrors, setMealErrors] = useState<Record<string, string>>({});
   const selectedDay = data.jours[selectedDayIndex];
   const dailyTarget = getPersonalizedCalories(profile);
   const waterChecked = Boolean(mealChecklist[waterKey(selectedDay.jour)]);
+  const waterTargetMl = Math.round(selectedDay.hydratationLitres * 1000);
+  const waterProgressKey = waterProgressStorageKey(selectedDay.jour);
+  const waterCurrentMl = Math.min(waterTargetMl, Math.max(0, Math.round(waterProgress[waterProgressKey] ?? 0)));
+  const waterPercent = Math.round((waterCurrentMl / waterTargetMl) * 100);
   const checkedMeals = selectedDay.repas.filter((_, i) => mealChecklist[mealKey(selectedDay.jour, i)]).length;
   const checkedToday = checkedMeals + (waterChecked ? 1 : 0);
   const totalTasks = selectedDay.repas.length + 1;
@@ -64,19 +65,6 @@ export function PlanView({
           <li>Recettes équilibrées compatibles SOPK.</li>
           <li>Substitutions incluses pour plus de flexibilité.</li>
         </ul>
-        <label className="block text-sm font-semibold text-slate-700">
-          Clé API Gemini (IA photo kcal)
-          <input
-            type="password"
-            value={aiApiKey}
-            onChange={(e) => onChangeApiKey(e.target.value)}
-            placeholder="Colle ta clé API Gemini"
-            className="mt-1 w-full rounded-xl border border-violet-200 px-3 py-2 outline-none focus:border-violet-500"
-          />
-        </label>
-        <p className="text-xs text-slate-500">
-          L&apos;analyse kcal fonctionne uniquement via IA Gemini (aucun mode de secours local).
-        </p>
       </SectionCard>
 
       <SectionCard title="Mode gamification">
@@ -150,11 +138,40 @@ export function PlanView({
               </span>
             </div>
             <p className="mt-1 text-sm text-slate-700">
-              Bois la quantité totale recommandée puis coche cet objectif.
+              Avance le curseur au fur et à mesure de ta consommation d&apos;eau.
             </p>
+            <div className="mt-3 rounded-lg bg-cyan-50 p-2">
+              <div className="mb-1 flex items-center justify-between text-xs font-semibold text-cyan-800">
+                <span>{waterCurrentMl} ml</span>
+                <span>{waterTargetMl} ml ({waterPercent}%)</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={waterTargetMl}
+                step={50}
+                value={waterCurrentMl}
+                onChange={(e) => {
+                  const next = Number(e.target.value);
+                  onUpdateWaterProgress(waterProgressKey, next);
+                  if (next >= waterTargetMl && !waterChecked) {
+                    onToggleMeal(waterKey(selectedDay.jour));
+                  }
+                  if (next < waterTargetMl && waterChecked) {
+                    onToggleMeal(waterKey(selectedDay.jour));
+                  }
+                }}
+                className="w-full accent-cyan-600"
+              />
+            </div>
             <button
               type="button"
-              onClick={() => onToggleMeal(waterKey(selectedDay.jour))}
+              onClick={() => {
+                onUpdateWaterProgress(waterProgressKey, waterTargetMl);
+                if (!waterChecked) {
+                  onToggleMeal(waterKey(selectedDay.jour));
+                }
+              }}
               className={`mt-3 w-full rounded-lg px-3 py-2 text-sm font-semibold ${
                 waterChecked
                   ? "bg-emerald-600 text-white hover:bg-emerald-700"
@@ -170,7 +187,7 @@ export function PlanView({
           {selectedDay.repas.map((meal, index) => {
             const key = mealKey(selectedDay.jour, index);
             const checked = Boolean(mealChecklist[key]);
-            const estimate = mealPhotoEstimates[key];
+            const portionDetails = getMealPortionDetails(meal.nom);
 
             return (
               <article
@@ -195,67 +212,17 @@ export function PlanView({
                   </div>
                   <p className="mt-1 text-sm text-slate-700">{meal.nom}</p>
                   <p className="mt-1 text-xs text-slate-500">Option: {meal.substitution}</p>
-                  {estimate ? (
-                    <div className="mt-2 space-y-1 rounded-lg bg-indigo-50 px-2 py-2 text-xs text-indigo-700">
-                      <p className="font-semibold">
-                        📷 Kcal estimées auto: {estimate.kcal} kcal (IA)
-                      </p>
-                      <p>Confiance: {Math.round(estimate.confidence * 100)}%</p>
-                      {estimate.surplusKcal > 0 ? (
-                        <>
-                          <p className="font-semibold text-amber-700">Surplus: +{estimate.surplusKcal} kcal</p>
-                          <p className="text-cyan-700">Hydratation bonus suggérée: +{estimate.waterBonusMl} ml</p>
-                          <p>{estimate.action}</p>
-                        </>
-                      ) : (
-                        <p className="text-emerald-700">Repas aligné avec l&apos;objectif calorique.</p>
-                      )}
-                    </div>
-                  ) : null}
-                  {mealErrors[key] ? (
-                    <p className="mt-2 rounded-lg bg-rose-50 px-2 py-2 text-xs font-semibold text-rose-700">
-                      {mealErrors[key]}
-                    </p>
-                  ) : null}
-
-                  <label className="mt-3 block cursor-pointer rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-2 text-center text-sm font-semibold text-indigo-700 hover:bg-indigo-100">
-                    {analyzingKey === key ? "Analyse de la photo..." : "📸 Prendre / choisir photo"}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="hidden"
-                      onChange={async (event) => {
-                        const file = event.target.files?.[0];
-                        if (!file) return;
-                        setMealErrors((prev) => ({ ...prev, [key]: "" }));
-                        setAnalyzingKey(key);
-                        try {
-                          const ai = await estimateKcalWithAIOrFallback(file, meal.calories, aiApiKey.trim());
-                          const adjustment = buildMealAdjustment(meal.calories, ai.kcal);
-                          onUpdateMealEstimate(key, {
-                            kcal: ai.kcal,
-                            fileName: file.name,
-                            capturedAt: new Date().toISOString(),
-                            source: ai.source,
-                            confidence: ai.confidence,
-                            surplusKcal: adjustment.surplusKcal,
-                            waterBonusMl: adjustment.waterBonusMl,
-                            action: adjustment.action,
-                          });
-                          if (!checked) onToggleMeal(key);
-                        } catch (error) {
-                          const message =
-                            error instanceof Error ? error.message : "Analyse IA impossible pour ce repas.";
-                          setMealErrors((prev) => ({ ...prev, [key]: message }));
-                        } finally {
-                          setAnalyzingKey(null);
-                        }
-                        event.currentTarget.value = "";
-                      }}
-                    />
-                  </label>
-
+                  <div className="mt-2 rounded-lg bg-slate-50 p-2">
+                    <p className="text-xs font-semibold text-slate-700">Grammage recommandé:</p>
+                    <ul className="mt-1 list-disc pl-4 text-xs text-slate-600">
+                      {portionDetails.ingredients.map((item) => (
+                        <li key={`${item.aliment}-${item.grammes}`}>
+                          {item.aliment}: {item.grammes} g
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-1 text-xs text-slate-500">Pourquoi: {portionDetails.why}</p>
+                  </div>
                   <button
                     type="button"
                     onClick={() => onToggleMeal(key)}
@@ -291,4 +258,8 @@ function mealKey(day: number, mealIndex: number) {
 
 function waterKey(day: number) {
   return `day-${day}-water`;
+}
+
+function waterProgressStorageKey(day: number) {
+  return `day-${day}-water-progress`;
 }
