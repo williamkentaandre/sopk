@@ -274,6 +274,552 @@
         "Fais le bilan de la semaine sans culpabilité.",
         "Choisis un objectif simple pour la semaine suivante."
       ]
+    },
+    {
+      "jour": 8,
+      "hydratationLitres": 2.2,
+      "rappelHydratation": "Jour 8: repartir sur une bonne hydratation relance ta semaine et réduit les grignotages.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Omelette épinards + pain complet",
+          "calories": 390,
+          "substitution": "Yaourt grec nature + fruits rouges + graines de chia",
+          "image": "https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Salade quinoa, poulet, avocat, légumes croquants",
+          "calories": 470,
+          "substitution": "Tofu grillé à la place du poulet",
+          "image": "https://images.unsplash.com/photo-1546793665-c74683f339c1?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "collation",
+          "nom": "Pomme + 10 amandes",
+          "calories": 170,
+          "substitution": "Poire + noix",
+          "image": "https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "diner",
+          "nom": "Saumon au four + brocoli + patate douce",
+          "calories": 520,
+          "substitution": "Cabillaud + haricots verts + riz complet",
+          "image": "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=1200&q=80"
+        }
+      ],
+      "conseils": [
+        "Commence chaque repas par une source de protéines.",
+        "Évite les jus de fruits, préfère le fruit entier."
+      ]
+    },
+    {
+      "jour": 9,
+      "hydratationLitres": 2.3,
+      "rappelHydratation": "Jour 9: l’eau maintient une énergie stable pendant la journée active.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Porridge flocons d’avoine, lait végétal, cannelle",
+          "calories": 360,
+          "substitution": "Pain complet + fromage blanc + kiwi",
+          "image": "https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Buddha bowl lentilles, crudités, feta",
+          "calories": 460,
+          "substitution": "Pois chiches à la place des lentilles",
+          "image": "https://images.unsplash.com/photo-1543332164-6e82f355badc?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "collation",
+          "nom": "Fromage blanc nature + graines de courge",
+          "calories": 180,
+          "substitution": "Skyr nature + cannelle",
+          "image": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "diner",
+          "nom": "Dinde sautée + courgettes + riz basmati complet",
+          "calories": 530,
+          "substitution": "Tempeh sauté + légumes + quinoa",
+          "image": "https://images.unsplash.com/photo-1562967916-eb82221dfb92?auto=format&fit=crop&w=1200&q=80"
+        }
+      ],
+      "conseils": [
+        "Ajoute une cuillère d’huile d’olive sur tes légumes.",
+        "Hydrate-toi avant la collation pour vérifier la vraie faim."
+      ]
+    },
+    {
+      "jour": 10,
+      "hydratationLitres": 2.4,
+      "rappelHydratation": "Jour 10: bien t’hydrater améliore la digestion des repas riches en fibres.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Skyr + noix + framboises",
+          "calories": 340,
+          "substitution": "Omelette 2 œufs + tomates cerises",
+          "image": "https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Wrap complet au thon, crudités, houmous",
+          "calories": 450,
+          "substitution": "Wrap poulet ou tofu",
+          "image": "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "collation",
+          "nom": "Carottes + houmous",
+          "calories": 170,
+          "substitution": "Concombre + guacamole léger",
+          "image": "https://images.unsplash.com/photo-1623428454614-abaf5dca3fd2?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "diner",
+          "nom": "Chili maison haricots rouges + salade verte",
+          "calories": 540,
+          "substitution": "Bol de lentilles épicées",
+          "image": "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=1200&q=80"
+        }
+      ],
+      "conseils": [
+        "Fais une marche de 15 minutes après le déjeuner.",
+        "Privilégie des glucides complets le soir."
+      ]
+    },
+    {
+      "jour": 11,
+      "hydratationLitres": 2.2,
+      "rappelHydratation": "Jour 11: l’hydratation régulière réduit la confusion entre soif et faim.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Toast complet, avocat, œuf poché",
+          "calories": 380,
+          "substitution": "Galettes de sarrasin + fromage blanc",
+          "image": "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Poisson blanc, quinoa, légumes rôtis",
+          "calories": 480,
+          "substitution": "Tofu mariné + quinoa + légumes",
+          "image": "https://images.unsplash.com/photo-1551248429-40975aa4de74?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "collation",
+          "nom": "Orange + 1 carré chocolat noir 85%",
+          "calories": 160,
+          "substitution": "Clémentines + noisettes",
+          "image": "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "diner",
+          "nom": "Soupe de légumes + pois chiches + salade",
+          "calories": 500,
+          "substitution": "Soupe + omelette aux herbes",
+          "image": "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=1200&q=80"
+        }
+      ],
+      "conseils": [
+        "Garde un dîner léger mais riche en fibres.",
+        "Évite les écrans 45 minutes avant le coucher."
+      ]
+    },
+    {
+      "jour": 12,
+      "hydratationLitres": 2.5,
+      "rappelHydratation": "Jour 12: une hydratation plus haute soutient le métabolisme lors des journées denses.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Smoothie protéiné (sans sucre ajouté) + flocons",
+          "calories": 370,
+          "substitution": "Skyr + banane + graines",
+          "image": "https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Salade pois chiches, concombre, tomate, feta",
+          "calories": 450,
+          "substitution": "Lentilles vertes à la place des pois chiches",
+          "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "collation",
+          "nom": "Yaourt nature + myrtilles",
+          "calories": 170,
+          "substitution": "Fromage blanc + fraises",
+          "image": "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "diner",
+          "nom": "Poulet au curry doux + chou-fleur + riz complet",
+          "calories": 540,
+          "substitution": "Curry de tofu",
+          "image": "https://images.unsplash.com/photo-1604908554265-6254655488df?auto=format&fit=crop&w=1200&q=80"
+        }
+      ],
+      "conseils": [
+        "Mange lentement pour améliorer la satiété.",
+        "Vise 7 000 à 9 000 pas dans la journée."
+      ]
+    },
+    {
+      "jour": 13,
+      "hydratationLitres": 2.4,
+      "rappelHydratation": "Jour 13: maintenir l’hydratation t’aide à limiter la fatigue en fin de semaine.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Pancakes flocons d’avoine maison + skyr",
+          "calories": 390,
+          "substitution": "Bol de muesli sans sucre + yaourt nature",
+          "image": "https://images.unsplash.com/photo-1519676867240-f03562e64548?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Bowl saumon fumé, riz complet, avocat, concombre",
+          "calories": 500,
+          "substitution": "Bowl tofu fumé",
+          "image": "https://images.unsplash.com/photo-1553621042-f6e147245754?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "collation",
+          "nom": "Kiwi + noix de cajou",
+          "calories": 160,
+          "substitution": "Pomme + pistaches",
+          "image": "https://images.unsplash.com/photo-1619566636858-adf3ef46400b?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "diner",
+          "nom": "Steak haché 5% + haricots verts + quinoa",
+          "calories": 510,
+          "substitution": "Galette végétale + légumes + quinoa",
+          "image": "https://images.unsplash.com/photo-1600891964092-4316c288032e?auto=format&fit=crop&w=1200&q=80"
+        }
+      ],
+      "conseils": [
+        "Prépare tes repas du lendemain pour réduire le stress.",
+        "Hydrate-toi régulièrement en petites quantités."
+      ]
+    },
+    {
+      "jour": 14,
+      "hydratationLitres": 2.3,
+      "rappelHydratation": "Jour 14: terminer ce cycle hydratée renforce l’adhérence au programme.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Œufs brouillés + champignons + pain complet",
+          "calories": 380,
+          "substitution": "Tofu brouillé + pain complet",
+          "image": "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Salade niçoise revisitée (sans pommes de terre)",
+          "calories": 460,
+          "substitution": "Version végétarienne avec pois chiches",
+          "image": "https://images.unsplash.com/photo-1539136788836-5699e78bfc75?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "collation",
+          "nom": "Fruits rouges + fromage blanc",
+          "calories": 150,
+          "substitution": "Compote sans sucre + yaourt nature",
+          "image": "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "diner",
+          "nom": "Gratin de légumes + filet de poisson",
+          "calories": 520,
+          "substitution": "Gratin de légumes + tempeh",
+          "image": "https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=1200&q=80"
+        }
+      ],
+      "conseils": [
+        "Fais le bilan de la semaine sans culpabilité.",
+        "Choisis un objectif simple pour la semaine suivante."
+      ]
+    },
+    {
+      "jour": 15,
+      "hydratationLitres": 2.2,
+      "rappelHydratation": "Jour 15: boire avant les repas aide à mieux respecter les quantités prévues.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Omelette épinards + pain complet",
+          "calories": 390,
+          "substitution": "Yaourt grec nature + fruits rouges + graines de chia",
+          "image": "https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Salade quinoa, poulet, avocat, légumes croquants",
+          "calories": 470,
+          "substitution": "Tofu grillé à la place du poulet",
+          "image": "https://images.unsplash.com/photo-1546793665-c74683f339c1?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "collation",
+          "nom": "Pomme + 10 amandes",
+          "calories": 170,
+          "substitution": "Poire + noix",
+          "image": "https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "diner",
+          "nom": "Saumon au four + brocoli + patate douce",
+          "calories": 520,
+          "substitution": "Cabillaud + haricots verts + riz complet",
+          "image": "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=1200&q=80"
+        }
+      ],
+      "conseils": [
+        "Commence chaque repas par une source de protéines.",
+        "Évite les jus de fruits, préfère le fruit entier."
+      ]
+    },
+    {
+      "jour": 16,
+      "hydratationLitres": 2.3,
+      "rappelHydratation": "Jour 16: une hydratation stable améliore la concentration et les décisions alimentaires.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Porridge flocons d’avoine, lait végétal, cannelle",
+          "calories": 360,
+          "substitution": "Pain complet + fromage blanc + kiwi",
+          "image": "https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Buddha bowl lentilles, crudités, feta",
+          "calories": 460,
+          "substitution": "Pois chiches à la place des lentilles",
+          "image": "https://images.unsplash.com/photo-1543332164-6e82f355badc?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "collation",
+          "nom": "Fromage blanc nature + graines de courge",
+          "calories": 180,
+          "substitution": "Skyr nature + cannelle",
+          "image": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "diner",
+          "nom": "Dinde sautée + courgettes + riz basmati complet",
+          "calories": 530,
+          "substitution": "Tempeh sauté + légumes + quinoa",
+          "image": "https://images.unsplash.com/photo-1562967916-eb82221dfb92?auto=format&fit=crop&w=1200&q=80"
+        }
+      ],
+      "conseils": [
+        "Ajoute une cuillère d’huile d’olive sur tes légumes.",
+        "Hydrate-toi avant la collation pour vérifier la vraie faim."
+      ]
+    },
+    {
+      "jour": 17,
+      "hydratationLitres": 2.4,
+      "rappelHydratation": "Jour 17: l’eau facilite le transit et aide à réduire l’inconfort digestif.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Skyr + noix + framboises",
+          "calories": 340,
+          "substitution": "Omelette 2 œufs + tomates cerises",
+          "image": "https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Wrap complet au thon, crudités, houmous",
+          "calories": 450,
+          "substitution": "Wrap poulet ou tofu",
+          "image": "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "collation",
+          "nom": "Carottes + houmous",
+          "calories": 170,
+          "substitution": "Concombre + guacamole léger",
+          "image": "https://images.unsplash.com/photo-1623428454614-abaf5dca3fd2?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "diner",
+          "nom": "Chili maison haricots rouges + salade verte",
+          "calories": 540,
+          "substitution": "Bol de lentilles épicées",
+          "image": "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=1200&q=80"
+        }
+      ],
+      "conseils": [
+        "Fais une marche de 15 minutes après le déjeuner.",
+        "Privilégie des glucides complets le soir."
+      ]
+    },
+    {
+      "jour": 18,
+      "hydratationLitres": 2.2,
+      "rappelHydratation": "Jour 18: boire régulièrement aide à garder une faim plus prévisible.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Toast complet, avocat, œuf poché",
+          "calories": 380,
+          "substitution": "Galettes de sarrasin + fromage blanc",
+          "image": "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Poisson blanc, quinoa, légumes rôtis",
+          "calories": 480,
+          "substitution": "Tofu mariné + quinoa + légumes",
+          "image": "https://images.unsplash.com/photo-1551248429-40975aa4de74?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "collation",
+          "nom": "Orange + 1 carré chocolat noir 85%",
+          "calories": 160,
+          "substitution": "Clémentines + noisettes",
+          "image": "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "diner",
+          "nom": "Soupe de légumes + pois chiches + salade",
+          "calories": 500,
+          "substitution": "Soupe + omelette aux herbes",
+          "image": "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=1200&q=80"
+        }
+      ],
+      "conseils": [
+        "Garde un dîner léger mais riche en fibres.",
+        "Évite les écrans 45 minutes avant le coucher."
+      ]
+    },
+    {
+      "jour": 19,
+      "hydratationLitres": 2.5,
+      "rappelHydratation": "Jour 19: une hydratation élevée soutient l’effort et la récupération de la journée.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Smoothie protéiné (sans sucre ajouté) + flocons",
+          "calories": 370,
+          "substitution": "Skyr + banane + graines",
+          "image": "https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Salade pois chiches, concombre, tomate, feta",
+          "calories": 450,
+          "substitution": "Lentilles vertes à la place des pois chiches",
+          "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "collation",
+          "nom": "Yaourt nature + myrtilles",
+          "calories": 170,
+          "substitution": "Fromage blanc + fraises",
+          "image": "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "diner",
+          "nom": "Poulet au curry doux + chou-fleur + riz complet",
+          "calories": 540,
+          "substitution": "Curry de tofu",
+          "image": "https://images.unsplash.com/photo-1604908554265-6254655488df?auto=format&fit=crop&w=1200&q=80"
+        }
+      ],
+      "conseils": [
+        "Mange lentement pour améliorer la satiété.",
+        "Vise 7 000 à 9 000 pas dans la journée."
+      ]
+    },
+    {
+      "jour": 20,
+      "hydratationLitres": 2.4,
+      "rappelHydratation": "Jour 20: rester hydratée limite les baisses d’énergie et les envies impulsives.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Pancakes flocons d’avoine maison + skyr",
+          "calories": 390,
+          "substitution": "Bol de muesli sans sucre + yaourt nature",
+          "image": "https://images.unsplash.com/photo-1519676867240-f03562e64548?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Bowl saumon fumé, riz complet, avocat, concombre",
+          "calories": 500,
+          "substitution": "Bowl tofu fumé",
+          "image": "https://images.unsplash.com/photo-1553621042-f6e147245754?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "collation",
+          "nom": "Kiwi + noix de cajou",
+          "calories": 160,
+          "substitution": "Pomme + pistaches",
+          "image": "https://images.unsplash.com/photo-1619566636858-adf3ef46400b?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "diner",
+          "nom": "Steak haché 5% + haricots verts + quinoa",
+          "calories": 510,
+          "substitution": "Galette végétale + légumes + quinoa",
+          "image": "https://images.unsplash.com/photo-1600891964092-4316c288032e?auto=format&fit=crop&w=1200&q=80"
+        }
+      ],
+      "conseils": [
+        "Prépare tes repas du lendemain pour réduire le stress.",
+        "Hydrate-toi régulièrement en petites quantités."
+      ]
+    },
+    {
+      "jour": 21,
+      "hydratationLitres": 2.3,
+      "rappelHydratation": "Jour 21: fin de programme, l’hydratation reste une habitude clé à conserver.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Œufs brouillés + champignons + pain complet",
+          "calories": 380,
+          "substitution": "Tofu brouillé + pain complet",
+          "image": "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Salade niçoise revisitée (sans pommes de terre)",
+          "calories": 460,
+          "substitution": "Version végétarienne avec pois chiches",
+          "image": "https://images.unsplash.com/photo-1539136788836-5699e78bfc75?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "collation",
+          "nom": "Fruits rouges + fromage blanc",
+          "calories": 150,
+          "substitution": "Compote sans sucre + yaourt nature",
+          "image": "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          "type": "diner",
+          "nom": "Gratin de légumes + filet de poisson",
+          "calories": 520,
+          "substitution": "Gratin de légumes + tempeh",
+          "image": "https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=1200&q=80"
+        }
+      ],
+      "conseils": [
+        "Fais le bilan de la semaine sans culpabilité.",
+        "Choisis un objectif simple pour la semaine suivante."
+      ]
     }
   ]
 }

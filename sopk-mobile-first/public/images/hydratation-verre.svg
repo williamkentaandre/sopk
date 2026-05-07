@@ -1,0 +1,37 @@
+<svg width="1200" height="600" viewBox="0 0 1200 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="600" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E0F2FE"/>
+      <stop offset="1" stop-color="#BAE6FD"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="160" x2="0" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.55"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#0EA5E9"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="600" fill="url(#bg)"/>
+
+  <circle cx="220" cy="120" r="38" fill="#FFFFFF" fill-opacity="0.45"/>
+  <circle cx="980" cy="160" r="52" fill="#FFFFFF" fill-opacity="0.35"/>
+  <circle cx="1020" cy="430" r="24" fill="#FFFFFF" fill-opacity="0.35"/>
+
+  <g transform="translate(410 80)">
+    <rect x="90" y="20" width="200" height="420" rx="42" fill="url(#glass)" stroke="#7DD3FC" stroke-width="6"/>
+    <path d="M110 260C130 250 150 246 170 250C190 254 210 270 230 270C250 270 270 252 290 248V410C290 426 277 440 260 440H140C123 440 110 426 110 410V260Z" fill="url(#water)"/>
+    <path d="M110 260C130 250 150 246 170 250C190 254 210 270 230 270C250 270 270 252 290 248" stroke="#BAE6FD" stroke-width="6" stroke-linecap="round"/>
+    <rect x="140" y="70" width="100" height="16" rx="8" fill="#E0F2FE"/>
+    <circle cx="250" cy="140" r="8" fill="#E0F2FE"/>
+    <circle cx="148" cy="338" r="9" fill="#7DD3FC" fill-opacity="0.9"/>
+    <circle cx="176" cy="316" r="6" fill="#7DD3FC" fill-opacity="0.8"/>
+    <circle cx="260" cy="350" r="7" fill="#7DD3FC" fill-opacity="0.85"/>
+  </g>
+
+  <text x="600" y="540" text-anchor="middle" fill="#0369A1" font-family="Arial, sans-serif" font-size="40" font-weight="700">
+    Hydratation quotidienne
+  </text>
+</svg>

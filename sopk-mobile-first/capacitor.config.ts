@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.nutrisopk.app',
-  appName: 'NutriSOPK',
+  appName: 'Régime SOPK',
   webDir: 'out'
 };
 

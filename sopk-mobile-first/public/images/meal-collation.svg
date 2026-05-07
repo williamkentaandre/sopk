@@ -1,0 +1,19 @@
+<svg width="1200" height="600" viewBox="0 0 1200 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="600" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EDE9FE"/>
+      <stop offset="1" stop-color="#C4B5FD"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="600" fill="url(#bg)"/>
+  <rect x="420" y="300" width="360" height="170" rx="22" fill="#FFFFFF" fill-opacity="0.9"/>
+  <rect x="455" y="335" width="290" height="35" rx="17" fill="#A78BFA"/>
+  <rect x="455" y="380" width="290" height="35" rx="17" fill="#7C3AED"/>
+  <circle cx="395" cy="355" r="45" fill="#EF4444"/>
+  <circle cx="380" cy="345" r="10" fill="#FCA5A5"/>
+  <circle cx="805" cy="355" r="45" fill="#F59E0B"/>
+  <path d="M790 340C800 325 820 325 830 340" stroke="#92400E" stroke-width="8" stroke-linecap="round"/>
+  <text x="600" y="540" text-anchor="middle" fill="#5B21B6" font-family="Arial, sans-serif" font-size="42" font-weight="700">
+    Collation saine
+  </text>
+</svg>

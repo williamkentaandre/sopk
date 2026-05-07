@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://nutrisopk.local"),
-  title: "NutriSOPK - Programme mobile SOPK",
+  title: "Régime SOPK - Programme mobile SOPK 30 jours",
   description:
-    "Application mobile-first SOPK: onboarding, plan alimentaire 7 jours, suivi quotidien, conseils personnalisés et hydratation.",
+    "Application mobile-first SOPK: onboarding, plan alimentaire 30 jours, suivi quotidien, conseils personnalisés et hydratation.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "NutriSOPK",
+    title: "Régime SOPK",
     statusBarStyle: "default",
   },
 };

@@ -4,10 +4,10 @@ export const dynamic = "force-static";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "NutriSOPK",
-    short_name: "NutriSOPK",
+    name: "Régime SOPK - 30 jours",
+    short_name: "Régime SOPK",
     description:
-      "Application mobile-first SOPK avec onboarding, plan repas 7 jours, suivi quotidien et hydratation.",
+      "Application mobile-first SOPK avec onboarding, plan repas 30 jours, suivi quotidien et hydratation.",
     start_url: "/",
     display: "standalone",
     background_color: "#f7f7ff",

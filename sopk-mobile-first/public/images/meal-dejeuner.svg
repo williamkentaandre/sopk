@@ -1,0 +1,21 @@
+<svg width="1200" height="600" viewBox="0 0 1200 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="600" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#DCFCE7"/>
+      <stop offset="1" stop-color="#86EFAC"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="600" fill="url(#bg)"/>
+  <ellipse cx="600" cy="420" rx="330" ry="120" fill="#FFFFFF" fill-opacity="0.92"/>
+  <ellipse cx="600" cy="420" rx="255" ry="85" fill="#F8FAFC"/>
+  <rect x="500" y="365" width="220" height="22" rx="11" fill="#D9F99D"/>
+  <rect x="485" y="392" width="250" height="22" rx="11" fill="#4ADE80"/>
+  <rect x="520" y="420" width="180" height="20" rx="10" fill="#F97316"/>
+  <circle cx="470" cy="388" r="16" fill="#16A34A"/>
+  <circle cx="735" cy="388" r="16" fill="#16A34A"/>
+  <rect x="780" y="300" width="20" height="170" rx="10" fill="#334155"/>
+  <rect x="820" y="300" width="20" height="170" rx="10" fill="#334155"/>
+  <text x="600" y="540" text-anchor="middle" fill="#166534" font-family="Arial, sans-serif" font-size="42" font-weight="700">
+    Déjeuner complet et coloré
+  </text>
+</svg>

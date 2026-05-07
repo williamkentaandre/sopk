@@ -61,11 +61,14 @@ function buildDynamicAdvice(profile: OnboardingData, tracking: DailyTrackingData
   if (!tracking.repasSuivis) {
     advice.push("Prépare ta collation à l’avance pour éviter les choix impulsifs.");
   }
-  if (profile.objectifPrincipal === "perte_poids") {
-    advice.push("Priorise 8 000 pas par jour et une assiette riche en fibres à chaque repas.");
+  if (profile.parcoursPerte === "radical") {
+    advice.push("Découpe ta marche en 2 sessions dans la journée pour mieux tenir le rythme intensif.");
   }
-  if (profile.objectifPrincipal === "reduction_fringales") {
-    advice.push("Intègre une collation planifiée riche en protéines vers 16h.");
+  if (profile.parcoursPerte === "modere") {
+    advice.push("Vise la régularité: repas équilibrés + hydratation stable + marche quotidienne.");
+  }
+  if (profile.parcoursPerte === "durable") {
+    advice.push("Privilégie des habitudes faciles à maintenir sur plusieurs semaines.");
   }
   if (advice.length === 0) {
     advice.push("Continue tes habitudes actuelles: ton suivi quotidien est cohérent.");

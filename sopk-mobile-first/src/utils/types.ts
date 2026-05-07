@@ -27,13 +27,7 @@ export interface OnboardingData {
   age: number;
   poidsKg: number;
   tailleCm: number;
-  objectifPrincipal:
-    | "perte_poids"
-    | "reduction_fringales"
-    | "meilleure_energie"
-    | "cycle_plus_regulier";
-  niveauActivite: "faible" | "modere" | "eleve";
-  hydratationCibleMl: number;
+  parcoursPerte: "radical" | "modere" | "durable";
 }
 
 export interface DailyTrackingData {
@@ -56,3 +50,13 @@ export interface AdviceEntry {
 export type MealChecklistState = Record<string, boolean>;
 
 export type WaterProgressState = Record<string, number>;
+
+export type StepProgressState = Record<string, number>;
+
+export interface AuthSession {
+  provider: "apple";
+  userId: string;
+  email?: string;
+  fullName?: string;
+  signedAtIso: string;
+}

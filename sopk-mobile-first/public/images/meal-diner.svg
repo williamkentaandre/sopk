@@ -1,0 +1,21 @@
+<svg width="1200" height="600" viewBox="0 0 1200 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="600" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#DBEAFE"/>
+      <stop offset="1" stop-color="#93C5FD"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="600" fill="url(#bg)"/>
+  <ellipse cx="600" cy="430" rx="330" ry="120" fill="#FFFFFF" fill-opacity="0.92"/>
+  <ellipse cx="600" cy="430" rx="255" ry="85" fill="#EFF6FF"/>
+  <rect x="500" y="370" width="210" height="26" rx="13" fill="#22C55E"/>
+  <rect x="520" y="405" width="170" height="24" rx="12" fill="#60A5FA"/>
+  <rect x="550" y="438" width="110" height="20" rx="10" fill="#F59E0B"/>
+  <circle cx="455" cy="415" r="18" fill="#16A34A"/>
+  <circle cx="748" cy="415" r="18" fill="#16A34A"/>
+  <path d="M250 160C310 140 350 220 410 200" stroke="#1E3A8A" stroke-width="10" stroke-linecap="round" opacity="0.35"/>
+  <circle cx="860" cy="130" r="40" fill="#FEF3C7" opacity="0.85"/>
+  <text x="600" y="540" text-anchor="middle" fill="#1E3A8A" font-family="Arial, sans-serif" font-size="42" font-weight="700">
+    Dîner léger et rassasiant
+  </text>
+</svg>

@@ -1,0 +1,21 @@
+<svg width="1200" height="600" viewBox="0 0 1200 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="600" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FEF3C7"/>
+      <stop offset="1" stop-color="#FDE68A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="600" fill="url(#bg)"/>
+  <ellipse cx="600" cy="430" rx="320" ry="110" fill="#FFFFFF" fill-opacity="0.9"/>
+  <ellipse cx="600" cy="430" rx="250" ry="80" fill="#F8FAFC"/>
+  <circle cx="520" cy="420" r="42" fill="#F59E0B"/>
+  <circle cx="680" cy="420" r="42" fill="#F59E0B"/>
+  <circle cx="520" cy="420" r="26" fill="#FDE68A"/>
+  <circle cx="680" cy="420" r="26" fill="#FDE68A"/>
+  <rect x="560" y="300" width="80" height="95" rx="10" fill="#FB923C"/>
+  <rect x="570" y="290" width="60" height="20" rx="8" fill="#FDBA74"/>
+  <path d="M590 285C590 270 610 270 610 255C610 270 630 270 630 285" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round"/>
+  <text x="600" y="540" text-anchor="middle" fill="#92400E" font-family="Arial, sans-serif" font-size="42" font-weight="700">
+    Petit-déjeuner équilibré
+  </text>
+</svg>

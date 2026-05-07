@@ -8,6 +8,16 @@ export interface MealPortionDetails {
   why: string;
 }
 
+interface PortionProfileInput {
+  age: number;
+  poidsKg: number;
+  tailleCm: number;
+  parcoursPerte: "radical" | "modere" | "durable";
+  objectifKcalJour?: number;
+}
+
+type MealType = "petit_dejeuner" | "dejeuner" | "collation" | "diner";
+
 const detailsByMealName: Record<string, MealPortionDetails> = {
   "omelette epinards + pain complet": {
     ingredients: [
@@ -248,5 +258,71 @@ export function getMealPortionDetails(mealName: string): MealPortionDetails {
   return {
     ingredients: [{ aliment: "Portion standard équilibrée", grammes: 150 }],
     why: "Portion calibrée pour maintenir le déficit calorique sans augmenter la faim.",
+  };
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getProfilePortionRatio(profile: PortionProfileInput, mealType: MealType): number {
+  const sizeIndex = profile.poidsKg / ((profile.tailleCm / 100) * (profile.tailleCm / 100));
+  let ratio = 1;
+
+  if (profile.parcoursPerte === "radical") ratio -= 0.07;
+  if (profile.parcoursPerte === "modere") ratio -= 0.03;
+  if (profile.parcoursPerte === "durable") ratio += 0.02;
+
+  if (sizeIndex < 21) ratio += 0.08;
+  if (sizeIndex >= 21 && sizeIndex < 25) ratio += 0.03;
+  if (sizeIndex >= 30) ratio -= 0.05;
+
+  if (profile.age >= 45) ratio -= 0.03;
+  if (profile.age <= 24) ratio += 0.02;
+
+  if (mealType === "collation") ratio = 1 + (ratio - 1) * 0.6;
+  if (mealType === "diner" && profile.parcoursPerte !== "durable") ratio -= 0.02;
+
+  return clamp(ratio, 0.85, 1.15);
+}
+
+function getObjectivePortionRatio(objectifKcalJour?: number, mealType?: MealType): number {
+  if (!objectifKcalJour) return 1;
+
+  let ratio = 1;
+  if (objectifKcalJour <= 1450) ratio -= 0.08;
+  else if (objectifKcalJour <= 1600) ratio -= 0.04;
+  else if (objectifKcalJour >= 2100) ratio += 0.05;
+  else if (objectifKcalJour >= 1900) ratio += 0.02;
+
+  if (mealType === "collation") ratio = 1 + (ratio - 1) * 0.7;
+  if (mealType === "diner" && objectifKcalJour <= 1600) ratio -= 0.02;
+
+  return clamp(ratio, 0.86, 1.12);
+}
+
+export function getMealPortionDetailsAdjusted(
+  mealName: string,
+  kcalRatio: number,
+  profile?: PortionProfileInput,
+  mealType?: MealType
+): MealPortionDetails {
+  const base = getMealPortionDetails(mealName);
+  const safeKcalRatio = clamp(kcalRatio, 0.75, 1.3);
+  const profileRatio = profile && mealType ? getProfilePortionRatio(profile, mealType) : 1;
+  const objectiveRatio = getObjectivePortionRatio(profile?.objectifKcalJour, mealType);
+  const safeRatio = clamp(safeKcalRatio * profileRatio * objectiveRatio, 0.68, 1.35);
+
+  return {
+    ingredients: base.ingredients.map((ingredient) => ({
+      ...ingredient,
+      grammes: Math.max(5, Math.round(ingredient.grammes * safeRatio)),
+    })),
+    why:
+      safeRatio === 1
+        ? `${base.why} Portions maintenues (profil proche du plan standard).`
+        : safeRatio < 1
+          ? `${base.why} Portions ajustées à la baisse selon ton objectif calorique, ton profil (âge, morphologie, parcours) et le type de repas.`
+          : `${base.why} Portions ajustées à la hausse selon ton besoin énergétique, ton objectif et ton profil personnel.`,
   };
 }
