@@ -1,6 +1,11 @@
+import { getProgramDayCount } from "@/utils/mealPlan";
+import type { ParcoursPerte } from "@/utils/types";
+
 export interface MealIngredientPortion {
   aliment: string;
   grammes: number;
+  /** Si défini, remplace le rendu « aliment : X g » (ex. nombre d’œufs adapté au profil). */
+  displayLine?: string;
 }
 
 export interface MealPortionDetails {
@@ -12,7 +17,7 @@ interface PortionProfileInput {
   age: number;
   poidsKg: number;
   tailleCm: number;
-  parcoursPerte: "radical" | "modere" | "durable";
+  parcoursPerte: ParcoursPerte;
   objectifKcalJour?: number;
 }
 
@@ -246,32 +251,136 @@ function normalize(text: string): string {
   return text
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[’']/g, "'")
+    .replace(/œ/g, "oe")
+    .replace(/\u2019|\u2018|\u00b4|\u2032/g, "'")
     .toLowerCase();
 }
 
-export function getMealPortionDetails(mealName: string): MealPortionDetails {
+/** Œuf cru / cocotte ~53 g ; utilisé pour estimer le nombre d’œufs à partir des g déjà ajustés au régime. */
+const EGG_GRAMS_PER_UNIT = 53;
+
+function isEggIngredient(aliment: string): boolean {
+  const x = normalize(aliment);
+  return x.includes("oeuf") || x.includes("omelett");
+}
+
+function eggCountFromGrams(grammes: number): number {
+  return Math.max(1, Math.round(grammes / EGG_GRAMS_PER_UNIT));
+}
+
+function formatEggPortionLine(aliment: string, grammes: number): string {
+  const n = eggCountFromGrams(grammes);
+  const plural = n > 1;
+  const x = normalize(aliment);
+  const gPart = `≈${grammes} g au total`;
+
+  if (x.includes("poch")) {
+    return plural ? `${n} œufs pochés (${gPart})` : `${n} œuf poché (${gPart})`;
+  }
+  if (x.includes("brouill")) {
+    return plural ? `${n} œufs brouillés (${gPart})` : `${n} œuf brouillé (${gPart})`;
+  }
+  if (x.includes("omelett")) {
+    return plural ? `${n} œufs en omelette (${gPart})` : `${n} œuf en omelette (${gPart})`;
+  }
+  return plural ? `${n} œufs (${gPart})` : `${n} œuf (${gPart})`;
+}
+
+const INFER_WHY =
+  "Portions estimées à partir du libellé du plat et des calories prévues dans ton plan, puis ajustées selon ton profil et ton objectif calorique; adapte selon ta faim ou ton accompagnement.";
+
+function parseExplicitEggCount(segment: string): number | undefined {
+  const m = normalize(segment).match(/(\d+)\s*oeufs?/);
+  if (!m) return undefined;
+  const n = Number.parseInt(m[1] ?? "", 10);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+/** Segments type « A + B » du plan ou des alternatives. */
+function inferPortionsFromMealLabel(mealName: string, planMealKcal: number): MealPortionDetails {
+  const trimmed = mealName.trim();
+  if (!trimmed) {
+    return { ingredients: [], why: INFER_WHY };
+  }
+
+  const segments = trimmed.split(/\s*\+\s*/).map((s) => s.trim()).filter(Boolean);
+  if (segments.length === 0) {
+    return { ingredients: [{ aliment: trimmed, grammes: 200 }], why: INFER_WHY };
+  }
+
+  const kcal = Math.max(120, planMealKcal);
+  const totalTarget = clamp(Math.round(kcal / 2.35), 200, 720);
+
+  const weights = segments.map((seg) => {
+    const n = normalize(seg);
+    let w = 1;
+    if (/oeuf|omelette/.test(n)) w += 1.35;
+    if (
+      /pain|riz|quinoa|pate\b|patate|wrap|galette|muesli|porridge|flocon|legume|courgette|haricot|brocoli|salade|crudit|tomate|concombre|carotte|champignon|soupe|legumes/.test(
+        n,
+      )
+    ) {
+      w += 0.55;
+    }
+    if (
+      /yaourt|skyr|fromage|houmous|tofu|tempeh|thon|saumon|cabillaud|poisson|dinde|poulet|steak|lentille|pois chiche|curry|bol\b|gratin|guacamole|compote/.test(
+        n,
+      )
+    ) {
+      w += 0.75;
+    }
+    if (/noix|amande|cajou|pistache|graine|chia|noisette/.test(n)) w += 0.12;
+    if (/fruit|pomme|poire|orange|kiwi|banane|myrtille|framboise|baie|clémentine|clementine|fraise/.test(n)) w += 0.32;
+    return w;
+  });
+
+  const sumW = weights.reduce((a, b) => a + b, 0) || 1;
+
+  let ingredients: MealIngredientPortion[] = segments.map((seg, i) => {
+    const share = (weights[i] ?? 1) / sumW;
+    let grammes = Math.max(25, Math.round(totalTarget * share));
+    const explicitEggs = parseExplicitEggCount(seg);
+    const nLow = normalize(seg);
+    if (explicitEggs !== undefined && /oeuf|omelette/.test(nLow)) {
+      grammes = Math.max(grammes, explicitEggs * EGG_GRAMS_PER_UNIT);
+    }
+    return { aliment: seg, grammes };
+  });
+
+  const sumG = ingredients.reduce((s, x) => s + x.grammes, 0);
+  if (sumG > totalTarget * 1.22) {
+    ingredients = ingredients.map((x) => ({
+      ...x,
+      grammes: Math.max(15, Math.round((x.grammes / sumG) * totalTarget)),
+    }));
+  }
+
+  return { ingredients, why: INFER_WHY };
+}
+
+export function getMealPortionDetails(mealName: string, planMealKcal?: number): MealPortionDetails {
   const normalized = normalize(mealName);
   const exactMatch = Object.entries(detailsByMealName).find(([key]) => normalize(key) === normalized)?.[1];
   if (exactMatch) return exactMatch;
 
-  return {
-    ingredients: [{ aliment: "Portion standard équilibrée", grammes: 150 }],
-    why: "Portion calibrée pour maintenir le déficit calorique sans augmenter la faim.",
-  };
+  return inferPortionsFromMealLabel(mealName, planMealKcal ?? 450);
 }
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+function portionParcoursT(parcours: ParcoursPerte): number {
+  const d = getProgramDayCount(parcours);
+  return Math.max(0, Math.min(1, (d - 30) / (365 - 30)));
+}
+
 function getProfilePortionRatio(profile: PortionProfileInput, mealType: MealType): number {
   const sizeIndex = profile.poidsKg / ((profile.tailleCm / 100) * (profile.tailleCm / 100));
   let ratio = 1;
 
-  if (profile.parcoursPerte === "radical") ratio -= 0.07;
-  if (profile.parcoursPerte === "modere") ratio -= 0.03;
-  if (profile.parcoursPerte === "durable") ratio += 0.02;
+  const t = portionParcoursT(profile.parcoursPerte);
+  ratio += -0.07 * (1 - t) + 0.02 * t;
 
   if (sizeIndex < 21) ratio += 0.08;
   if (sizeIndex >= 21 && sizeIndex < 25) ratio += 0.03;
@@ -281,7 +390,7 @@ function getProfilePortionRatio(profile: PortionProfileInput, mealType: MealType
   if (profile.age <= 24) ratio += 0.02;
 
   if (mealType === "collation") ratio = 1 + (ratio - 1) * 0.6;
-  if (mealType === "diner" && profile.parcoursPerte !== "durable") ratio -= 0.02;
+  if (mealType === "diner" && t < 0.12) ratio -= 0.02;
 
   return clamp(ratio, 0.85, 1.15);
 }
@@ -305,19 +414,27 @@ export function getMealPortionDetailsAdjusted(
   mealName: string,
   kcalRatio: number,
   profile?: PortionProfileInput,
-  mealType?: MealType
+  mealType?: MealType,
+  planMealKcal?: number
 ): MealPortionDetails {
-  const base = getMealPortionDetails(mealName);
+  const base = getMealPortionDetails(mealName, planMealKcal);
   const safeKcalRatio = clamp(kcalRatio, 0.75, 1.3);
   const profileRatio = profile && mealType ? getProfilePortionRatio(profile, mealType) : 1;
   const objectiveRatio = getObjectivePortionRatio(profile?.objectifKcalJour, mealType);
   const safeRatio = clamp(safeKcalRatio * profileRatio * objectiveRatio, 0.68, 1.35);
 
   return {
-    ingredients: base.ingredients.map((ingredient) => ({
-      ...ingredient,
-      grammes: Math.max(5, Math.round(ingredient.grammes * safeRatio)),
-    })),
+    ingredients: base.ingredients.map((ingredient) => {
+      const grammes = Math.max(5, Math.round(ingredient.grammes * safeRatio));
+      if (isEggIngredient(ingredient.aliment)) {
+        return {
+          aliment: ingredient.aliment,
+          grammes,
+          displayLine: formatEggPortionLine(ingredient.aliment, grammes),
+        };
+      }
+      return { ...ingredient, grammes };
+    }),
     why:
       safeRatio === 1
         ? `${base.why} Portions maintenues (profil proche du plan standard).`

@@ -9,14 +9,20 @@
     "export:web": "next build",
     "start": "next start",
     "lint": "eslint",
-    "cap:copy": "npx cap copy",
-    "cap:sync": "npx cap sync",
-    "cap:ios": "npx cap open ios"
+    "cap:copy": "node scripts/assert-capacitor-out.mjs && npx cap copy",
+    "cap:sync": "node scripts/assert-capacitor-out.mjs && npx cap sync",
+    "cap:deploy": "next build --webpack && node scripts/fix-capacitor-html-paths.mjs && npx cap sync",
+    "ios:refresh": "npm run build && npx cap sync ios",
+    "cap:ios": "npx cap open ios",
+    "icons:ios": "node scripts/generate-ios-app-icon.mjs"
   },
   "dependencies": {
     "@capacitor/cli": "^8.3.1",
     "@capacitor/core": "^8.3.1",
     "@capacitor/ios": "^8.3.1",
+    "@capawesome/capacitor-apple-sign-in": "^0.1.0",
+    "@capgo/capacitor-health": "^8.4.10",
+    "@capgo/native-purchases": "^8.3.10",
     "next": "16.2.4",
     "react": "19.2.4",
     "react-dom": "19.2.4"

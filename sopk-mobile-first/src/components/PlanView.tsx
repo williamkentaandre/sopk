@@ -1,24 +1,61 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { Capacitor } from "@capacitor/core";
 
 import {
   getDailyWalkingRecommendation,
-  getEstimatedDailyLossGrams,
   getMealCaloriesForTarget,
   getMealPlan,
   getPersonalizedCalories,
   getPersonalizedHydrationLiters,
+  getProgramDayCount,
+  getTodayJourInProgram,
+  parcoursHorizonLabel,
 } from "@/utils/mealPlan";
+import { fetchTodayStepCount, type HealthStepsResult } from "@/utils/healthSteps";
+import { STORAGE_KEYS, todayIso, todayIsoLocal } from "@/utils/storage";
 import { getMealPortionDetailsAdjusted } from "@/utils/meal-portions";
 import {
-  DayPlan,
+  manualValidationKey,
+  mealKey,
+  stepsProgressStorageKey,
+  visibleMealIndices,
+  waterProgressStorageKey,
+} from "@/utils/planTracking";
+import { buildSevenDayShoppingList, formatGrammesShopping } from "@/utils/shoppingList";
+import { computePlanDayWeightSnapshot, computeProgramWeightCurveSeries, formatWeightKg } from "@/utils/weightSummary";
+import {
+  WATER_GLASS_ML,
+  WATER_STEP_ML,
+  formatLitersFr,
+  formatLitersFrFromMl,
+  snapWaterStepMl,
+  waterProgressPercent,
+  waterTargetVerres,
+} from "@/utils/waterDisplay";
+import {
   MealChecklistState,
   OnboardingData,
   StepProgressState,
   WaterProgressState,
 } from "@/utils/types";
 
+import { DayCelebrationFireworks } from "./DayCelebrationFireworks";
+import { ProgramProgressCurve } from "./ProgramProgressCurve";
 import { SectionCard } from "./SectionCard";
+
+const MOIS_FR = ["jan.", "fév.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."] as const;
+
+function programDayToDateLabel(programDay: number, programStartDateIso?: string | null): string {
+  const start = programStartDateIso?.trim();
+  if (!start || !/^\d{4}-\d{2}-\d{2}$/.test(start)) return `Jour ${programDay}`;
+  const [y, m, d] = start.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  date.setDate(date.getDate() + (programDay - 1));
+  return `${date.getDate()} ${MOIS_FR[date.getMonth()]}`;
+}
+
+export { programDayToDateLabel };
 
 interface PlanViewProps {
   profile: OnboardingData;
@@ -28,6 +65,16 @@ interface PlanViewProps {
   onUpdateWaterProgress: (key: string, value: number) => void;
   onUpdateStepProgress: (key: string, value: number) => void;
   onToggleMeal: (key: string) => void;
+  /** Quand le jour actif du programme vient d’être entièrement validé : avancer le « jour Aujourd’hui ». */
+  onActiveProgramDayFullyValidated?: () => void;
+  goToDay?: { jour: number; ts: number } | null;
+}
+
+function nativeHealthStepsLabel(): string | null {
+  const p = Capacitor.getPlatform();
+  if (p === "ios") return "Apple Santé";
+  if (p === "android") return "Health Connect";
+  return null;
 }
 
 const labelByType = {
@@ -51,6 +98,13 @@ const mealImageByType = {
   diner: "/images/meal-diner.svg",
 } as const;
 
+/** Sous Capacitor l’app est servie depuis `plan/` : les URLs racine `/images/…` ne résolvent pas. */
+function planPublicAsset(absPath: string): string {
+  if (Capacitor.getPlatform() === "web") return absPath;
+  if (!absPath.startsWith("/")) return absPath;
+  return `..${absPath}`;
+}
+
 export function PlanView({
   profile,
   mealChecklist,
@@ -59,18 +113,219 @@ export function PlanView({
   onUpdateWaterProgress,
   onUpdateStepProgress,
   onToggleMeal,
+  onActiveProgramDayFullyValidated,
+  goToDay,
 }: PlanViewProps) {
-  const data = getMealPlan();
-  const daySectionRef = useRef<HTMLElement | null>(null);
-  const dayScrollerRef = useRef<HTMLDivElement | null>(null);
-  const dayButtonRefs = useRef<Record<number, HTMLButtonElement | null>>({});
-  const [selectedDayIndex, setSelectedDayIndex] = useState(() =>
-    getDefaultDayIndex(data.jours, profile, mealChecklist, waterProgress, stepProgress)
+  const formatLossEstimate = useCallback((grams: number) => {
+    if (grams >= 1000) return `-${(grams / 1000).toFixed(2)} kg`;
+    return `-${Math.round(grams)} g`;
+  }, []);
+
+  const data = useMemo(() => getMealPlan({ parcoursPerte: profile.parcoursPerte }), [profile.parcoursPerte]);
+  const dayCount = getProgramDayCount(profile.parcoursPerte);
+  const mealVisibleIdx = useMemo(() => visibleMealIndices(profile.rythmeRepas), [profile.rythmeRepas]);
+  /** Jour du plan (1…N) depuis la date de début ; aligné sur la journée civile pour les pas Santé. */
+  const todayJour = useMemo(
+    () => getTodayJourInProgram(dayCount, profile.programStartDateIso),
+    [dayCount, profile.programStartDateIso],
   );
-  const selectedDay = data.jours[selectedDayIndex];
+
+  const todayPickerIndex = useMemo(() => {
+    const idx = data.jours.findIndex((d) => d.jour === todayJour);
+    return idx >= 0 ? idx : 0;
+  }, [data.jours, todayJour]);
+
+  const bilanSectionRef = useRef<HTMLDivElement | null>(null);
+  const [selectedDayIndex, setSelectedDayIndex] = useState(() =>
+    Math.max(
+      0,
+      getTodayJourInProgram(getProgramDayCount(profile.parcoursPerte), profile.programStartDateIso) - 1,
+    ),
+  );
+  const programEpochRef = useRef({
+    start: profile.programStartDateIso,
+    epoch: profile.trackingResetEpoch ?? 0,
+  });
+  useEffect(() => {
+    const start = profile.programStartDateIso;
+    const epoch = profile.trackingResetEpoch ?? 0;
+    const prev = programEpochRef.current;
+    if (prev.start === start && prev.epoch === epoch) return;
+    programEpochRef.current = { start, epoch };
+    const tj = getTodayJourInProgram(dayCount, profile.programStartDateIso);
+    setSelectedDayIndex(Math.max(0, Math.min(data.jours.length - 1, tj - 1)));
+  }, [data.jours.length, dayCount, profile.programStartDateIso, profile.trackingResetEpoch]);
+  const parcoursHorizonRef = useRef(profile.parcoursPerte);
+  useEffect(() => {
+    if (parcoursHorizonRef.current !== profile.parcoursPerte) {
+      parcoursHorizonRef.current = profile.parcoursPerte;
+      const tj = getTodayJourInProgram(getProgramDayCount(profile.parcoursPerte), profile.programStartDateIso);
+      setSelectedDayIndex(Math.max(0, Math.min(data.jours.length - 1, tj - 1)));
+    }
+  }, [profile.parcoursPerte, profile.programStartDateIso, data.jours.length]);
+
+  useEffect(() => {
+    if (goToDay == null) return;
+    const idx = data.jours.findIndex((d) => d.jour === goToDay.jour);
+    if (idx >= 0) setSelectedDayIndex(idx);
+  }, [goToDay, data.jours]);
+
+  const lastCalendarIsoRef = useRef(todayIso());
+  useEffect(() => {
+    const bumpIfNewDay = () => {
+      const now = todayIso();
+      if (now === lastCalendarIsoRef.current) return;
+      lastCalendarIsoRef.current = now;
+      const tj = getTodayJourInProgram(dayCount, profile.programStartDateIso);
+      setSelectedDayIndex((prev) => {
+        const next = Math.max(0, Math.min(data.jours.length - 1, tj - 1));
+        return next === prev ? prev : next;
+      });
+    };
+    const id = window.setInterval(bumpIfNewDay, 45_000);
+    document.addEventListener("visibilitychange", bumpIfNewDay);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", bumpIfNewDay);
+    };
+  }, [dayCount, data.jours.length, profile.programStartDateIso]);
+
+  const selectedDay = data.jours[selectedDayIndex] ?? data.jours[0];
+  /** Journée civile → un seul jour du programme reçoit les pas Apple / Health Connect. */
+  const healthStepsTargetProgramDay = todayJour;
+  const isStepsHealthSyncDay = selectedDay.jour === healthStepsTargetProgramDay;
+  const [editablePastDayJour, setEditablePastDayJour] = useState<number | null>(null);
+  const isPastProgramDay = selectedDay.jour < todayJour;
+  /** Jour modifiable : aujourd'hui, ou un jour passé explicitement déverrouillé. */
+  const canValidateSelectedDay =
+    selectedDay.jour === todayJour || (isPastProgramDay && editablePastDayJour === selectedDay.jour);
+  const isFutureProgramDay = selectedDay.jour > todayJour;
+
+  useEffect(() => {
+    if (selectedDay.jour >= todayJour && editablePastDayJour != null) {
+      setEditablePastDayJour(null);
+    }
+  }, [selectedDay.jour, todayJour, editablePastDayJour]);
+
+  const onUpdateStepProgressRef = useRef(onUpdateStepProgress);
+
+  useEffect(() => {
+    onUpdateStepProgressRef.current = onUpdateStepProgress;
+  }, [onUpdateStepProgress]);
+
+  const [healthStepsMessage, setHealthStepsMessage] = useState<string | null>(null);
+  const [healthStepsBusy, setHealthStepsBusy] = useState(false);
+
+  useEffect(() => {
+    setHealthStepsMessage(null);
+  }, [selectedDay.jour]);
+
+  const syncStepsFromDevice = useCallback(
+    async (
+      requestPermission: boolean,
+      options?: { silent?: boolean }
+    ): Promise<HealthStepsResult | null> => {
+      if (Capacitor.getPlatform() === "web") return null;
+      const silent = options?.silent ?? false;
+      if (requestPermission && !silent) {
+        setHealthStepsBusy(true);
+        setHealthStepsMessage(null);
+      }
+      try {
+        const result = await fetchTodayStepCount({ requestIfNeeded: requestPermission });
+        if (!result.ok) {
+          if (requestPermission && !silent) {
+            if (result.reason === "denied") {
+              setHealthStepsMessage(
+                "Accès refusé : activez les pas pour Régime SOPK dans Réglages → Confidentialité et sécurité → Santé.",
+              );
+            } else if (result.reason === "no_data") {
+              setHealthStepsMessage("Aucun pas enregistré pour aujourd’hui dans Santé, ou accès incomplet.");
+            } else if (result.reason === "unavailable") {
+              setHealthStepsMessage("Santé indisponible sur cet appareil.");
+            } else if (result.reason === "error") {
+              setHealthStepsMessage(result.message ?? "Synchronisation impossible pour le moment.");
+            }
+          }
+          return result;
+        }
+        const key = stepsProgressStorageKey(healthStepsTargetProgramDay);
+        onUpdateStepProgressRef.current(key, result.steps);
+        if (requestPermission && !silent && isStepsHealthSyncDay) {
+          setHealthStepsMessage(
+            `${result.steps.toLocaleString("fr-FR")} pas importés pour le jour ${healthStepsTargetProgramDay}${
+              nativeHealthStepsLabel() ? ` (${nativeHealthStepsLabel()})` : ""
+            }.`,
+          );
+        }
+        return result;
+      } finally {
+        if (requestPermission && !silent) {
+          setHealthStepsBusy(false);
+        }
+      }
+    },
+    [healthStepsTargetProgramDay, isStepsHealthSyncDay],
+  );
+
+  useEffect(() => {
+    if (Capacitor.getPlatform() === "web") return undefined;
+
+    const pollMs = Capacitor.getPlatform() === "ios" ? 45_000 : 90_000;
+
+    const runSilent = () => {
+      void syncStepsFromDevice(false, { silent: true });
+    };
+
+    let cancelled = false;
+    void (async () => {
+      let promptShown = false;
+      try {
+        promptShown = window.localStorage.getItem(STORAGE_KEYS.healthStepsPromptShown) === "1";
+      } catch {
+        promptShown = false;
+      }
+      const firstRequest = !promptShown;
+      const res = await syncStepsFromDevice(firstRequest, { silent: true });
+      if (cancelled) return;
+      if (firstRequest) {
+        try {
+          window.localStorage.setItem(STORAGE_KEYS.healthStepsPromptShown, "1");
+        } catch {
+          /* ignore */
+        }
+      }
+      if (res?.ok && firstRequest && isStepsHealthSyncDay) {
+        setHealthStepsMessage(
+          `Pas mis à jour depuis ${nativeHealthStepsLabel() ?? "Santé"} pour le jour ${healthStepsTargetProgramDay} (synchro automatique).`,
+        );
+      } else if (firstRequest && res && !res.ok && res.reason === "denied") {
+        setHealthStepsMessage(
+          "Pour afficher vos pas automatiquement, autorisez l’accès à Santé dans Réglages → Confidentialité → Santé → Régime SOPK.",
+        );
+      }
+    })();
+
+    const interval = window.setInterval(runSilent, pollMs);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        window.setTimeout(runSilent, 0);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [syncStepsFromDevice, todayJour, isStepsHealthSyncDay, healthStepsTargetProgramDay]);
+
   const [openMealDetails, setOpenMealDetails] = useState<Record<string, boolean>>({});
-  const [openBilanDetailsByDay, setOpenBilanDetailsByDay] = useState<Record<number, boolean>>({});
+  const [showDayCelebration, setShowDayCelebration] = useState(false);
+  const [celebrationBurstKey, setCelebrationBurstKey] = useState(0);
   const previousIsDayValidatedRef = useRef<boolean>(false);
+  const wasDayValidatedForBumpRef = useRef<boolean | null>(null);
+  const validatedBumpKeyRef = useRef<string | null>(null);
   const dailyTarget = getPersonalizedCalories(profile);
   const personalizedHydrationLiters = getPersonalizedHydrationLiters(
     selectedDay.hydratationLitres,
@@ -81,74 +336,106 @@ export function PlanView({
   const stepsProgressKey = stepsProgressStorageKey(selectedDay.jour);
   const stepsCurrent = Math.min(stepsTarget, Math.max(0, Math.round(stepProgress[stepsProgressKey] ?? 0)));
   const stepsPercent = Math.round((stepsCurrent / stepsTarget) * 100);
-  const stepsProgressRatio = stepsTarget > 0 ? stepsCurrent / stepsTarget : 0;
   const waterTargetMl = Math.round(personalizedHydrationLiters * 1000);
   const waterProgressKey = waterProgressStorageKey(selectedDay.jour);
-  const waterCurrentMl = Math.min(waterTargetMl, Math.max(0, Math.round(waterProgress[waterProgressKey] ?? 0)));
-  const waterPercent = Math.round((waterCurrentMl / waterTargetMl) * 100);
-  const waterProgressRatio = waterTargetMl > 0 ? waterCurrentMl / waterTargetMl : 0;
-  const waterChecked = waterCurrentMl >= waterTargetMl;
+  const waterRawMl = Math.max(0, Math.round(waterProgress[waterProgressKey] ?? 0));
+  const waterSliderMl = Math.min(waterTargetMl, snapWaterStepMl(waterRawMl));
+  const waterPercent = waterProgressPercent(waterRawMl, waterTargetMl);
+  const waterChecked = waterRawMl >= waterTargetMl;
+  const verresCible = waterTargetVerres(waterTargetMl);
+  const verresBus = Math.max(0, Math.round(waterRawMl / WATER_GLASS_ML));
+
+  /** Anciennes saisies : aligner sur le pas du curseur (10 cl). */
+  const normalizedWaterKeysRef = useRef<Set<string>>(new Set());
+  useLayoutEffect(() => {
+    if (!canValidateSelectedDay) return;
+    if (normalizedWaterKeysRef.current.has(waterProgressKey)) return;
+    const raw = Math.max(0, Math.round(waterProgress[waterProgressKey] ?? 0));
+    const snapped = snapWaterStepMl(raw);
+    if (raw !== snapped) {
+      onUpdateWaterProgress(waterProgressKey, snapped);
+      return;
+    }
+    normalizedWaterKeysRef.current.add(waterProgressKey);
+  }, [canValidateSelectedDay, waterProgressKey, waterProgress, onUpdateWaterProgress]);
   const walkingChecked = stepsCurrent >= stepsTarget;
-  const checkedMealIndexes = selectedDay.repas
-    .map((_, i) => i)
-    .filter((i) => mealChecklist[mealKey(selectedDay.jour, i)]);
+  const checkedMealIndexes = mealVisibleIdx.filter(
+    (i) => i < selectedDay.repas.length && mealChecklist[mealKey(selectedDay.jour, i)]
+  );
   const checkedMeals = checkedMealIndexes.length;
+  const mealSlots = mealVisibleIdx.filter((i) => i < selectedDay.repas.length).length;
   const checkedToday = checkedMeals + (waterChecked ? 1 : 0) + (walkingChecked ? 1 : 0);
-  const totalTasks = selectedDay.repas.length + 2;
+  const totalTasks = mealSlots + 2;
   const dayManuallyValidated = Boolean(mealChecklist[manualValidationKey(selectedDay.jour)]);
   const isDayValidated = checkedToday === totalTasks || dayManuallyValidated;
-  const completionRatio = totalTasks > 0 ? checkedToday / totalTasks : 0;
-  const estimatedLossGrams = getEstimatedDailyLossGrams(
-    profile,
-    completionRatio,
-    waterProgressRatio,
-    stepsProgressRatio
+  const isDayValidatedRef = useRef(isDayValidated);
+  isDayValidatedRef.current = isDayValidated;
+
+  /** Reprise du contexte jour / programme : ne pas dépendre des cibles eau/pas ou du nombre de tâches, sinon le même rendu qu’une validation complète écrase la transition (plus de feux d’artifice ni scroll vers le bilan). */
+  useEffect(() => {
+    wasDayValidatedForBumpRef.current = isDayValidated;
+    validatedBumpKeyRef.current = null;
+    setShowDayCelebration(false);
+    previousIsDayValidatedRef.current = isDayValidated;
+  }, [
+    selectedDay.jour,
+    data.jours.length,
+    profile.parcoursPerte,
+    profile.programStartDateIso,
+    profile.trackingResetEpoch,
+    profile.rythmeRepas,
+  ]);
+
+  useEffect(() => {
+    if (wasDayValidatedForBumpRef.current === null) {
+      wasDayValidatedForBumpRef.current = isDayValidated;
+      return;
+    }
+    wasDayValidatedForBumpRef.current = isDayValidated;
+  }, [isDayValidated]);
+
+  const prevTodayJourForSelectionRef = useRef(todayJour);
+  useEffect(() => {
+    if (todayJour > prevTodayJourForSelectionRef.current) {
+      const idx = data.jours.findIndex((d) => d.jour === todayJour);
+      if (idx >= 0) {
+        setSelectedDayIndex(idx);
+      }
+    }
+    prevTodayJourForSelectionRef.current = todayJour;
+  }, [todayJour, data.jours]);
+
+  const weightSnap = useMemo(
+    () =>
+      computePlanDayWeightSnapshot(
+        profile,
+        data.jours,
+        selectedDay.jour,
+        mealChecklist,
+        waterProgress,
+        stepProgress,
+      ),
+    [profile, data.jours, selectedDay.jour, mealChecklist, waterProgress, stepProgress],
   );
-  const projectedLossGrams = getEstimatedDailyLossGrams(profile, 1, 1, 1);
-  const dailyLossPercent =
-    projectedLossGrams > 0 ? Math.min(100, Math.round((estimatedLossGrams / projectedLossGrams) * 100)) : 0;
-  const remainingLossGrams = Math.max(0, projectedLossGrams - estimatedLossGrams);
+  const weightCurveSeries = useMemo(
+    () => computeProgramWeightCurveSeries(profile, data.jours, mealChecklist, waterProgress, stepProgress),
+    [profile, data.jours, mealChecklist, waterProgress, stepProgress],
+  );
+  const shoppingList7 = useMemo(
+    () => buildSevenDayShoppingList(profile, data.jours, todayJour),
+    [profile, data.jours, todayJour],
+  );
+  const { currentWeightKg, dailyLossPercent } = weightSnap;
+  const estimatedLossLabel = formatLossEstimate(weightSnap.estimatedLossGrams);
+  const projectedLossLabel = formatLossEstimate(weightSnap.projectedLossGrams);
+  const missedLossGrams = Math.max(0, weightSnap.projectedLossGrams - weightSnap.estimatedLossGrams);
+  const missedLossLabel = formatLossEstimate(missedLossGrams);
   const dailyLossTone =
     dailyLossPercent >= 90
       ? "emerald"
       : dailyLossPercent >= 60
         ? "amber"
         : "rose";
-  const achievedLosses = data.jours
-    .slice(0, selectedDay.jour)
-    .map((day) => {
-      const dayMealIndexes = day.repas.map((_, i) => i).filter((i) => mealChecklist[mealKey(day.jour, i)]);
-      const dayWaterValue = Math.round(waterProgress[waterProgressStorageKey(day.jour)] ?? 0);
-      const dayStepValue = Math.round(stepProgress[stepsProgressStorageKey(day.jour)] ?? 0);
-      const dayWaterTarget = Math.round(getPersonalizedHydrationLiters(day.hydratationLitres, profile) * 1000);
-      const dayStepsTarget = getDailyWalkingRecommendation(profile).steps;
-      const dayWaterChecked = dayWaterValue >= dayWaterTarget;
-      const dayWalkingChecked = dayStepValue >= dayStepsTarget;
-      const dayWaterRatio = dayWaterTarget > 0 ? Math.min(1, Math.max(0, dayWaterValue / dayWaterTarget)) : 0;
-      const dayStepsRatio = dayStepsTarget > 0 ? Math.min(1, Math.max(0, dayStepValue / dayStepsTarget)) : 0;
-      const dayChecked = dayMealIndexes.length + (dayWaterChecked ? 1 : 0) + (dayWalkingChecked ? 1 : 0);
-      const dayTotal = day.repas.length + 2;
-      const dayManuallyValidated = Boolean(mealChecklist[manualValidationKey(day.jour)]);
-      const dayRatio = dayTotal > 0 ? dayChecked / dayTotal : 0;
-      const isActiveDay =
-        dayMealIndexes.length > 0 ||
-        dayWaterChecked ||
-        dayWalkingChecked ||
-        dayWaterValue > 0 ||
-        dayStepValue > 0 ||
-        dayManuallyValidated;
-
-      if (!isActiveDay) return null;
-      return getEstimatedDailyLossGrams(profile, dayRatio, dayWaterRatio, dayStepsRatio);
-    })
-    .filter((value): value is number => value !== null);
-  const bilansEffectues = achievedLosses.length;
-  const joursRestantsProgramme = Math.max(0, data.jours.length - bilansEffectues);
-  const achievedCumulativeGrams = achievedLosses.reduce((sum, value) => sum + value, 0);
-  const currentWeightKg = Math.max(0, profile.poidsKg - achievedCumulativeGrams / 1000);
-  const potentialWeightKg = Math.max(0, profile.poidsKg - (achievedCumulativeGrams + remainingLossGrams) / 1000);
-  const projectedRemainingProgramLossGrams = projectedLossGrams * joursRestantsProgramme;
-  const programPotentialWeightKg = Math.max(0, currentWeightKg - projectedRemainingProgramLossGrams / 1000);
   const progressMessage =
     isDayValidated
       ? dayManuallyValidated
@@ -159,393 +446,385 @@ export function PlanView({
       : checkedToday < totalTasks
         ? `Bonne progression: ${checkedToday}/${totalTasks} actions validées.`
         : "Journée en cours.";
-  const isBilanDetailsOpen = Boolean(openBilanDetailsByDay[selectedDay.jour]) || isDayValidated;
 
-  useEffect(() => {
-    const targetButton = dayButtonRefs.current[selectedDay.jour];
-    if (!targetButton) return;
-
-    const frame = window.requestAnimationFrame(() => {
-      targetButton.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-        inline: "center",
+  const scrollToBilan = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        bilanSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
       });
     });
+  }, []);
 
-    return () => window.cancelAnimationFrame(frame);
-  }, [selectedDay.jour, selectedDayIndex]);
-
+  /**
+   * Journée entière validée (repas + eau + pas) :
+   *   1. Feux d'artifice « Bravo ! » (3 s)
+   *   2. Scroll vers le bilan
+   *   3. Attente 5 s pour lire le bilan
+   *   4. Avancement auto au jour suivant (via onActiveProgramDayFullyValidated)
+   */
   useEffect(() => {
-    const wasValidated = previousIsDayValidatedRef.current;
-    if (!wasValidated && isDayValidated) {
-      daySectionRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+    if (!canValidateSelectedDay || selectedDay.jour !== todayJour || mealSlots === 0) {
+      return;
     }
+
+    const wasValidated = previousIsDayValidatedRef.current;
+    const justBecameValidated = isDayValidated && !wasValidated;
     previousIsDayValidatedRef.current = isDayValidated;
-  }, [isDayValidated]);
+
+    if (!justBecameValidated) {
+      return;
+    }
+
+    if (dayManuallyValidated) {
+      scrollToBilan();
+      return;
+    }
+
+    let cancelled = false;
+    const timers: number[] = [];
+
+    setCelebrationBurstKey((k) => k + 1);
+    setShowDayCelebration(true);
+
+    timers.push(window.setTimeout(() => {
+      if (cancelled) return;
+      setShowDayCelebration(false);
+      scrollToBilan();
+    }, 3000) as unknown as number);
+
+    return () => {
+      cancelled = true;
+      timers.forEach((t) => window.clearTimeout(t));
+      setShowDayCelebration(false);
+    };
+  }, [
+    dayManuallyValidated,
+    isDayValidated,
+    canValidateSelectedDay,
+    mealSlots,
+    scrollToBilan,
+    selectedDay.jour,
+    todayJour,
+  ]);
+
+  const dateLabel = programDayToDateLabel(selectedDay.jour, profile.programStartDateIso);
 
   return (
-    <div className="space-y-4">
-      <section ref={daySectionRef}>
-        <SectionCard title="Choisis ton jour">
-        <div
-          ref={dayScrollerRef}
-          className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1 md:mx-0 md:grid md:grid-cols-10 md:gap-2 md:overflow-visible md:px-0"
-        >
-          {data.jours.map((day, idx) => {
-            const completed =
-              Boolean(mealChecklist[manualValidationKey(day.jour)]) ||
-              (day.repas.every((_, i) => mealChecklist[mealKey(day.jour, i)]) &&
-                Math.round(waterProgress[waterProgressStorageKey(day.jour)] ?? 0) >=
-                  Math.round(getPersonalizedHydrationLiters(day.hydratationLitres, profile) * 1000) &&
-                Math.round(stepProgress[stepsProgressStorageKey(day.jour)] ?? 0) >=
-                  getDailyWalkingRecommendation(profile).steps);
-            return (
-              <button
-                key={day.jour}
-                type="button"
-                ref={(element) => {
-                  dayButtonRefs.current[day.jour] = element;
-                }}
-                onClick={() => setSelectedDayIndex(idx)}
-                className={`min-w-16 snap-start rounded-xl px-3 py-2 text-xs font-semibold transition md:min-w-0 ${
-                  idx === selectedDayIndex
-                    ? "bg-violet-600 text-white"
-                    : completed
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-violet-50 text-violet-700"
-                }`}
-              >
-                Jour {day.jour}
-              </button>
-            );
-          })}
-        </div>
-        </SectionCard>
-      </section>
+    <div className="space-y-3">
+      {/* ── Courbe de progression ── */}
+      <SectionCard title="Progression">
+        {weightCurveSeries.length === 0 ? (
+          <p className="text-sm text-slate-400">Pas encore de données.</p>
+        ) : (
+          <ProgramProgressCurve points={weightCurveSeries} todayJour={todayJour} startWeightKg={profile.poidsKg} goalWeightKg={weightSnap.programPotentialWeightKg} showHeading={false} />
+        )}
+      </SectionCard>
 
-      <SectionCard title={`Jour ${selectedDay.jour} - 6 actions à valider`}>
-        <div className="flex flex-wrap gap-2">
-          <span className="rounded-full bg-violet-100 px-2 py-1 text-xs font-semibold text-violet-700">
-            {dailyTarget} kcal
-          </span>
-          <span className="rounded-full bg-cyan-100 px-2 py-1 text-xs font-semibold text-cyan-700">
-            {personalizedHydrationLiters.toFixed(1)} L eau
-          </span>
-          <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">
-            {walking.steps} pas
-          </span>
-        </div>
-        <div
-          className={`sticky top-[calc(env(safe-area-inset-top)+36px)] z-20 mt-2 rounded-xl border p-3 shadow-sm backdrop-blur-sm md:top-2 ${
-            isDayValidated
-              ? "border-emerald-300 bg-emerald-50"
-              : "border-violet-200 bg-violet-50"
-          }`}
-        >
-          <p
-            className={`text-sm font-semibold ${
-              isDayValidated ? "text-emerald-800" : "text-violet-800"
-            }`}
-          >
-            {isDayValidated ? "✅ Bilan validé du jour" : "🔄 Bilan en cours de validation"}
+      {/* ── Bandeau "tu consultes un autre jour" ── */}
+      {selectedDay.jour !== todayJour ? (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200/60 bg-amber-50/80 px-4 py-2.5">
+          <p className="text-[13px] text-amber-900">
+            <strong>{dateLabel}</strong> <span className="text-amber-700/80">(jour {selectedDay.jour})</span>
           </p>
-          <p className={`mt-1 text-xs ${isDayValidated ? "text-emerald-700" : "text-violet-700"}`}>{progressMessage}</p>
-          {!isDayValidated ? (
+          <button
+            type="button"
+            onClick={() => setSelectedDayIndex(todayPickerIndex)}
+            className="shrink-0 rounded-full bg-slate-900 px-4 py-1.5 text-[12px] font-semibold text-white transition active:scale-95"
+          >
+            Aujourd&apos;hui
+          </button>
+        </div>
+      ) : null}
+
+      {/* ── En-tête du jour ── */}
+      <div
+        ref={bilanSectionRef}
+        className="scroll-mt-[max(5.5rem,calc(env(safe-area-inset-top,0px)+4.25rem))]"
+      >
+        <div className="overflow-hidden rounded-2xl border border-slate-200/60 bg-white/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur-sm">
+          {/* Status bar */}
+          <div className={`px-4 py-3 ${isDayValidated ? "bg-emerald-50/80" : "bg-slate-50/60"}`}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px] font-semibold tracking-tight text-slate-900">
+                  {dateLabel} <span className="font-normal text-slate-400">·</span> <span className="text-slate-500">Jour {selectedDay.jour}</span>
+                </p>
+                <p className={`mt-0.5 text-[13px] ${isDayValidated ? "text-emerald-700" : "text-slate-500"}`}>
+                  {isDayValidated ? "Journée validée" : `${checkedToday}/${totalTasks} actions`}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-[22px] font-bold tabular-nums tracking-tight text-slate-900">
+                  {formatWeightKg(currentWeightKg)}<span className="text-[13px] font-medium text-slate-400"> kg</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Barre de progression */}
+            <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-slate-200/60">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  isDayValidated
+                    ? "bg-emerald-500"
+                    : "bg-gradient-to-r from-violet-500 to-violet-400"
+                }`}
+                style={{ width: `${dailyLossPercent}%` }}
+              />
+            </div>
+
+            {isDayValidated ? (
+              <div className="mt-2.5 rounded-xl border border-emerald-200/70 bg-emerald-50/80 px-3 py-2">
+                <p className="text-[12px] font-semibold text-emerald-900">
+                  Estimation perte du jour: <span className="tabular-nums">{estimatedLossLabel}</span>
+                </p>
+                <p className="mt-0.5 text-[11px] text-emerald-700">
+                  Objectif complet: <span className="tabular-nums">{projectedLossLabel}</span>
+                  {missedLossGrams > 0 ? (
+                    <>
+                      {" "}· écart estimé: <span className="tabular-nums">{missedLossLabel}</span>
+                    </>
+                  ) : null}
+                </p>
+                {dayManuallyValidated ? (
+                  <p className="mt-1 text-[11px] text-emerald-700">
+                    Validation manuelle: calcul basé sur actions faites ({checkedToday}/{totalTasks}) et niveaux eau/pas.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {isPastProgramDay ? (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {!canValidateSelectedDay ? (
+                  <button
+                    type="button"
+                    onClick={() => setEditablePastDayJour(selectedDay.jour)}
+                    className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-[12px] font-semibold text-amber-900 transition hover:bg-amber-100"
+                  >
+                    Modifier cette journée
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setEditablePastDayJour(null)}
+                    className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Verrouiller la journée
+                  </button>
+                )}
+                <p className="text-[12px] text-slate-500">
+                  {canValidateSelectedDay ? "Mode édition activé pour ce jour passé." : "Jour passé verrouillé."}
+                </p>
+              </div>
+            ) : null}
+
+            {!canValidateSelectedDay ? (
+              <p className="mt-2 text-[12px] text-amber-700">
+                {selectedDay.jour < todayJour
+                  ? "Jour passé — active \"Modifier cette journée\" pour consigner après coup."
+                  : "Jour à venir — non modifiable."}
+              </p>
+            ) : null}
+
+            {!isDayValidated && canValidateSelectedDay ? (
+              <button
+                type="button"
+                onClick={() => onToggleMeal(manualValidationKey(selectedDay.jour))}
+                className="mt-2.5 w-full rounded-xl bg-slate-900 py-2.5 text-[13px] font-semibold text-white transition active:scale-[0.98]"
+              >
+                Valider la journée
+              </button>
+            ) : isDayValidated && dayManuallyValidated && canValidateSelectedDay ? (
+              <button
+                type="button"
+                onClick={() => onToggleMeal(manualValidationKey(selectedDay.jour))}
+                className="mt-2 text-[12px] font-medium text-slate-500 transition hover:text-slate-700"
+              >
+                Annuler la validation
+              </button>
+            ) : null}
+          </div>
+
+          {/* Badges résumé */}
+          <div className="flex gap-2 border-t border-slate-100/80 px-4 py-2.5">
+            <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[12px] font-medium text-violet-700">
+              {dailyTarget} kcal
+            </span>
+            <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-[12px] font-medium text-cyan-700">
+              {formatLitersFr(personalizedHydrationLiters)}
+            </span>
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[12px] font-medium text-emerald-700">
+              {walking.steps} pas
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Eau & Pas côte à côte ── */}
+      <div className="grid grid-cols-2 gap-2.5">
+        {/* Eau */}
+        <div className={`rounded-2xl border p-3.5 transition ${
+          waterChecked ? "border-emerald-300/60 bg-emerald-50/60" : "border-slate-200/60 bg-white/80"
+        }`}>
+          <div className="flex items-baseline justify-between">
+            <p className="text-[13px] font-semibold text-slate-800">Eau</p>
+            {waterChecked ? (
+              <span className="text-[11px] font-semibold text-emerald-600">Atteint</span>
+            ) : null}
+          </div>
+          <p className="mt-1 text-[22px] font-bold tabular-nums tracking-tight text-cyan-600">
+            {formatLitersFrFromMl(waterRawMl)}
+          </p>
+          <p className="text-[11px] text-slate-400">sur {formatLitersFrFromMl(waterTargetMl)}</p>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full rounded-full bg-cyan-400 transition-all duration-300" style={{ width: `${waterPercent}%` }} />
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={waterTargetMl}
+            step={WATER_STEP_ML}
+            value={waterSliderMl}
+            disabled={!canValidateSelectedDay}
+            onChange={(e) => {
+              const next = Math.min(waterTargetMl, Math.max(0, Number(e.target.value)));
+              onUpdateWaterProgress(waterProgressKey, next);
+            }}
+            className="mt-2 w-full accent-cyan-500 disabled:cursor-not-allowed disabled:opacity-40"
+          />
+        </div>
+
+        {/* Pas */}
+        <div className={`rounded-2xl border p-3.5 transition ${
+          walkingChecked ? "border-emerald-300/60 bg-emerald-50/60" : "border-slate-200/60 bg-white/80"
+        }`}>
+          <div className="flex items-baseline justify-between">
+            <p className="text-[13px] font-semibold text-slate-800">Pas</p>
+            {walkingChecked ? (
+              <span className="text-[11px] font-semibold text-emerald-600">Atteint</span>
+            ) : null}
+          </div>
+          <p className="mt-1 text-[22px] font-bold tabular-nums tracking-tight text-emerald-600">
+            {stepsCurrent.toLocaleString("fr-FR")}
+          </p>
+          <p className="text-[11px] text-slate-400">sur {stepsTarget.toLocaleString("fr-FR")}</p>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full rounded-full bg-emerald-400 transition-all duration-300" style={{ width: `${stepsPercent}%` }} />
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={stepsTarget}
+            step={100}
+            value={stepsCurrent}
+            disabled={!canValidateSelectedDay}
+            onChange={(e) => {
+              const next = Number(e.target.value);
+              onUpdateStepProgress(stepsProgressKey, next);
+            }}
+            className="mt-2 w-full accent-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+          />
+          {Capacitor.getPlatform() !== "web" && nativeHealthStepsLabel() && isStepsHealthSyncDay ? (
             <button
               type="button"
-              onClick={() => onToggleMeal(manualValidationKey(selectedDay.jour))}
-              className="mt-2 rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-violet-700"
+              disabled={healthStepsBusy}
+              onClick={() => void syncStepsFromDevice(true)}
+              className="mt-2 w-full rounded-lg bg-emerald-600 py-1.5 text-[11px] font-semibold text-white transition active:scale-95 disabled:opacity-50"
             >
-              Valider le bilan sans cocher les actions
-            </button>
-          ) : dayManuallyValidated ? (
-            <button
-              type="button"
-              onClick={() => onToggleMeal(manualValidationKey(selectedDay.jour))}
-              className="mt-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
-            >
-              Annuler la validation manuelle
+              {healthStepsBusy ? "..." : `Sync ${nativeHealthStepsLabel()}`}
             </button>
           ) : null}
-          <div
-            className={`mt-2 rounded-lg p-2 text-xs ${
-              isDayValidated ? "bg-white/80 text-emerald-800" : "bg-white/80 text-violet-800"
-            }`}
-          >
-            <div className="rounded-xl border border-violet-200 bg-white p-3 shadow-sm">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Perte du jour</p>
-                <span
-                  className={`rounded-full px-2 py-1 text-[11px] font-bold ${
-                    dailyLossTone === "emerald"
-                      ? "bg-emerald-100 text-emerald-800"
-                      : dailyLossTone === "amber"
-                        ? "bg-amber-100 text-amber-800"
-                        : "bg-rose-100 text-rose-800"
-                  }`}
-                >
-                  {dailyLossPercent}%
-                </span>
-              </div>
-              <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-200">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    dailyLossTone === "emerald"
-                      ? "bg-gradient-to-r from-emerald-500 via-lime-500 to-emerald-600"
-                      : dailyLossTone === "amber"
-                        ? "bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500"
-                        : "bg-gradient-to-r from-rose-400 via-pink-500 to-rose-600"
-                  }`}
-                  style={{ width: `${dailyLossPercent}%` }}
-                />
-              </div>
-              <p className="mt-2 text-xs font-semibold text-slate-700">
-                Poids atteint (jour {selectedDay.jour}): ~{formatWeightKg(currentWeightKg)} kg
-              </p>
-              <p className="mt-1 text-xs text-slate-600">
-                Poids prévu (jour {selectedDay.jour}): ~{formatWeightKg(potentialWeightKg)} kg
-              </p>
-            </div>
-            <details
-              open={isBilanDetailsOpen}
-              className="mt-2 rounded-lg border border-violet-200 bg-white px-3 py-2 shadow-sm"
-            >
-              <summary
-                onClick={(e) => {
-                  e.preventDefault();
-                  setOpenBilanDetailsByDay((prev) => ({
-                    ...prev,
-                    [selectedDay.jour]: !Boolean(prev[selectedDay.jour]),
-                  }));
-                }}
-                className="cursor-pointer text-xs font-semibold text-violet-800"
-              >
-                Voir plus de détails
-              </summary>
-              <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Bilan poids du jour
-                </p>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <div className="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-center">
-                    <p className="text-[10px] font-semibold text-cyan-700">
-                      Poids atteint (jour {selectedDay.jour})
-                    </p>
-                    <p className="text-lg font-bold text-cyan-900">~{formatWeightKg(currentWeightKg)} kg</p>
-                  </div>
-                  <div className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-center">
-                    <p className="text-[10px] font-semibold text-violet-700">
-                      Poids prévu (jour {selectedDay.jour})
-                    </p>
-                    <p className="text-lg font-bold text-violet-900">~{formatWeightKg(potentialWeightKg)} kg</p>
-                  </div>
-                </div>
-                <p className="mt-2 text-xs font-semibold text-slate-700">
-                  Écart estimé: ~{formatWeightKg(Math.max(0, currentWeightKg - potentialWeightKg))} kg
-                </p>
-              </div>
-              <div className="mt-2 grid grid-cols-2 gap-2 text-center">
-                <div className="rounded-lg bg-slate-50 px-2 py-2">
-                  <p className="text-[10px] font-semibold text-slate-600">Poids de départ (jour 1)</p>
-                  <p className="text-base font-bold text-slate-800">~{formatWeightKg(profile.poidsKg)} kg</p>
-                </div>
-                <div className="rounded-lg bg-violet-50 px-2 py-2">
-                  <p className="text-[10px] font-semibold text-violet-700">Potentiel fin de programme (jour 30)</p>
-                  <p className="text-base font-bold text-violet-800">~{formatWeightKg(programPotentialWeightKg)} kg</p>
-                </div>
-              </div>
-            </details>
-          </div>
+          {healthStepsMessage ? (
+            <p className="mt-1 text-[10px] font-medium text-emerald-700">{healthStepsMessage}</p>
+          ) : null}
         </div>
-        <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
-          <article
-            className={`overflow-hidden rounded-xl border transition ${
-              waterChecked ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-white"
-            }`}
-          >
-            <Image
-              src="/images/hydratation-verre.svg"
-              alt="Verre d'eau"
-              width={800}
-              height={400}
-              className="h-28 w-full object-cover"
-            />
-            <div className="p-3">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-900">Hydratation du jour</p>
-                <span className="rounded-full bg-cyan-100 px-2 py-1 text-xs font-semibold text-cyan-700">
-                  {personalizedHydrationLiters.toFixed(1)} L
-                </span>
-              </div>
-              <p className="mt-1 text-sm text-slate-700">
-                Avance le curseur au fur et à mesure de ta consommation d&apos;eau.
-              </p>
-              <div className="mt-3 rounded-lg bg-cyan-50 p-2">
-                <div className="mb-1 flex items-center justify-between text-xs font-semibold text-cyan-800">
-                  <span>{waterCurrentMl} ml</span>
-                  <span>{waterTargetMl} ml ({waterPercent}%)</span>
-                </div>
-                <div className="mb-2 h-2 overflow-hidden rounded-full bg-cyan-100">
-                  <div
-                    className="h-full rounded-full bg-cyan-500 transition-all"
-                    style={{ width: `${waterPercent}%` }}
-                  />
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={waterTargetMl}
-                  step={50}
-                  value={waterCurrentMl}
-                  onChange={(e) => {
-                    const next = Number(e.target.value);
-                    onUpdateWaterProgress(waterProgressKey, next);
-                  }}
-                  className="w-full accent-cyan-600"
-                />
-              </div>
-              {waterChecked ? (
-                <p className="mt-3 text-xs font-semibold text-cyan-800">✅ Objectif eau atteint via le curseur</p>
-              ) : null}
-            </div>
-          </article>
+      </div>
 
-          <div className="overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50">
-            <Image
-              src="https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=1200&q=80"
-              alt="Marche quotidienne"
-              width={800}
-              height={400}
-              className="h-28 w-full object-cover"
-            />
-            <div className="p-3">
-              <p className="text-sm font-semibold text-emerald-800">Marche quotidienne personnalisée</p>
-              <p className="mt-1 text-xs text-emerald-700">
-                {walking.steps} pas (~{walking.distanceKm} km) - environ {walking.minutes} min.
-              </p>
-              <div className="mt-3 rounded-lg bg-emerald-100/80 p-2">
-                <div className="mb-1 flex items-center justify-between text-xs font-semibold text-emerald-800">
-                  <span>{stepsCurrent} pas</span>
-                  <span>
-                    {stepsTarget} pas ({stepsPercent}%)
-                  </span>
-                </div>
-                <div className="mb-2 h-2 overflow-hidden rounded-full bg-emerald-100">
-                  <div
-                    className="h-full rounded-full bg-emerald-500 transition-all"
-                    style={{ width: `${stepsPercent}%` }}
-                  />
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={stepsTarget}
-                  step={100}
-                  value={stepsCurrent}
-                  onChange={(e) => {
-                    const next = Number(e.target.value);
-                    onUpdateStepProgress(stepsProgressKey, next);
-                  }}
-                  className="w-full accent-emerald-600"
-                />
-              </div>
-              {walkingChecked ? (
-                <p className="mt-3 text-xs font-semibold text-emerald-800">✅ Objectif pas atteint via le curseur</p>
-              ) : null}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {selectedDay.repas.map((meal, index) => {
+      {/* ── Repas ── */}
+      <SectionCard title="Repas" noPadding>
+        <div className="divide-y divide-slate-100/80">
+          {isFutureProgramDay ? (
+            <p className="px-4 py-2.5 text-[12px] text-amber-700 bg-amber-50/60">
+              Aperçu — les repas ne sont pas encore modifiables.
+            </p>
+          ) : null}
+          {mealVisibleIdx
+            .filter((index) => index < selectedDay.repas.length)
+            .map((index) => {
+            const meal = selectedDay.repas[index];
             const key = mealKey(selectedDay.jour, index);
             const checked = Boolean(mealChecklist[key]);
             const adjustedMealKcal = getMealCaloriesForTarget(meal.calories, selectedDay, dailyTarget);
             const kcalRatio = adjustedMealKcal / meal.calories;
-            const portionDetails = getMealPortionDetailsAdjusted(meal.nom, kcalRatio, {
-              ...profile,
-              objectifKcalJour: dailyTarget,
-            }, meal.type);
-            const alternativePortionDetails = getMealPortionDetailsAdjusted(meal.substitution, kcalRatio, {
-              ...profile,
-              objectifKcalJour: dailyTarget,
-            }, meal.type);
+            const portionDetails = getMealPortionDetailsAdjusted(
+              meal.nom,
+              kcalRatio,
+              { ...profile, objectifKcalJour: dailyTarget },
+              meal.type,
+              meal.calories,
+            );
 
             return (
               <article
                 key={key}
-                className={`overflow-hidden rounded-xl border transition ${
-                  checked ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-white"
-                }`}
+                className={`flex gap-3 px-4 py-3 transition ${checked ? "bg-emerald-50/50" : ""}`}
               >
                 <Image
-                  src={mealImageByType[meal.type]}
-                  alt={meal.nom}
-                  width={800}
-                  height={400}
-                  className="h-28 w-full object-cover"
+                  src={planPublicAsset(mealImageByType[meal.type])}
+                  alt=""
+                  width={96}
+                  height={96}
+                  className="h-12 w-12 shrink-0 rounded-xl object-cover"
                 />
-                <div className="p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-slate-900">{labelByType[meal.type]}</p>
-                    <span className="rounded-full bg-violet-100 px-2 py-1 text-xs font-semibold text-violet-700">
-                      {adjustedMealKcal} kcal
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs font-semibold text-slate-500">
-                    Heure conseillée: {mealTimeByType[meal.type]}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-700">{meal.nom}</p>
-                  <p className="mt-1 text-xs text-slate-500">Autre option: {meal.substitution}</p>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setOpenMealDetails((prev) => ({
-                        ...prev,
-                        [key]: !prev[key],
-                      }))
-                    }
-                    className="mt-2 rounded-lg bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
-                  >
-                    {openMealDetails[key] ? "Masquer détails nutrition" : "Voir détails nutrition"}
-                  </button>
-                  {openMealDetails[key] && (
-                    <div className="mt-2 rounded-lg bg-slate-50 p-2">
-                      <p className="text-xs font-semibold text-slate-700">Grammage recommandé:</p>
-                      <ul className="mt-1 list-disc pl-4 text-xs text-slate-600">
-                        {portionDetails.ingredients.map((item) => (
-                          <li key={`${item.aliment}-${item.grammes}`}>
-                            {item.aliment}: {item.grammes} g
-                          </li>
-                        ))}
-                      </ul>
-                      <p className="mt-1 text-xs text-slate-500">Pourquoi: {portionDetails.why}</p>
-                      <p className="mt-2 text-xs font-semibold text-slate-700">Grammage autre option:</p>
-                      <ul className="mt-1 list-disc pl-4 text-xs text-slate-600">
-                        {alternativePortionDetails.ingredients.map((item) => (
-                          <li key={`alt-${item.aliment}-${item.grammes}`}>
-                            {item.aliment}: {item.grammes} g
-                          </li>
-                        ))}
-                      </ul>
-                      <p className="mt-1 text-xs text-slate-500">Pourquoi: {alternativePortionDetails.why}</p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-semibold text-slate-900">{meal.nom}</p>
+                      <p className="mt-0.5 text-[12px] text-slate-400">
+                        {labelByType[meal.type]} · {mealTimeByType[meal.type]} · {adjustedMealKcal} kcal
+                      </p>
                     </div>
-                  )}
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={checked}
+                      disabled={!canValidateSelectedDay}
+                      onClick={() => { if (canValidateSelectedDay) onToggleMeal(key); }}
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                        checked
+                          ? "border-emerald-500 bg-emerald-500 text-white"
+                          : "border-slate-300 bg-white text-transparent hover:border-violet-400"
+                      }`}
+                    >
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                    </button>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => onToggleMeal(key)}
-                    className={`mt-3 w-full rounded-lg px-3 py-2 text-sm font-semibold ${
-                      checked
-                        ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                        : "bg-violet-600 text-white hover:bg-violet-700"
-                    }`}
+                    onClick={() => setOpenMealDetails((prev) => ({ ...prev, [key]: !prev[key] }))}
+                    className="mt-1.5 text-[12px] font-medium text-violet-600 transition hover:text-violet-800"
                   >
-                    {checked ? "✅ Repas validé" : "☑️ Cocher comme mangé"}
+                    {openMealDetails[key] ? "Masquer" : "Portions"}
                   </button>
+                  {openMealDetails[key] ? (
+                    <div className="mt-1.5 rounded-xl bg-slate-50/80 p-2.5 text-[12px] text-slate-600">
+                      {portionDetails.ingredients.length > 0 ? (
+                        <ul className="space-y-0.5">
+                          {portionDetails.ingredients.map((item) => (
+                            <li key={`${item.aliment}-${item.grammes}`} className="flex justify-between">
+                              <span>{item.aliment}</span>
+                              <span className="tabular-nums font-medium text-slate-800">{item.displayLine ? item.displayLine.split(":").pop()?.trim() : `${item.grammes} g`}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-slate-400">Détail non disponible.</p>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               </article>
             );
@@ -553,51 +832,7 @@ export function PlanView({
         </div>
       </SectionCard>
 
+      {showDayCelebration ? <DayCelebrationFireworks burstKey={celebrationBurstKey} title="Bravo !" /> : null}
     </div>
   );
 }
-
-function mealKey(day: number, mealIndex: number) {
-  return `day-${day}-meal-${mealIndex}`;
-}
-
-function manualValidationKey(day: number) {
-  return `day-${day}-manual-validated`;
-}
-
-function waterProgressStorageKey(day: number) {
-  return `day-${day}-water-progress`;
-}
-
-function stepsProgressStorageKey(day: number) {
-  return `day-${day}-steps-progress`;
-}
-
-function formatWeightKg(value: number) {
-  return value.toFixed(1);
-}
-
-function getDefaultDayIndex(
-  days: DayPlan[],
-  profile: OnboardingData,
-  mealChecklist: MealChecklistState,
-  waterProgress: WaterProgressState,
-  stepProgress: StepProgressState
-) {
-  const firstUnvalidatedIndex = days.findIndex((day) => {
-    const manuallyValidated = Boolean(mealChecklist[manualValidationKey(day.jour)]);
-    if (manuallyValidated) return false;
-
-    const mealsValidated = day.repas.every((_, i) => mealChecklist[mealKey(day.jour, i)]);
-    const waterTarget = Math.round(getPersonalizedHydrationLiters(day.hydratationLitres, profile) * 1000);
-    const waterValue = Math.round(waterProgress[waterProgressStorageKey(day.jour)] ?? 0);
-    const stepsTarget = getDailyWalkingRecommendation(profile).steps;
-    const stepsValue = Math.round(stepProgress[stepsProgressStorageKey(day.jour)] ?? 0);
-
-    return !(mealsValidated && waterValue >= waterTarget && stepsValue >= stepsTarget);
-  });
-
-  if (firstUnvalidatedIndex >= 0) return firstUnvalidatedIndex;
-  return Math.max(0, days.length - 1);
-}
-

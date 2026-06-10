@@ -22,12 +22,35 @@ export interface MealPlanData {
   jours: DayPlan[];
 }
 
+/** Horizon du programme (jours) : même objectif de poids, vitesses et déficits adaptés. */
+export type ParcoursPerte = "j30" | "j90" | "j180" | "j365";
+
 export interface OnboardingData {
   prenom: string;
   age: number;
   poidsKg: number;
   tailleCm: number;
-  parcoursPerte: "radical" | "modere" | "durable";
+  parcoursPerte: ParcoursPerte;
+  /** 1er jour du plan = jour 1 (date locale YYYY-MM-DD). Sans valeur, repli historique sur le jour de l’année. */
+  programStartDateIso?: string;
+  /** Incrémenté à chaque « Reset du suivi » pour forcer le retour au jour 1 dans l’UI même si la date de début reste identique. */
+  trackingResetEpoch?: number;
+  /** À true uniquement après la dernière étape d’onboarding (évite d’accéder au plan sans finir). */
+  onboardingCompleted?: boolean;
+  objectifPoidsKg?: number;
+  objectifs?: string[];
+  diagnostics?: string[];
+  symptomes?: string[];
+  tentativePertePoids?: string;
+  niveauActivite?: string;
+  rythmeRepas?: string;
+  tempsCuisine?: string;
+  regimeAlimentaire?: string;
+  alimentsPreferes?: string[];
+  allergies?: string[];
+  alimentsDetestes?: string[];
+  /** Préférence d'abonnement choisie à la fin de l'onboarding (après essai gratuit). */
+  billingPreference?: "monthly" | "yearly";
 }
 
 export interface DailyTrackingData {

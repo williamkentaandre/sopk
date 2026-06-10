@@ -1,17 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+
+function readFromLocalStorage<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (raw === null) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
-  const [value, setValue] = useState<T>(() => {
-    if (typeof window === "undefined") return initialValue;
-    try {
-      const raw = window.localStorage.getItem(key);
-      return raw !== null ? (JSON.parse(raw) as T) : initialValue;
-    } catch {
-      return initialValue;
-    }
-  });
+  const initialRef = useRef(initialValue);
+  initialRef.current = initialValue;
+
+  const [value, setValue] = useState<T>(() => readFromLocalStorage(key, initialValue));
+
+  /** Quand la clé change (ex. guest → compte Apple), relire le slot — indispensable après déconnexion / reconnexion. */
+  useLayoutEffect(() => {
+    setValue(readFromLocalStorage(key, initialRef.current));
+  }, [key]);
 
   const update = (nextValue: T) => {
     setValue(nextValue);

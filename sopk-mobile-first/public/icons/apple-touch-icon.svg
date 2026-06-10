@@ -1,12 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="180" height="180">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#faf8ff"/>
+      <stop offset="100%" stop-color="#ede5fb"/>
+    </linearGradient>
+    <linearGradient id="petalDark" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#7c3aed"/>
-      <stop offset="100%" stop-color="#4338ca"/>
+      <stop offset="100%" stop-color="#4c1d95"/>
+    </linearGradient>
+    <linearGradient id="petalMid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="petalLight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c4b5fd"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
     </linearGradient>
   </defs>
-  <rect width="180" height="180" rx="40" fill="url(#g)"/>
-  <circle cx="90" cy="82" r="36" fill="#fff"/>
-  <path d="M48 134c10-13 25-20 42-20s32 7 42 20" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round"/>
-  <path d="M90 53c-10 0-18 8-18 18 0 9 8 18 18 18s18-9 18-18c0-10-8-18-18-18z" fill="#6d28d9"/>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g transform="translate(256,252)">
+    <ellipse cx="0" cy="-80" rx="28" ry="72" fill="url(#petalDark)"/>
+    <path d="M-12,10 C-50,-40 -130,-60 -120,-10 C-112,30 -60,55 -12,10Z" fill="url(#petalDark)"/>
+    <path d="M12,10 C50,-40 130,-60 120,-10 C112,30 60,55 12,10Z" fill="url(#petalDark)"/>
+    <path d="M-8,-10 C-35,-70 -75,-100 -65,-50 C-58,-10 -30,20 -8,-10Z" fill="url(#petalMid)"/>
+    <path d="M8,-10 C35,-70 75,-100 65,-50 C58,-10 30,20 8,-10Z" fill="url(#petalMid)"/>
+    <path d="M0,10 C-5,40 -4,70 0,110 C4,70 5,40 0,10Z" fill="url(#petalDark)" opacity="0.85"/>
+    <path d="M0,30 C-20,15 -40,5 -48,-5" fill="none" stroke="url(#petalLight)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M0,30 C20,15 40,5 48,-5" fill="none" stroke="url(#petalLight)" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="0" cy="-8" r="10" fill="#faf8ff" opacity="0.9"/>
+    <circle cx="0" cy="-8" r="6" fill="url(#petalDark)"/>
+  </g>
 </svg>

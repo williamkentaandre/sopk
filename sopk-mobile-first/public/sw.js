@@ -1,4 +1,4 @@
-const CACHE_NAME = "nutrisopk-cache-v1";
+const CACHE_NAME = "nutrisopk-cache-v3";
 const OFFLINE_URLS = ["/", "/manifest.webmanifest", "/icons/icon-192.svg", "/icons/icon-512.svg"];
 
 self.addEventListener("install", (event) => {
@@ -32,7 +32,14 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
           return response;
         })
-        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("/")))
+        .catch(() =>
+          caches.match(event.request).then((cached) => {
+            if (cached) return cached;
+            const isRoot = requestUrl.pathname === "/" || requestUrl.pathname === "";
+            if (isRoot) return caches.match("/");
+            return Response.error();
+          })
+        )
     );
     return;
   }

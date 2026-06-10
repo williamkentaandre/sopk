@@ -1,5 +1,6 @@
 import adviceData from "@/data/advice.json";
 import { SectionCard } from "@/components/SectionCard";
+import { normalizeParcours } from "@/utils/profileMigrate";
 import { DailyTrackingData, OnboardingData } from "@/utils/types";
 
 interface AdviceViewProps {
@@ -61,14 +62,26 @@ function buildDynamicAdvice(profile: OnboardingData, tracking: DailyTrackingData
   if (!tracking.repasSuivis) {
     advice.push("Prépare ta collation à l’avance pour éviter les choix impulsifs.");
   }
-  if (profile.parcoursPerte === "radical") {
-    advice.push("Découpe ta marche en 2 sessions dans la journée pour mieux tenir le rythme intensif.");
-  }
-  if (profile.parcoursPerte === "modere") {
-    advice.push("Vise la régularité: repas équilibrés + hydratation stable + marche quotidienne.");
-  }
-  if (profile.parcoursPerte === "durable") {
-    advice.push("Privilégie des habitudes faciles à maintenir sur plusieurs semaines.");
+  const parcours = normalizeParcours(profile.parcoursPerte as string);
+  switch (parcours) {
+    case "j30":
+      advice.push("Découpe ta marche en 2 sessions dans la journée pour mieux tenir le rythme intensif.");
+      break;
+    case "j90":
+      advice.push("Vise la régularité sur environ trois mois : repas équilibrés, hydratation stable, marche quotidienne.");
+      break;
+    case "j180":
+      advice.push(
+        "Sur six mois, privilégie la constance (sommeil, repas, pas) plutôt que des pics d’effort isolés.",
+      );
+      break;
+    case "j365":
+      advice.push(
+        "Sur l’année, ancre une marche modérée quasi quotidienne : c’est souvent plus efficace qu’un sprint ponctuel.",
+      );
+      break;
+    default:
+      break;
   }
   if (advice.length === 0) {
     advice.push("Continue tes habitudes actuelles: ton suivi quotidien est cohérent.");

@@ -1,14 +1,124 @@
 import mealPlanData from "@/data/mealPlan.json";
+import { todayIsoLocal } from "@/utils/storage";
 import { DayPlan, MealPlanData, OnboardingData } from "@/utils/types";
 
 const parsed = mealPlanData as MealPlanData;
-const PROGRAM_DAYS = 30;
 
-function buildProgramDays(): DayPlan[] {
+/** Plus court horizon (déficit le plus élevé côté modèle). */
+export const PROGRAM_DAYS_INTENSE = 30;
+/** Plus long horizon (déficit le plus modéré côté modèle). */
+export const PROGRAM_DAYS_ANCRE = 365;
+
+export function getProgramDayCount(parcoursPerte: OnboardingData["parcoursPerte"]): number {
+  switch (parcoursPerte) {
+    case "j30":
+      return 30;
+    case "j90":
+      return 90;
+    case "j180":
+      return 180;
+    case "j365":
+      return 365;
+    default:
+      return 90;
+  }
+}
+
+/** Libellé court pour l’UI (plan, en-tête). */
+export function parcoursHorizonLabel(parcours: OnboardingData["parcoursPerte"]): string {
+  switch (parcours) {
+    case "j30":
+      return "Intense — 30 jours";
+    case "j90":
+      return "Équilibré — 90 jours";
+    case "j180":
+      return "Progressive — 180 jours";
+    case "j365":
+      return "Ancrée — 365 jours";
+    default:
+      return "Équilibré — 90 jours";
+  }
+}
+
+/**
+ * 0 = horizon 30 j (rythme le plus soutenu), 1 = 365 j (rythme le plus progressif).
+ * Sert à interpoler déficit, pas, hydratation, etc.
+ */
+export function parcoursIntensiteT(parcours: OnboardingData["parcoursPerte"]): number {
+  const d = getProgramDayCount(parcours);
+  return Math.max(0, Math.min(1, (d - PROGRAM_DAYS_INTENSE) / (PROGRAM_DAYS_ANCRE - PROGRAM_DAYS_INTENSE)));
+}
+
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+function parseIsoLocal(iso: string): Date {
+  const [y, m, d] = iso.split("-").map((x) => Number(x));
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return new Date(NaN);
+  return new Date(y, m - 1, d);
+}
+
+function formatIsoLocal(d: Date): string {
+  const y = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${mm}-${dd}`;
+}
+
+function calendarDaysBetweenIso(startIso: string, endIso: string): number {
+  const a = parseIsoLocal(startIso);
+  const b = parseIsoLocal(endIso);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return 0;
+  return Math.round((b.getTime() - a.getTime()) / 86400000);
+}
+
+function addCalendarDaysIso(iso: string, deltaDays: number): string {
+  const d = parseIsoLocal(iso);
+  if (Number.isNaN(d.getTime())) return todayIsoLocal();
+  d.setDate(d.getDate() + deltaDays);
+  return formatIsoLocal(d);
+}
+
+/** Ancien calcul (jour de l’année % durée) — conservé pour migration seulement. */
+function programDayFromDayOfYearModulo(dayCount: number): number {
+  const len = Math.max(1, dayCount);
+  const d = new Date();
+  const t = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  const y0 = Date.UTC(d.getFullYear(), 0, 1);
+  const dayOfYear = Math.floor((t - y0) / 86400000);
+  return (dayOfYear % len) + 1;
+}
+
+/** Recule d’un jour civil le début du plan (= fait avancer le numéro du « jour actif » d’une unité). */
+export function shiftProgramStartEarlierByOneDay(programStartDateIso: string): string {
+  const s = programStartDateIso.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return todayIsoLocal();
+  return addCalendarDaysIso(s, -1);
+}
+
+/**
+ * Jour du programme (1 … dayCount) pour aujourd’hui (date locale).
+ * Avec `programStartDateIso` : nombre de jours civils depuis le 1er jour (jour 1 = date de début).
+ * Sans date : ancien repli (jour de l’année modulo la durée) — déconseillé.
+ */
+export function getTodayJourInProgram(dayCount: number, programStartDateIso?: string | null): number {
+  const len = Math.max(1, dayCount);
+  const start = programStartDateIso?.trim();
+  if (!start || !/^\d{4}-\d{2}-\d{2}$/.test(start)) {
+    return programDayFromDayOfYearModulo(len);
+  }
+  const todayLocal = todayIsoLocal();
+  const diff = calendarDaysBetweenIso(start, todayLocal);
+  const jour = diff + 1;
+  return Math.max(1, Math.min(len, jour));
+}
+
+function buildProgramDays(dayCount: number): DayPlan[] {
   const sourceDays = parsed.jours;
   if (sourceDays.length === 0) return [];
 
-  return Array.from({ length: PROGRAM_DAYS }, (_, index) => {
+  return Array.from({ length: dayCount }, (_, index) => {
     const template = sourceDays[index % sourceDays.length];
     return {
       ...template,
@@ -21,10 +131,10 @@ function buildProgramDays(): DayPlan[] {
 
 function inferredActivityMultiplier(profile: OnboardingData): number {
   const bmi = profile.poidsKg / ((profile.tailleCm / 100) * (profile.tailleCm / 100));
+  const t = parcoursIntensiteT(profile.parcoursPerte);
   let multiplier = 1.4;
 
-  if (profile.parcoursPerte === "radical") multiplier += 0.06;
-  if (profile.parcoursPerte === "modere") multiplier += 0.03;
+  multiplier += lerp(0.06, 0.02, t);
   if (profile.age >= 45) multiplier -= 0.03;
   if (bmi >= 30) multiplier -= 0.02;
   if (bmi < 22) multiplier += 0.02;
@@ -33,59 +143,69 @@ function inferredActivityMultiplier(profile: OnboardingData): number {
 }
 
 function objectiveAdjustmentByParcours(parcours: OnboardingData["parcoursPerte"]): number {
-  if (parcours === "radical") return -1200;
-  if (parcours === "modere") return -780;
-  return -250;
+  const t = parcoursIntensiteT(parcours);
+  return lerp(-1200, -250, t);
 }
 
 function parcoursAdjustment(parcours: OnboardingData["parcoursPerte"]): number {
-  if (parcours === "radical") return -220;
-  if (parcours === "modere") return -120;
-  return -20;
+  const t = parcoursIntensiteT(parcours);
+  return lerp(-220, -20, t);
 }
 
 function parcoursHydrationBonus(parcours: OnboardingData["parcoursPerte"]): number {
-  if (parcours === "radical") return 0.2;
-  if (parcours === "modere") return 0.1;
-  return 0.05;
+  const t = parcoursIntensiteT(parcours);
+  return lerp(0.2, 0.05, t);
 }
 
 function parcoursStepsBonus(parcours: OnboardingData["parcoursPerte"]): number {
-  if (parcours === "radical") return 1800;
-  if (parcours === "modere") return 900;
-  return 250;
+  const t = parcoursIntensiteT(parcours);
+  return lerp(1800, 250, t);
 }
 
 function parcoursAdherenceWeight(parcours: OnboardingData["parcoursPerte"]): number {
-  if (parcours === "radical") return 1.55;
-  if (parcours === "modere") return 1.28;
-  return 0.85;
+  const t = parcoursIntensiteT(parcours);
+  return lerp(1.55, 0.85, t);
 }
 
 function maxDailyLossByParcours(parcours: OnboardingData["parcoursPerte"]): number {
-  if (parcours === "radical") return 420;
-  if (parcours === "modere") return 280;
-  return 120;
+  const t = parcoursIntensiteT(parcours);
+  return lerp(420, 120, t);
 }
 
-export function getMealPlan(): MealPlanData {
+function walkingNoteForHorizon(parcours: OnboardingData["parcoursPerte"]): string {
+  const d = getProgramDayCount(parcours);
+  if (d <= 35) {
+    return "Marche à allure soutenue en 2 blocs pour renforcer la dépense énergétique.";
+  }
+  if (d <= 100) {
+    return "Rythme confortable et régulier pour tenir sur environ trois mois.";
+  }
+  if (d <= 200) {
+    return "Privilégie la constance sur six mois : quelques pas de plus valent mieux qu’un pic ponctuel.";
+  }
+  return "Sur l’année, la régularité prime : marche modérée mais quasi quotidienne.";
+}
+
+export function getMealPlan(profile: Pick<OnboardingData, "parcoursPerte">): MealPlanData {
+  const dayCount = getProgramDayCount(profile.parcoursPerte);
   return {
     ...parsed,
-    jours: buildProgramDays(),
+    jours: buildProgramDays(dayCount),
   };
 }
 
 export function getPersonalizedCalories(profile: OnboardingData): number {
   const bmr = 10 * profile.poidsKg + 6.25 * profile.tailleCm - 5 * profile.age - 161;
   const maintenance = bmr * inferredActivityMultiplier(profile);
-  const adjusted = maintenance + objectiveAdjustmentByParcours(profile.parcoursPerte) + parcoursAdjustment(profile.parcoursPerte);
+  const adjusted =
+    maintenance + objectiveAdjustmentByParcours(profile.parcoursPerte) + parcoursAdjustment(profile.parcoursPerte);
   return Math.round(Math.max(1300, Math.min(2300, adjusted)));
 }
 
-export function getTodayPlanDay(): DayPlan {
-  const days = buildProgramDays();
-  const index = (new Date().getDate() - 1) % days.length;
-  return days[index];
+export function getTodayPlanDay(profile: Pick<OnboardingData, "parcoursPerte" | "programStartDateIso">): DayPlan {
+  const days = buildProgramDays(getProgramDayCount(profile.parcoursPerte));
+  const jour = getTodayJourInProgram(days.length, profile.programStartDateIso);
+  return days[jour - 1];
 }
 
 export function getMealCaloriesForTarget(plannedMealCalories: number, day: DayPlan, targetDailyCalories: number): number {
@@ -132,18 +252,11 @@ export function getDailyWalkingRecommendation(profile: OnboardingData): {
   const distanceKm = (clampedSteps * stepLengthMeters) / 1000;
   const minutes = Math.round((clampedSteps / 100) * 1.1);
 
-  const note =
-    profile.parcoursPerte === "radical"
-      ? "Marche à allure soutenue en 2 blocs pour renforcer la dépense énergétique."
-      : profile.parcoursPerte === "modere"
-        ? "Garde une marche active régulière pour progresser sans surcharge."
-        : "Rythme confortable et constant pour installer une perte durable.";
-
   return {
     steps: clampedSteps,
     minutes,
     distanceKm: Math.round(distanceKm * 10) / 10,
-    note,
+    note: walkingNoteForHorizon(profile.parcoursPerte),
   };
 }
 
@@ -172,7 +285,7 @@ export function getEstimatedDailyLossGrams(
     baseDeficitKcal *
     parcoursAdherenceWeight(profile.parcoursPerte) *
     Math.max(0, Math.min(1.2, adherenceFactor));
-  const gramsPerDay = effectiveDeficit / 7.7; // ~7700 kcal for 1kg body fat
+  const gramsPerDay = effectiveDeficit / 7.7;
   const cap = maxDailyLossByParcours(profile.parcoursPerte);
 
   return Math.round(Math.max(0, Math.min(cap, gramsPerDay)));

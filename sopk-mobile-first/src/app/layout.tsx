@@ -1,6 +1,22 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+
+import { ServiceWorkerBootstrap } from "@/components/ServiceWorkerBootstrap";
+
 import "./globals.css";
+
+const CAPACITOR_SW_KILL = `(function(){
+if(typeof navigator==='undefined'||!navigator.serviceWorker)return;
+if(typeof location==='undefined')return;
+var isCap=location.protocol==='capacitor:'||location.protocol==='ionic:';
+if(!isCap)return;
+navigator.serviceWorker.getRegistrations().then(function(rs){
+rs.forEach(function(r){r.unregister();});
+});
+if(typeof caches!=='undefined'){
+caches.keys().then(function(ks){ks.forEach(function(k){caches.delete(k);});});
+}
+})();`;
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -11,6 +27,12 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://nutrisopk.local"),
@@ -42,7 +64,11 @@ export default function RootLayout({
       lang="fr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <script dangerouslySetInnerHTML={{ __html: CAPACITOR_SW_KILL }} />
+        <ServiceWorkerBootstrap />
+        {children}
+      </body>
     </html>
   );
 }
