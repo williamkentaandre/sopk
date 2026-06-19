@@ -10,12 +10,13 @@ import {
   iapProductIdsConfigured,
   iapYearlyProductId,
 } from "@/config/iap";
+import { isCapacitorNative } from "@/utils/capacitorRuntime";
 
 export type BillingPlan = "monthly" | "yearly";
 
 export function shouldUseNativeIap(): boolean {
   if (typeof window === "undefined") return false;
-  if (Capacitor.getPlatform() === "web") return false;
+  if (!isCapacitorNative()) return false;
   if (iapDevBypass()) return false;
   return iapProductIdsConfigured();
 }
@@ -40,7 +41,7 @@ export function matchStoreProduct(products: Product[], plan: BillingPlan): Produ
 
 export async function fetchSubscriptionProducts(): Promise<{ monthly: Product; yearly: Product } | null> {
   if (!iapProductIdsConfigured()) return null;
-  if (Capacitor.getPlatform() === "web") return null;
+  if (!isCapacitorNative()) return null;
 
   const { isBillingSupported } = await NativePurchases.isBillingSupported();
   if (!isBillingSupported) return null;
@@ -77,18 +78,18 @@ export async function purchaseSubscription(plan: BillingPlan, product: Product):
 }
 
 export async function restoreSubscriptionPurchases(): Promise<void> {
-  if (Capacitor.getPlatform() === "web") return;
+  if (!isCapacitorNative()) return;
   await NativePurchases.restorePurchases();
 }
 
 /** Ouvre la page native de gestion des abonnements (App Store). */
 export async function openSubscriptionManagement(): Promise<void> {
-  if (Capacitor.getPlatform() === "web") return;
+  if (!isCapacitorNative()) return;
   await NativePurchases.manageSubscriptions();
 }
 
 export async function hasActiveSubscriptionFromStore(): Promise<boolean> {
-  if (Capacitor.getPlatform() === "web" || !iapProductIdsConfigured()) return false;
+  if (!isCapacitorNative() || !iapProductIdsConfigured()) return false;
   const { purchases } = await NativePurchases.getPurchases({
     productType: PURCHASE_TYPE.SUBS,
     onlyCurrentEntitlements: true,

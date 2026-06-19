@@ -6,12 +6,21 @@
  * iOS : productIdentifier = id d’abonnement App Store.
  */
 
+/** Identifiants App Store Connect (publics) — surchargeables via `.env.production`. */
+const DEFAULT_IAP_MONTHLY_ID = "com.nutrisopk.app.sub.monthly";
+const DEFAULT_IAP_YEARLY_ID = "com.nutrisopk.app.sub.yearly";
+
+function iapIdFromEnv(value: string | undefined, fallback: string): string {
+  const trimmed = (value ?? "").trim();
+  return trimmed || fallback;
+}
+
 export function iapMonthlyProductId(): string {
-  return (process.env.NEXT_PUBLIC_IAP_MONTHLY_ID ?? "").trim();
+  return iapIdFromEnv(process.env.NEXT_PUBLIC_IAP_MONTHLY_ID, DEFAULT_IAP_MONTHLY_ID);
 }
 
 export function iapYearlyProductId(): string {
-  return (process.env.NEXT_PUBLIC_IAP_YEARLY_ID ?? "").trim();
+  return iapIdFromEnv(process.env.NEXT_PUBLIC_IAP_YEARLY_ID, DEFAULT_IAP_YEARLY_ID);
 }
 
 export function iapProductIdsConfigured(): boolean {

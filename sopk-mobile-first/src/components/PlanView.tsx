@@ -2,6 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import Image from "next/image";
 import { Capacitor } from "@capacitor/core";
 
+import { useCapacitorPublicAsset } from "@/hooks/useCapacitorPublicAsset";
+
 import {
   getDailyWalkingRecommendation,
   getMealCaloriesForTarget,
@@ -98,11 +100,19 @@ const mealImageByType = {
   diner: "/images/meal-diner.svg",
 } as const;
 
-/** Sous Capacitor l’app est servie depuis `plan/` : les URLs racine `/images/…` ne résolvent pas. */
-function planPublicAsset(absPath: string): string {
-  if (Capacitor.getPlatform() === "web") return absPath;
-  if (!absPath.startsWith("/")) return absPath;
-  return `..${absPath}`;
+type MealImageType = keyof typeof mealImageByType;
+
+function MealTypeImage({ type }: { type: MealImageType }) {
+  const src = useCapacitorPublicAsset(mealImageByType[type]);
+  return (
+    <Image
+      src={src}
+      alt=""
+      width={96}
+      height={96}
+      className="h-12 w-12 shrink-0 rounded-xl object-cover"
+    />
+  );
 }
 
 export function PlanView({
@@ -772,13 +782,7 @@ export function PlanView({
                 key={key}
                 className={`flex gap-3 px-4 py-3 transition ${checked ? "bg-emerald-50/50" : ""}`}
               >
-                <Image
-                  src={planPublicAsset(mealImageByType[meal.type])}
-                  alt=""
-                  width={96}
-                  height={96}
-                  className="h-12 w-12 shrink-0 rounded-xl object-cover"
-                />
+                <MealTypeImage type={meal.type} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">

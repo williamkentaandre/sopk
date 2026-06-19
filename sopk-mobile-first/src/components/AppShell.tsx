@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { Capacitor } from "@capacitor/core";
 
 import { AppleSignInCard } from "@/components/AppleSignInCard";
+import { AppIconSvg } from "@/components/AppIconSvg";
 import { BrandLogo } from "@/components/BrandLogo";
 import { OnboardingForm } from "@/components/OnboardingForm";
+import { SubscriptionLegalLinks } from "@/components/SubscriptionLegalLinks";
 import { PlanView, programDayToDateLabel } from "@/components/PlanView";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import {
@@ -224,7 +226,10 @@ export function AppShell({ forcePlan = false }: AppShellProps) {
             ← Retour
           </button>
           <section className="rounded-2xl border border-[#e8e2eb] bg-white/95 p-5 shadow-md shadow-slate-200/50">
-            <h2 className="text-xl font-bold text-slate-900">Connexion sécurisée</h2>
+            <div className="mb-4 flex justify-center">
+              <AppIconSvg size="lg" />
+            </div>
+            <h2 className="text-center text-xl font-bold text-slate-900">Connexion sécurisée</h2>
             <p className="mt-1 text-sm text-slate-600">
               Étape 1/2 : connexion avec Apple. Les choix «&nbsp;masquer l’e-mail&nbsp;» et le nom affiché te sont
               proposés par iOS (surtout à la première connexion).
@@ -451,6 +456,9 @@ export function AppShell({ forcePlan = false }: AppShellProps) {
                   >
                     Gérer mon abonnement
                   </button>
+                  <div className="mt-3 rounded-lg border border-slate-200 bg-white px-2.5 py-2">
+                    <SubscriptionLegalLinks />
+                  </div>
                   <button
                     type="button"
                     onClick={() => {

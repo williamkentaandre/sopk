@@ -128,6 +128,12 @@ export default function Home() {
             >
               Politique de confidentialité
             </CapacitorNavLink>
+            <CapacitorNavLink
+              href="/terms/"
+              className="inline-flex rounded-xl border border-violet-300 px-5 py-3 text-sm font-semibold text-violet-200 transition hover:bg-white/10"
+            >
+              Conditions d&apos;utilisation
+            </CapacitorNavLink>
           </div>
         </div>
         <footer className="mt-6 text-center text-xs text-slate-500">

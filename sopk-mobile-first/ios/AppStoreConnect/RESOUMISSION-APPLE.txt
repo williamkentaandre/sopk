@@ -1,0 +1,25 @@
+Coller dans la DESCRIPTION de l’app (App Store Connect) — en bas du texte existant :
+
+Conditions d’utilisation : https://regimesopk.com/terms
+Politique de confidentialité : https://regimesopk.com/privacy
+EULA standard Apple : https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
+---
+
+Champs App Store Connect à vérifier :
+
+• Confidentialité de l’app → URL : https://regimesopk.com/privacy
+• (Optionnel) EULA personnalisée dans ASC, sinon EULA Apple + lien ci-dessus dans la description
+
+---
+
+Images promotionnelles IAP (Guideline 2.3.2) :
+
+• ios/AppStoreConnect/iap-promo/IAP-Promo-Monthly-1024.png → abonnement mensuel
+• ios/AppStoreConnect/iap-promo/IAP-Promo-Yearly-1024.png → abonnement annuel
+
+OU supprimer l’image promotionnelle si vous ne promouvez pas l’IAP sur l’App Store.
+
+---
+
+Nouveau build requis : 1.0.4 (6) — liens CGU + confidentialité dans l’écran abonnement.

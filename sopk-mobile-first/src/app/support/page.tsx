@@ -68,6 +68,12 @@ export default function SupportPage() {
               </CapacitorNavLink>
             </li>
             <li>
+              Conditions d&apos;utilisation :{" "}
+              <CapacitorNavLink className="cursor-pointer border-0 bg-transparent p-0 font-semibold text-violet-700 underline" href="/terms/">
+                regimesopk.com/terms
+              </CapacitorNavLink>
+            </li>
+            <li>
               Site principal :{" "}
               <CapacitorNavLink className="cursor-pointer border-0 bg-transparent p-0 font-semibold text-violet-700 underline" href="/">
                 regimesopk.com

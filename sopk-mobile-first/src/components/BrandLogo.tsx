@@ -1,3 +1,5 @@
+import { AppIconSvg } from "@/components/AppIconSvg";
+
 function cx(...parts: (string | undefined | false)[]) {
   return parts.filter(Boolean).join(" ");
 }
@@ -11,6 +13,7 @@ export function BrandLogo({ variant = "hero", className }: { variant?: BrandLogo
   if (variant === "hero") {
     return (
       <div className={cx("flex flex-col items-center text-center", className)}>
+        <AppIconSvg size="lg" className="mb-5 md:mb-6" />
         <p className="text-4xl font-black tracking-[-0.03em] text-violet-950 md:text-6xl md:leading-[1.06]">
           <span className="font-semibold text-violet-500">Régime </span>
           <span className="text-violet-950">SOPK</span>
@@ -34,6 +37,7 @@ export function BrandLogo({ variant = "hero", className }: { variant?: BrandLogo
   if (variant === "inverse") {
     return (
       <div className={cx("flex shrink-0 select-none flex-col items-center text-center", className)} aria-hidden="true">
+        <AppIconSvg size="sm" className="mb-2 ring-white/30" />
         <p className="text-lg font-black leading-tight tracking-tight sm:text-xl">
           <span className="font-medium text-violet-200">Régime </span>
           <span className="text-white">SOPK</span>
@@ -50,8 +54,9 @@ export function BrandLogo({ variant = "hero", className }: { variant?: BrandLogo
 
   if (variant === "onboarding") {
     return (
-      <div className={cx("flex min-w-0 flex-1 flex-col items-center text-center", className)}>
-        <p className="text-lg font-black leading-tight tracking-tight sm:text-xl">
+      <div className={cx("flex min-w-0 flex-col items-center text-center", className)}>
+        <AppIconSvg size="lg" className="mb-2 sm:mb-3" />
+        <p className="text-base font-black leading-tight tracking-tight sm:text-lg">
           <span className="font-semibold text-[#7a7169]">Régime </span>
           <span className="text-[#4c1d95]">SOPK</span>
         </p>

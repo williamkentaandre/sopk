@@ -64,7 +64,7 @@ export default function RootLayout({
       lang="fr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" style={{ backgroundColor: "#faf7f4" }}>
         <script dangerouslySetInnerHTML={{ __html: CAPACITOR_SW_KILL }} />
         <ServiceWorkerBootstrap />
         {children}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Capacitor } from "@capacitor/core";
+import { isCapacitorNative } from "@/utils/capacitorRuntime";
 
 /**
  * Web : enregistre le SW PWA en prod uniquement.
@@ -12,7 +12,7 @@ export function ServiceWorkerBootstrap() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 
-    const isNative = Capacitor.getPlatform() !== "web";
+    const isNative = isCapacitorNative();
 
     if (isNative) {
       navigator.serviceWorker.getRegistrations().then((registrations) => {

@@ -5,7 +5,9 @@ import { Capacitor } from "@capacitor/core";
 import type { Product } from "@capgo/native-purchases";
 
 import { BrandLogo } from "@/components/BrandLogo";
-import { iapDevBypass, iapProductIdsConfigured } from "@/config/iap";
+import { SubscriptionLegalLinks } from "@/components/SubscriptionLegalLinks";
+import { capacitorPublicAsset } from "@/utils/capacitorStaticHref";
+import { isCapacitorNative } from "@/utils/capacitorRuntime";
 import { getEstimatedDailyLossGrams } from "@/utils/mealPlan";
 import { normalizeParcours } from "@/utils/profileMigrate";
 import { STORAGE_KEYS } from "@/utils/storage";
@@ -317,12 +319,12 @@ export function OnboardingForm({
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(109,90,125,0.08),transparent)]" />
 
       <header className="relative shrink-0 px-4 pb-1.5 pt-1 sm:px-5 sm:pb-2 sm:pt-2">
-        <div className="mb-1.5 flex items-start justify-between gap-2 sm:mb-2">
-          <BrandLogo variant="onboarding" className="max-sm:scale-90" />
-          <p className={`shrink-0 pt-0.5 text-[10px] font-medium sm:text-xs ${brand.muted}`}>
+        <div className="mb-1.5 flex items-center justify-end sm:mb-2">
+          <p className={`shrink-0 text-[10px] font-medium sm:text-xs ${brand.muted}`}>
             {step + 1} / {stepCount}
           </p>
         </div>
+        <BrandLogo variant="onboarding" />
         <div className="grid grid-cols-[repeat(14,minmax(0,1fr))] gap-0.5 sm:gap-1">
           {Array.from({ length: stepCount }).map((_, index) => (
             <div
@@ -547,9 +549,7 @@ export function OnboardingForm({
             storeProducts={iapProducts}
             storeLoading={shouldUseNativeIap() && iapProducts === undefined}
             nativeIap={shouldUseNativeIap()}
-            showStoreConfigHint={
-              Capacitor.getPlatform() !== "web" && !iapDevBypass() && !iapProductIdsConfigured()
-            }
+            showStoreConfigHint={false}
             onRetryStore={
               shouldUseNativeIap()
                 ? () => {
@@ -967,6 +967,22 @@ function ProjectionStep({
   );
 }
 
+function WebBuildStamp() {
+  const [stamp, setStamp] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isCapacitorNative()) return;
+    const url = capacitorPublicAsset("/build-stamp.txt");
+    void fetch(url)
+      .then((r) => (r.ok ? r.text() : ""))
+      .then((text) => setStamp(text.trim() || null))
+      .catch(() => setStamp(null));
+  }, []);
+
+  if (!stamp) return null;
+  return <p className={`mt-4 text-center text-[10px] ${brand.muted}`}>Version app : {stamp}</p>;
+}
+
 function PricingStep({
   billing,
   onSelect,
@@ -1045,8 +1061,8 @@ function PricingStep({
               </p>
               <p className={`mt-1 text-xs ${brand.muted}`}>
                 {nativeIap
-                  ? "Renouvelé une fois par an — annulable à tout moment depuis les réglages Apple."
-                  : "Un seul prélèvement par an, pour un tarif mensuel équivalent plus bas (indicatif hors magasin)."}
+                  ? "Durée : 1 an · Renouvelé une fois par an — annulable à tout moment depuis les réglages Apple."
+                  : "Durée : 1 an · Un seul prélèvement par an, pour un tarif mensuel équivalent plus bas (indicatif hors magasin)."}
               </p>
             </div>
             <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${billing === "yearly" ? "bg-[#6d5a7d] text-white" : "bg-[#e8e2eb] text-[#6b6560]"}`}>
@@ -1075,8 +1091,8 @@ function PricingStep({
               </p>
               <p className={`mt-1 text-xs ${brand.muted}`}>
                 {nativeIap
-                  ? "Renouvelé chaque mois — annulable à tout moment depuis les réglages Apple."
-                  : "Idéal si vous préférez évaluer mois après mois (indicatif hors magasin)."}
+                  ? "Durée : 1 mois · Renouvelé chaque mois — annulable à tout moment depuis les réglages Apple."
+                  : "Durée : 1 mois · Idéal si vous préférez évaluer mois après mois (indicatif hors magasin)."}
               </p>
             </div>
             <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${billing === "monthly" ? "bg-[#6d5a7d] text-white" : "bg-[#e8e2eb] text-[#6b6560]"}`}>
@@ -1086,9 +1102,8 @@ function PricingStep({
         </button>
       </div>
 
-      <p className={`mt-2 text-center text-[10px] leading-relaxed sm:mt-4 sm:text-[11px] ${brand.muted}`}>
-        Transactions sécurisées — conditions d’utilisation et confidentialité accessibles depuis l’application.
-      </p>
+      <SubscriptionLegalLinks compact className="mt-3 text-center sm:mt-4" />
+      <WebBuildStamp />
     </div>
   );
 }

@@ -11,10 +11,13 @@
     "lint": "eslint",
     "cap:copy": "node scripts/assert-capacitor-out.mjs && npx cap copy",
     "cap:sync": "node scripts/assert-capacitor-out.mjs && npx cap sync",
-    "cap:deploy": "next build --webpack && node scripts/fix-capacitor-html-paths.mjs && npx cap sync",
-    "ios:refresh": "npm run build && npx cap sync ios",
+    "cap:deploy": "npm run icons:ios && next build --webpack && node scripts/fix-capacitor-html-paths.mjs && node scripts/write-build-stamp.mjs && node scripts/patch-apple-sign-in-presentation.mjs && npx cap sync",
+    "ios:refresh": "npm run icons:ios && npm run build && node scripts/patch-apple-sign-in-presentation.mjs && npx cap sync ios",
     "cap:ios": "npx cap open ios",
-    "icons:ios": "node scripts/generate-ios-app-icon.mjs"
+    "icons:ios": "node scripts/generate-ios-app-icon.mjs",
+    "iap:promo-images": "node scripts/generate-iap-promo-images.mjs",
+    "screenshots:app-store": "node scripts/capture-app-store-screenshots.mjs",
+    "postinstall": "node scripts/patch-apple-sign-in-presentation.mjs"
   },
   "dependencies": {
     "@capacitor/cli": "^8.3.1",
@@ -34,6 +37,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "playwright": "^1.61.0",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

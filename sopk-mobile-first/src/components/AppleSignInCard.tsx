@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { AppleSignIn, SignInScope } from "@capawesome/capacitor-apple-sign-in";
 
+import { isCapacitorIos } from "@/utils/capacitorRuntime";
 import { AuthSession } from "@/utils/types";
 
 interface AppleSignInCardProps {
@@ -22,6 +23,50 @@ function AppleLogo({ className }: { className?: string }) {
   );
 }
 
+function userIdFromIdToken(idToken: string): string | null {
+  const payload = idToken.split(".")[1];
+  if (!payload) return null;
+  try {
+    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/"))) as { sub?: string };
+    const sub = json.sub?.trim();
+    return sub || null;
+  } catch {
+    return null;
+  }
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(`${label} : délai dépassé (${ms / 1000}s).`)), ms);
+    promise
+      .then((value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((err) => {
+        window.clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
+
+function appleSignInErrorMessage(err: unknown): string {
+  const capErr = err as { message?: string; code?: string };
+  const code = capErr?.code ?? "";
+  const message = capErr?.message ?? (err instanceof Error ? err.message : String(err ?? ""));
+  if (code === "SIGN_IN_CANCELED" || /cancel/i.test(message)) {
+    return "";
+  }
+  console.error("[AppleSignIn]", { code, message, err });
+  if (/clientId must be provided/i.test(message)) {
+    return "Plugin Apple Sign In non disponible sur cet appareil. Reconstruis l’app depuis Xcode (⌘B puis ⌘R).";
+  }
+  if (/sign in failed/i.test(message)) {
+    return "Apple a refusé la connexion. Active « Sign in with Apple » pour com.nutrisopk.app sur developer.apple.com.";
+  }
+  return message || "Connexion impossible. Réessaie.";
+}
+
 export function AppleSignInCard({ onAuthenticated, compact = false }: AppleSignInCardProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,19 +76,29 @@ export function AppleSignInCard({ onAuthenticated, compact = false }: AppleSignI
     setError(null);
 
     try {
-      const platform = Capacitor.getPlatform();
-
-      if (platform === "ios") {
-        const result = await AppleSignIn.signIn({
-          scopes: [SignInScope.Email, SignInScope.FullName],
-        });
-        if (!result.user) {
-          setError("Connexion impossible. Réessaie.");
+      if (isCapacitorIos()) {
+        if (!Capacitor.isPluginAvailable("AppleSignIn")) {
+          setError("Plugin Apple Sign In absent. Fais Product → Clean Build Folder puis rebuild dans Xcode.");
           return;
         }
+
+        const result = await withTimeout(
+          AppleSignIn.signIn({
+            scopes: [SignInScope.Email, SignInScope.FullName],
+          }),
+          30_000,
+          "Connexion Apple",
+        );
+
+        const userId = result.user?.trim() || userIdFromIdToken(result.idToken ?? "") || "";
+        if (!userId) {
+          setError("Connexion Apple incomplète (identifiant manquant). Réessaie.");
+          return;
+        }
+
         onAuthenticated({
           provider: "apple",
-          userId: result.user,
+          userId,
           email: result.email ?? undefined,
           fullName: [result.givenName, result.familyName].filter(Boolean).join(" ") || undefined,
           signedAtIso: new Date().toISOString(),
@@ -59,12 +114,8 @@ export function AppleSignInCard({ onAuthenticated, compact = false }: AppleSignI
         signedAtIso: new Date().toISOString(),
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err ?? "");
-      if (message.includes("annulée") || message.toLowerCase().includes("cancel")) {
-        setError(null);
-      } else {
-        setError("Connexion impossible. Réessaie.");
-      }
+      const msg = appleSignInErrorMessage(err);
+      if (msg) setError(msg);
     } finally {
       setLoading(false);
     }
@@ -75,15 +126,13 @@ export function AppleSignInCard({ onAuthenticated, compact = false }: AppleSignI
       {!compact ? (
         <div className="mb-5 text-center">
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">Bienvenue</h2>
-          <p className="mt-1.5 text-[15px] text-slate-500">
-            Connecte-toi pour accéder à ton programme.
-          </p>
+          <p className="mt-1.5 text-[15px] text-slate-500">Connecte-toi pour accéder à ton programme.</p>
         </div>
       ) : null}
 
       <button
         type="button"
-        onClick={handleAppleSignIn}
+        onClick={() => void handleAppleSignIn()}
         disabled={loading}
         className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-black px-5 py-4 text-[16px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-60"
       >
