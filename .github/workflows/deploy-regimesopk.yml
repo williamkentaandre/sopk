@@ -1,0 +1,38 @@
+name: Deploy regimesopk.com
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "sopk-mobile-first/**"
+      - ".github/workflows/deploy-regimesopk.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sopk-mobile-first
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: sopk-mobile-first/package-lock.json
+
+      - name: Install & build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: sopk-mobile-first
+          vercel-args: "--prod"
