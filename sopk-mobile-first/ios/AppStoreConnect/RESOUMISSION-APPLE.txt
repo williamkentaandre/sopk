@@ -39,6 +39,7 @@ Option C — GitHub Actions (automatique)
   (Vercel → Project Settings → General)
 
 Vérifier : curl -I https://regimesopk.com/terms/  → doit retourner HTTP 200
+(Déploiement déclenché : 2026-06-19)
 
 ---
 
