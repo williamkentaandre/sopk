@@ -14,6 +14,8 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: appDir,
   },
+  // Isole le build Vercel du monorepo (évite middleware.ts parent + next-auth).
+  outputFileTracingRoot: appDir,
   output: "export",
   images: {
     unoptimized: true,
