@@ -5,7 +5,7 @@ import { isCapacitorNative } from "@/utils/capacitorRuntime";
 
 /**
  * Web : enregistre le SW PWA en prod uniquement.
- * Natif (Capacitor) : désinscrit tout SW — sinon les navigations vers `/plan/` etc. peuvent être
+ * Natif (Capacitor) : désinscrit tout SW - sinon les navigations vers `/plan/` etc. peuvent être
  * interceptées avant que `AppShell` ne soit monté (ex. page marketing `/`).
  */
 export function ServiceWorkerBootstrap() {

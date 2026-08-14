@@ -1,30 +1,145 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f7ff;
-  --foreground: #0f172a;
+  --surface: #faf8f6;
+  --surface-muted: #f5f0f8;
+  --surface-elevated: #ffffff;
+  --ink: #2c2622;
+  --ink-muted: #6b6560;
+  --ink-subtle: #8a8494;
+  --border: #e8e2eb;
+  --border-strong: #d4cdd8;
+  --brand-50: #f5f0f8;
+  --brand-100: #ebe3f2;
+  --brand-200: #d4c6e0;
+  --brand-500: #7c6a8f;
+  --brand-600: #6d5a7d;
+  --brand-700: #5d4c6d;
+  --brand-800: #4a3d56;
+  --brand-900: #3d2a4a;
+  --accent: #0d9488;
+  --accent-soft: #ecfdf8;
+  --shadow-brand: 61, 42, 74;
+  --radius-card: 1rem;
+  --radius-shell: 1.375rem;
+  --background: var(--surface);
+  --foreground: var(--ink);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --shadow-card: 0 8px 32px rgba(var(--shadow-brand), 0.08);
+  --shadow-elevated: 0 16px 48px rgba(var(--shadow-brand), 0.14);
+  --radius-card: var(--radius-card);
+  --radius-shell: var(--radius-shell);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #f7f7ff;
-    --foreground: #0f172a;
-  }
+html {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+}
+
+/* Typographie charte */
+.text-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.text-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.text-body {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.text-caption {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* Surfaces */
+.app-shell-bg {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-muted) 45%, #eef5f1 100%);
+}
+
+.plan-page-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(109, 90, 125, 0.14), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 20%, rgba(13, 148, 136, 0.08), transparent 50%),
+    radial-gradient(ellipse 50% 35% at 0% 80%, rgba(244, 63, 94, 0.05), transparent 45%),
+    linear-gradient(180deg, var(--surface-muted) 0%, var(--surface) 38%, #f8fafc 100%);
+}
+
+.shadow-card {
+  box-shadow: var(--shadow-card);
+}
+
+.shadow-elevated {
+  box-shadow: var(--shadow-elevated);
+}
+
+/* Boutons charte */
+.btn-brand {
+  border-radius: var(--radius-card);
+  background-color: var(--brand-600);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 8px 24px -8px rgba(109, 90, 125, 0.45);
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+.btn-brand:hover {
+  background-color: var(--brand-700);
+}
+.btn-brand:active {
+  transform: scale(0.99);
+}
+
+input,
+select,
+textarea {
+  font-size: 16px;
+  font-family: inherit;
 }
 
 input[type="range"] {
@@ -36,7 +151,7 @@ input[type="range"] {
 input[type="range"]::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 9999px;
-  background: #e2e8f0;
+  background: var(--border);
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -45,8 +160,8 @@ input[type="range"]::-webkit-slider-thumb {
   height: 22px;
   border-radius: 50%;
   background: white;
-  border: 2px solid #8b5cf6;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  border: 2px solid var(--brand-600);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   margin-top: -9px;
   cursor: pointer;
 }
@@ -55,7 +170,27 @@ input[type="range"]:disabled::-webkit-slider-thumb {
   cursor: not-allowed;
 }
 
-/* Célébration « journée validée » (PlanView) */
+@keyframes onboarding-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes onboarding-progress-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(109, 90, 125, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 12px 2px rgba(109, 90, 125, 0.25);
+  }
+}
+
 @keyframes celebration-particle-burst {
   0% {
     transform: translate(-50%, -50%) scale(0);
@@ -95,4 +230,66 @@ input[type="range"]:disabled::-webkit-slider-thumb {
     opacity: 1;
     transform: scale(1.25);
   }
+}
+
+@keyframes action-feedback-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+  }
+  12% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  78% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+
+@keyframes game-board-shimmer {
+  0% {
+    transform: translateX(-120%) skewX(-12deg);
+  }
+  100% {
+    transform: translateX(220%) skewX(-12deg);
+  }
+}
+
+@keyframes game-pulse-red {
+  0%,
+  100% {
+    box-shadow: 0 4px 0 0 #9f1239, inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 8px 28px rgba(244, 63, 94, 0.38);
+  }
+  50% {
+    box-shadow: 0 4px 0 0 #9f1239, inset 0 1px 0 0 rgba(255, 255, 255, 0.28), 0 8px 36px rgba(244, 63, 94, 0.55);
+  }
+}
+
+input[type="range"].game-range::-webkit-slider-runnable-track {
+  height: 5px;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+input[type="range"].game-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  margin-top: -7.5px;
+  cursor: pointer;
+}
+
+input[type="range"].game-range:disabled::-webkit-slider-thumb {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

@@ -11,7 +11,7 @@ import { toCapacitorStaticFileHref } from "@/utils/capacitorStaticHref";
 export function LegalBackHeader() {
   function handleBack() {
     if (typeof window === "undefined") return;
-    /** Natif : ne pas utiliser `history.back()` — la pile peut contenir des chemins sans `.html` que le routeur iOS ne résout pas. */
+    /** Natif : ne pas utiliser `history.back()` - la pile peut contenir des chemins sans `.html` que le routeur iOS ne résout pas. */
     if (Capacitor.getPlatform() !== "web") {
       window.location.assign(toCapacitorStaticFileHref("/plan/"));
       return;

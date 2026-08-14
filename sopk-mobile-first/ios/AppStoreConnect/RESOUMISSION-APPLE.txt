@@ -1,4 +1,4 @@
-Coller dans la DESCRIPTION de l’app (App Store Connect) — en bas du texte existant :
+Coller dans la DESCRIPTION de l’app (App Store Connect) - en bas du texte existant :
 
 Conditions d’utilisation : https://regimesopk.com/terms/
 Politique de confidentialité : https://regimesopk.com/privacy/
@@ -22,19 +22,19 @@ OU supprimer l’image promotionnelle si vous ne promouvez pas l’IAP sur l’A
 
 ---
 
-Publier regimesopk.com (page /terms/) — OBLIGATOIRE avant resoumission :
+Publier regimesopk.com (page /terms/) - OBLIGATOIRE avant resoumission :
 
-Option A — Dashboard Vercel (2 min)
+Option A - Dashboard Vercel (2 min)
 1. https://vercel.com → projet Régime SOPK / regimesopk.com
 2. Settings → Git → Root Directory = sopk-mobile-first
 3. Deployments → Redeploy (dernier commit main)
 
-Option B — Terminal (une fois connecté)
+Option B - Terminal (une fois connecté)
   cd sopk-mobile-first
   npx vercel login
   bash scripts/deploy-web-vercel.sh
 
-Option C — GitHub Actions (automatique)
+Option C - GitHub Actions (automatique)
   Ajouter les secrets VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
   (Vercel → Project Settings → General)
 
@@ -43,7 +43,7 @@ Vérifier : curl -I https://regimesopk.com/terms/  → doit retourner HTTP 200
 
 ---
 
-Nouveau build iOS requis : 1.0.4 (6)
+Nouveau build iOS requis : 1.0.5 (7)
 
   cd sopk-mobile-first && npm run cap:deploy
   Xcode → Archive → Upload build 6

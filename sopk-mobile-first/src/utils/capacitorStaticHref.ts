@@ -6,7 +6,7 @@ import { isCapacitorNative } from "@/utils/capacitorRuntime";
  * Sur iOS, `WebViewAssetHandler` utilise `CapacitorRouter` : tout chemin **sans extension**
  * est traité comme une SPA et renvoie **toujours** `…/index.html` à la racine du bundle.
  * Les URLs du style `/plan/` ou `/support/` rechargeaient donc la page d’accueil au lieu de
- * `plan/index.html` — liens « morts » + flash WebView.
+ * `plan/index.html` - liens « morts » + flash WebView.
  *
  * Sur **web** (Next), on ne réécrit pas : `/plan/` et `/` restent des routes Next, pas des fichiers
  * `*.html` (évite 404 en dev et hébergeurs qui n’exposent pas `/index.html`).

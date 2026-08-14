@@ -66,6 +66,7 @@ const STORAGE_KEYS = {
   mealChecklist: "sopk_meal_checklist_v1",
   waterProgress: "sopk_water_progress_v1",
   stepProgress: "sopk_step_progress_v1",
+  deviationLog: "sopk_deviation_log_v1",
 };
 
 function scopedKey(base, userScope) {
@@ -124,6 +125,17 @@ function seedLocalStorage(scenario) {
     entries[scopedKey(STORAGE_KEYS.onboardingDraft, USER_ID)] = JSON.stringify({
       step: 5,
       profile: defaultProfile,
+      draftVersion: 2,
+    });
+    return entries;
+  }
+
+  if (scenario === "bienvenue") {
+    delete entries[scopedKey(STORAGE_KEYS.entitlement, USER_ID)];
+    entries[scopedKey(STORAGE_KEYS.onboardingDraft, USER_ID)] = JSON.stringify({
+      step: 0,
+      profile: defaultProfile,
+      draftVersion: 2,
     });
     return entries;
   }
@@ -131,13 +143,14 @@ function seedLocalStorage(scenario) {
   if (scenario === "abonnement") {
     delete entries[scopedKey(STORAGE_KEYS.entitlement, USER_ID)];
     entries[scopedKey(STORAGE_KEYS.onboardingDraft, USER_ID)] = JSON.stringify({
-      step: 13,
+      step: 11,
       profile: defaultProfile,
+      draftVersion: 2,
     });
     return entries;
   }
 
-  if (scenario === "plan-jour-2" || scenario === "repas-portions") {
+  if (scenario === "plan-jour-2" || scenario === "repas-portions" || scenario === "ecarts") {
     entries[scopedKey(STORAGE_KEYS.onboarding, USER_ID)] = JSON.stringify(completedProfile());
     entries[scopedKey(STORAGE_KEYS.tracking, USER_ID)] = JSON.stringify({
       date: todayIsoLocal(),
@@ -150,6 +163,17 @@ function seedLocalStorage(scenario) {
     });
     entries[scopedKey(STORAGE_KEYS.hydrationDate, USER_ID)] = todayIsoLocal();
     entries[scopedKey(STORAGE_KEYS.hydrationMl, USER_ID)] = "900";
+    entries[scopedKey(STORAGE_KEYS.waterProgress, USER_ID)] = JSON.stringify({
+      [`day-2`]: 900,
+    });
+    entries[scopedKey(STORAGE_KEYS.stepProgress, USER_ID)] = JSON.stringify({
+      [`day-2`]: 4200,
+    });
+    if (scenario === "ecarts") {
+      entries[scopedKey(STORAGE_KEYS.deviationLog, USER_ID)] = JSON.stringify({
+        "dev:2": [{ presetId: "grignotage", label: "Grignotage", kcal: 150 }],
+      });
+    }
     return entries;
   }
 
@@ -158,35 +182,55 @@ function seedLocalStorage(scenario) {
 
 const SCENARIOS = [
   {
-    id: "01-onboarding-profil",
-    seed: "onboarding-profil",
-    prepare: null,
-  },
-  {
-    id: "02-plan-jour-2",
-    seed: "plan-jour-2",
+    id: "01-bienvenue",
+    seed: "bienvenue",
     prepare: async (page) => {
-      await page.waitForSelector("text=Jour", { timeout: 20_000 });
+      await page.waitForSelector("text=Reprendre le contrôle", { timeout: 20_000 });
       await page.waitForTimeout(400);
     },
   },
   {
-    id: "03-repas-portions",
+    id: "02-onboarding-profil",
+    seed: "onboarding-profil",
+    prepare: async (page) => {
+      await page.waitForSelector("text=Profils associés", { timeout: 20_000 });
+      await page.waitForTimeout(400);
+    },
+  },
+  {
+    id: "03-plan-jour-2",
+    seed: "plan-jour-2",
+    prepare: async (page) => {
+      await page.waitForSelector("text=Mission du jour", { timeout: 20_000 });
+      await page.waitForTimeout(400);
+    },
+  },
+  {
+    id: "04-repas-portions",
     seed: "repas-portions",
     prepare: async (page) => {
-      await page.waitForSelector("text=Repas", { timeout: 20_000 });
-      const portions = page.getByRole("button", { name: "Portions" }).first();
+      await page.waitForSelector("text=Mission du jour", { timeout: 20_000 });
+      const portions = page.getByRole("button", { name: /Voir les portions/i }).first();
       await portions.click();
-      await page.waitForSelector("text=Masquer", { timeout: 10_000 });
+      await page.waitForSelector("text=Portions par aliment", { timeout: 10_000 });
       await frameMealPortionsForScreenshot(page);
       await page.waitForTimeout(400);
     },
   },
   {
-    id: "04-abonnement",
+    id: "05-ecarts",
+    seed: "ecarts",
+    prepare: async (page) => {
+      await page.waitForSelector("text=Écarts & indulgences", { timeout: 20_000 });
+      await frameEcartsForScreenshot(page);
+      await page.waitForTimeout(400);
+    },
+  },
+  {
+    id: "06-abonnement",
     seed: "abonnement",
     prepare: async (page) => {
-      await page.waitForSelector("text=Abonnement après", { timeout: 20_000 });
+      await page.waitForSelector("text=Votre formule", { timeout: 20_000 });
       await page.waitForTimeout(400);
     },
   },
@@ -206,29 +250,69 @@ function contentType(filePath) {
 
 async function frameMealPortionsForScreenshot(page) {
   await page.evaluate(() => {
-    const repasHeading = [...document.querySelectorAll("h2")].find(
-      (h) => h.textContent?.trim() === "Repas",
+    const portionsHeading = [...document.querySelectorAll("p")].find(
+      (p) => p.textContent?.trim() === "Portions par aliment",
     );
-    const repasSection = repasHeading?.closest("section");
-    const planRoot = repasSection?.parentElement;
-    if (!planRoot || !repasSection) return;
+    const expandPanel = portionsHeading?.closest("[class*='rounded-2xl']");
+    const missionLabel = [...document.querySelectorAll("p")].find(
+      (p) => p.textContent?.trim() === "Mission du jour",
+    );
+    const gameBoard = missionLabel?.closest("[class*='rounded-[1.4rem]']");
+    const planRoot = gameBoard?.parentElement?.parentElement;
+    if (!planRoot || !gameBoard) return;
 
     for (const child of [...planRoot.children]) {
-      if (child !== repasSection) {
+      if (!child.contains(gameBoard)) {
         child.style.display = "none";
       }
     }
 
-    repasSection.style.margin = "0";
+    if (expandPanel) {
+      expandPanel.scrollIntoView({ block: "start" });
+    }
+
     const main = document.querySelector("main");
     if (main) {
-      main.style.paddingBottom = "16px";
+      main.style.paddingBottom = "12px";
     }
   });
 }
 
+async function frameEcartsForScreenshot(page) {
+  await page.evaluate(() => {
+    const missionLabel = [...document.querySelectorAll("p")].find(
+      (p) => p.textContent?.trim() === "Mission du jour",
+    );
+    const missionWrapper = missionLabel?.closest("[class*='rounded-[1.4rem]']")?.parentElement;
+    if (missionWrapper) {
+      missionWrapper.style.display = "none";
+    }
+
+    const ecartsTitle = [...document.querySelectorAll("p")].find((p) =>
+      p.textContent?.includes("Écarts & indulgences"),
+    );
+    const ecartsSection = ecartsTitle?.closest("section");
+    const siblingRoot = ecartsSection?.parentElement;
+    if (siblingRoot) {
+      for (const child of [...siblingRoot.children]) {
+        if (child !== ecartsSection) {
+          child.style.display = "none";
+        }
+      }
+    }
+
+    ecartsSection?.scrollIntoView({ block: "start" });
+    const main = document.querySelector("main");
+    if (main) {
+      main.style.paddingBottom = "12px";
+    }
+  });
+  await page.waitForTimeout(250);
+}
+
 async function prepareViewportForDeviceScreenshot(page, scenarioId) {
-  const mealFocus = scenarioId === "03-repas-portions";
+  const mealFocus = scenarioId === "04-repas-portions";
+  const ecartsFocus = scenarioId === "05-ecarts";
   await page.addStyleTag({
     content: `
       html, body {
@@ -244,7 +328,7 @@ async function prepareViewportForDeviceScreenshot(page, scenarioId) {
         max-height: ${IPHONE.cssHeight}px !important;
         overflow: hidden !important;
         ${
-          mealFocus
+          mealFocus || ecartsFocus
             ? `
           display: flex !important;
           flex-direction: column !important;

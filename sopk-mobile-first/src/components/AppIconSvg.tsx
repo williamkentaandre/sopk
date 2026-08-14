@@ -10,7 +10,7 @@ const sizeClass = {
   lg: "h-24 w-24",
 } as const;
 
-/** Orchidée violette inline — couleurs pleines (fiable sur WKWebView, pas de url(#id)). */
+/** Orchidée violette inline - couleurs pleines (fiable sur WKWebView, pas de url(#id)). */
 export function AppIconSvg({
   size = "md",
   className,

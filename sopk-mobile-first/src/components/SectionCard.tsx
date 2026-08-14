@@ -5,14 +5,27 @@ interface SectionCardProps {
   subtitle?: string;
   children: ReactNode;
   noPadding?: boolean;
+  variant?: "default" | "premium";
 }
 
-export function SectionCard({ title, subtitle, children, noPadding }: SectionCardProps) {
+export function SectionCard({ title, subtitle, children, noPadding, variant = "default" }: SectionCardProps) {
+  if (variant === "premium") {
+    return (
+      <section className="overflow-hidden rounded-2xl border border-brand-200/50 bg-white/95 shadow-card ring-1 ring-white/80">
+        <div className="border-b border-brand-100/80 bg-gradient-to-r from-brand-50/90 via-white to-brand-50/40 px-4 py-3.5">
+          <h2 className="text-section-title text-ink">{title}</h2>
+          {subtitle ? <p className="text-body mt-0.5 text-ink-muted">{subtitle}</p> : null}
+        </div>
+        <div className={noPadding ? "" : "space-y-3 px-4 py-3.5"}>{children}</div>
+      </section>
+    );
+  }
+
   return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200/60 bg-white/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur-sm">
-      <div className="border-b border-slate-100/80 px-4 py-3">
-        <h2 className="text-[15px] font-semibold tracking-tight text-slate-900">{title}</h2>
-        {subtitle ? <p className="mt-0.5 text-[13px] text-slate-500">{subtitle}</p> : null}
+    <section className="overflow-hidden rounded-2xl border border-brand-200/60 bg-white/90 shadow-card">
+      <div className="border-b border-brand-100/80 px-4 py-3">
+        <h2 className="text-section-title text-ink">{title}</h2>
+        {subtitle ? <p className="text-body mt-0.5 text-ink-muted">{subtitle}</p> : null}
       </div>
       <div className={noPadding ? "" : "space-y-3 px-4 py-3.5"}>{children}</div>
     </section>

@@ -9,7 +9,7 @@ export default function TermsPage() {
       <section className="mx-auto w-full max-w-4xl px-5 pb-8 pt-6 md:px-8 md:pb-12 md:pt-8">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-10">
           <h1 className="text-3xl font-black tracking-tight text-slate-950 md:text-4xl">
-            Conditions d&apos;utilisation — Régime SOPK
+            Conditions d&apos;utilisation - Régime SOPK
           </h1>
           <p className="mt-3 text-sm text-slate-500">Dernière mise à jour : 17 juin 2026</p>
 
@@ -26,11 +26,11 @@ export default function TermsPage() {
               <h2 className="text-lg font-bold text-slate-900">2) Abonnements à renouvellement automatique</h2>
               <ul className="mt-2 list-disc space-y-2 pl-5">
                 <li>
-                  <strong>Abonnement mensuel</strong> — durée&nbsp;: 1&nbsp;mois, renouvelé automatiquement chaque
+                  <strong>Abonnement mensuel</strong> - durée&nbsp;: 1&nbsp;mois, renouvelé automatiquement chaque
                   mois jusqu&apos;à résiliation.
                 </li>
                 <li>
-                  <strong>Abonnement annuel</strong> — durée&nbsp;: 1&nbsp;an, renouvelé automatiquement chaque
+                  <strong>Abonnement annuel</strong> - durée&nbsp;: 1&nbsp;an, renouvelé automatiquement chaque
                   année jusqu&apos;à résiliation.
                 </li>
                 <li>

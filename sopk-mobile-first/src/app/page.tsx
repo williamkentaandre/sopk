@@ -3,11 +3,11 @@ import { CapacitorNavLink } from "@/components/CapacitorNavLink";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-violet-50 via-white to-cyan-50 text-slate-900">
+    <main className="app-shell-bg min-h-screen text-ink">
       <section className="mx-auto w-full max-w-6xl px-5 py-14 md:px-8 md:py-20">
-        <div className="rounded-3xl border border-violet-100 bg-white/90 p-6 shadow-sm md:p-10">
+        <div className="rounded-3xl border border-brand-200 bg-white/95 p-6 shadow-card md:p-10">
           <div className="text-center">
-            <p className="inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold tracking-wide text-violet-700">
+            <p className="text-eyebrow inline-flex rounded-full bg-brand-100 px-3 py-1 text-brand-700">
               Nutrition hormonale
             </p>
             <BrandLogo variant="hero" className="mt-5" />
@@ -26,7 +26,7 @@ export default function Home() {
               border: 0,
             }}
           >
-            Régime SOPK — application nutritionnelle et suivi
+            Régime SOPK - application nutritionnelle et suivi
           </h1>
           <p className="mx-auto mt-6 max-w-3xl text-center text-lg leading-relaxed text-slate-700 md:text-xl">
             Une nutrition adaptée à votre profil hormonal. Pour les femmes qui ont essayé tous les
@@ -38,21 +38,21 @@ export default function Home() {
           >
             <CapacitorNavLink
               href="/plan/"
-              className="rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-700"
+              className="btn-brand rounded-xl px-5 py-3 text-sm"
             >
               Découvrir l&apos;application
             </CapacitorNavLink>
             <CapacitorNavLink
               href="/support/"
-              className="rounded-xl border border-violet-200 bg-white px-5 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-50"
+              className="rounded-xl border border-brand-200 bg-white px-5 py-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50"
             >
               Support
             </CapacitorNavLink>
           </div>
-          <div className="mt-8 grid gap-3 text-base font-semibold leading-snug text-slate-700 sm:grid-cols-3 md:text-lg">
-            <p className="rounded-xl bg-cyan-50 px-4 py-3.5">Hydratation</p>
-            <p className="rounded-xl bg-violet-50 px-4 py-3.5">Nutrition</p>
-            <p className="rounded-xl bg-emerald-50 px-4 py-3.5">Suivi</p>
+          <div className="mt-8 grid gap-3 text-base font-semibold leading-snug text-ink-muted sm:grid-cols-3 md:text-lg">
+            <p className="rounded-xl bg-accent-soft px-4 py-3.5 text-accent">Hydratation</p>
+            <p className="rounded-xl bg-brand-50 px-4 py-3.5 text-brand-800">Nutrition</p>
+            <p className="rounded-xl bg-emerald-50 px-4 py-3.5 text-emerald-800">Suivi</p>
           </div>
         </div>
       </section>

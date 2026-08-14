@@ -251,7 +251,7 @@ function normalize(text: string): string {
   return text
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/œ/g, "oe")
+    .replace(/[œŒ]/g, "oe")
     .replace(/\u2019|\u2018|\u00b4|\u2032/g, "'")
     .toLowerCase();
 }

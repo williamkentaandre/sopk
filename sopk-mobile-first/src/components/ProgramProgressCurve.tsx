@@ -14,6 +14,10 @@ interface ProgramProgressCurveProps {
   goalWeightKg?: number;
   /** À false quand le titre est porté par un parent (ex. accordéon). */
   showHeading?: boolean;
+  /** Met en avant le point du jour actif (ex. journée validée). */
+  emphasizeToday?: boolean;
+  /** Suivi estimé au-dessus du poids de départ (écarts cumulés). */
+  aboveStartWeight?: boolean;
 }
 
 const W = 340;
@@ -23,7 +27,15 @@ const pad = { l: 40, r: 68, t: 14, b: 34 };
 /**
  * Courbe poids : trajectoire indicative vs suivi réel agrégé jour après jour.
  */
-export function ProgramProgressCurve({ points, todayJour, startWeightKg, goalWeightKg, showHeading = true }: ProgramProgressCurveProps) {
+export function ProgramProgressCurve({
+  points,
+  todayJour,
+  startWeightKg,
+  goalWeightKg,
+  showHeading = true,
+  emphasizeToday = false,
+  aboveStartWeight = false,
+}: ProgramProgressCurveProps) {
   const reactId = useId().replace(/:/g, "");
   const gradRef = `${reactId}-refFill`;
   const gradAct = `${reactId}-actFill`;
@@ -86,9 +98,12 @@ export function ProgramProgressCurve({ points, todayJour, startWeightKg, goalWei
       yAt,
       innerH,
     };
-  }, [points, todayJour]);
+  }, [points, todayJour, startWeightKg, goalWeightKg]);
 
   if (!layout || points.length === 0) return null;
+
+  const actStroke = aboveStartWeight ? "#d97706" : "#047857";
+  const actFill = aboveStartWeight ? "#d97706" : "#059669";
 
   const { pathRef, pathAct, areaAct, refArea, markerX, wMin, wMax, lastIdxToday, xAt, yAt } = layout;
   const startY = startWeightKg != null ? yAt(startWeightKg) : null;
@@ -100,14 +115,19 @@ export function ProgramProgressCurve({ points, todayJour, startWeightKg, goalWei
   const midJ = points[Math.floor((G - 1) / 2)]!.jour;
 
   return (
-    <div className="mt-2 rounded-xl border border-violet-100 bg-white/90 p-3 shadow-sm">
+    <div className="mt-2 rounded-xl border border-brand-100 bg-white/90 p-3 shadow-card">
       {showHeading ? (
-        <p className="text-xs font-semibold text-violet-900">Courbe d&apos;avancement (poids indicatif)</p>
+        <p className="text-caption font-semibold text-brand-900">Courbe d&apos;avancement (poids indicatif)</p>
       ) : null}
-      <p className={`text-[10px] leading-snug text-slate-500 ${showHeading ? "mt-0.5" : ""}`}>
-        <span className="font-medium text-violet-700">Trait violet</span> : trajectoire si tu tiens chaque jour le
-        rythme du plan. <span className="font-medium text-emerald-700">Trait vert</span> : estimation à partir de ton
-        suivi (repas, eau, pas). Ligne verticale : jour actif du programme.
+      <p className={`text-[10px] leading-snug text-ink-muted ${showHeading ? "mt-0.5" : ""}`}>
+        <span className="font-medium text-brand-700">Trait prune</span> : trajectoire si tu tiens chaque jour le
+        rythme du plan.{" "}
+        <span className={`font-medium ${aboveStartWeight ? "text-amber-700" : "text-emerald-700"}`}>
+          Trait {aboveStartWeight ? "ambre" : "vert"}
+        </span>{" "}
+        : estimation à partir de ton suivi (repas, eau, pas).
+        {aboveStartWeight ? " Les écarts cumulés placent l’estimation au-dessus du poids de départ." : null} Ligne
+        verticale : jour actif du programme.
       </p>
       <svg
         viewBox={`0 0 ${W} ${H}`}
@@ -117,8 +137,8 @@ export function ProgramProgressCurve({ points, todayJour, startWeightKg, goalWei
       >
         <defs>
           <linearGradient id={gradRef} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="#c4b5fd" stopOpacity="0.02" />
+            <stop offset="0%" stopColor="#6d5a7d" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#d4c6e0" stopOpacity="0.02" />
           </linearGradient>
           <linearGradient id={gradAct} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#059669" stopOpacity="0.2" />
@@ -146,7 +166,7 @@ export function ProgramProgressCurve({ points, todayJour, startWeightKg, goalWei
           y1={pad.t}
           x2={markerX}
           y2={H - pad.b}
-          stroke="#a78bfa"
+          stroke="#9b8ab0"
           strokeWidth="1.25"
           strokeDasharray="5 4"
           opacity={0.85}
@@ -168,16 +188,17 @@ export function ProgramProgressCurve({ points, todayJour, startWeightKg, goalWei
           </>
         ) : null}
         <path d={refArea} fill={`url(#${gradRef})`} stroke="none" opacity={0.55} />
-        <path d={pathRef} fill="none" stroke="#6d28d9" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" />
+        <path d={pathRef} fill="none" stroke="#6d5a7d" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" />
         {areaAct ? <path d={areaAct} fill={`url(#${gradAct})`} stroke="none" /> : null}
-        <path d={pathAct} fill="none" stroke="#047857" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={pathAct} fill="none" stroke={actStroke} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
         <circle
           cx={xAt(lastIdxToday)}
           cy={yAt(points[lastIdxToday]!.actualKg)}
-          r="5"
-          fill="#059669"
+          r={emphasizeToday ? 7 : 5}
+          fill={actFill}
           stroke="white"
           strokeWidth="2"
+          className={emphasizeToday ? "animate-[celebration-twinkle_1.2s_ease-in-out_infinite_alternate]" : undefined}
         />
         <text x={pad.l} y={H - 10} className="fill-slate-400 text-[9px]">
           J{firstJ}

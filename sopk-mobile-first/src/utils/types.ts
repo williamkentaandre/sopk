@@ -72,6 +72,32 @@ export interface AdviceEntry {
 
 export type MealChecklistState = Record<string, boolean>;
 
+/** Repas choisi à la place du menu du jour (catalogue ou saisi libre). */
+export interface MealOverrideEntry {
+  nom: string;
+  /** Calories du repas réellement consommé (saisie libre ou catalogue). */
+  calories: number;
+  /** true = saisi par l’utilisateur (repas équivalent en kcal). */
+  custom?: boolean;
+  /** auto = choisi par l’app selon le profil ; manual = changé par l’utilisateur. */
+  source?: "auto" | "manual";
+}
+
+/** Clé = mealKey(jour, index). Valeur legacy string encore acceptée à la lecture. */
+export type MealOverrideState = Record<string, MealOverrideEntry | string>;
+
+export interface DeviationEntry {
+  id: string;
+  label: string;
+  kcal: number;
+  loggedAtIso: string;
+  /** Preset rapide (ex. vin, dessert) pour afficher l’illustration. */
+  presetId?: string;
+}
+
+/** Écarts du jour (alcool, repas hors plan…) - clé = deviationStorageKey(jour programme). */
+export type DeviationLogState = Record<string, DeviationEntry[]>;
+
 export type WaterProgressState = Record<string, number>;
 
 export type StepProgressState = Record<string, number>;

@@ -1,17 +1,18 @@
 import type {
   DayPlan,
+  DeviationLogState,
   MealChecklistState,
   OnboardingData,
   StepProgressState,
   WaterProgressState,
 } from "@/utils/types";
+import { getDeviationKcalForDay } from "@/utils/deviationLog";
 import {
   getDailyWalkingRecommendation,
   getEstimatedDailyLossGrams,
   getPersonalizedHydrationLiters,
 } from "@/utils/mealPlan";
 import {
-  manualValidationKey,
   mealKey,
   stepsProgressStorageKey,
   visibleMealIndices,
@@ -26,10 +27,52 @@ export interface PlanDayWeightSnapshot {
   projectedLossGrams: number;
   remainingLossGrams: number;
   dailyLossPercent: number;
+  /** Perte estimée cumulée jusqu’au jour affiché (grammes). */
+  cumulativeLossGrams: number;
+  /** Perte estimée sur le jour affiché uniquement (grammes). */
+  selectedDayLossGrams: number;
+  /** Pénalité estimée des écarts du jour affiché (grammes). */
+  indulgencePenaltyGrams: number;
+  /** Excédent calorique des écarts non absorbé par la perte du jour (grammes). */
+  selectedDaySurplusGrams: number;
+  /** Excédent cumulé des écarts (grammes). */
+  cumulativeSurplusGrams: number;
+  /** Au-dessus du poids de départ (grammes, ≥ 0). */
+  weightAboveStartGrams: number;
+  /** Poids estimé déjà au-dessus du départ au matin du jour affiché. */
+  selectedDayStartedAboveStart: boolean;
 }
 
 export function formatWeightKg(value: number): string {
   return value.toFixed(1);
+}
+
+/** Affichage plus fin quand la variation est petite (< 100 g). */
+export function formatWeightKgLive(value: number): string {
+  const roundedOne = Number(value.toFixed(1));
+  if (Math.abs(value - roundedOne) < 0.05) {
+    return value.toFixed(1);
+  }
+  return value.toFixed(2);
+}
+
+export function formatLossGramsLabel(grams: number): string {
+  const g = Math.round(Math.max(0, grams));
+  if (g >= 1000) return `-${(g / 1000).toFixed(2)} kg`;
+  if (g > 0) return `-${g} g`;
+  return "0 g";
+}
+
+/** Variation estimée vs poids de départ (négatif = au-dessus du départ). */
+export function formatWeightDeltaFromStartLabel(startKg: number, currentKg: number): string {
+  const deltaGrams = Math.round((startKg - currentKg) * 1000);
+  if (deltaGrams > 0) return formatLossGramsLabel(deltaGrams);
+  if (deltaGrams < 0) {
+    const gain = Math.abs(deltaGrams);
+    if (gain >= 1000) return `+${(gain / 1000).toFixed(2)} kg vs départ`;
+    return `+${gain} g vs départ`;
+  }
+  return "Au poids de départ";
 }
 
 /** Courbe indicatif type onboarding (même formule que l’étape projection). */
@@ -64,6 +107,181 @@ export interface ProgramWeightCurvePoint {
   actualKg: number;
 }
 
+interface DayTrackingRatios {
+  dayRatio: number;
+  dayWaterRatio: number;
+  dayStepsRatio: number;
+  isActiveDay: boolean;
+  indulgenceKcal: number;
+}
+
+function computeDayTrackingRatios(
+  profile: OnboardingData,
+  day: DayPlan,
+  mealVisibleIdx: number[],
+  mealChecklist: MealChecklistState,
+  waterProgress: WaterProgressState,
+  stepProgress: StepProgressState,
+  deviationLog: DeviationLogState,
+): DayTrackingRatios {
+  const dayMealIndexes = mealVisibleIdx.filter(
+    (i) => i < day.repas.length && mealChecklist[mealKey(day.jour, i)],
+  );
+  const dayWaterValue = Math.round(waterProgress[waterProgressStorageKey(day.jour)] ?? 0);
+  const dayStepValue = Math.round(stepProgress[stepsProgressStorageKey(day.jour)] ?? 0);
+  const dayWaterTarget = Math.round(getPersonalizedHydrationLiters(day.hydratationLitres, profile) * 1000);
+  const dayStepsTarget = getDailyWalkingRecommendation(profile).steps;
+  const dayWaterChecked = dayWaterValue >= dayWaterTarget;
+  const dayWalkingChecked = dayStepValue >= dayStepsTarget;
+  const dayWaterRatio = dayWaterTarget > 0 ? Math.min(1, Math.max(0, dayWaterValue / dayWaterTarget)) : 0;
+  const dayStepsRatio = dayStepsTarget > 0 ? Math.min(1, Math.max(0, dayStepValue / dayStepsTarget)) : 0;
+  const dayChecked = dayMealIndexes.length + (dayWaterChecked ? 1 : 0) + (dayWalkingChecked ? 1 : 0);
+  const dayTotal = mealVisibleIdx.filter((i) => i < day.repas.length).length + 2;
+  const indulgenceKcal = getDeviationKcalForDay(deviationLog, day.jour);
+  const dayRatio = dayTotal > 0 ? dayChecked / dayTotal : 0;
+  const isActiveDay =
+    dayMealIndexes.length > 0 ||
+    dayWaterChecked ||
+    dayWalkingChecked ||
+    dayWaterValue > 0 ||
+    dayStepValue > 0 ||
+    indulgenceKcal > 0;
+
+  return {
+    dayRatio,
+    dayWaterRatio,
+    dayStepsRatio,
+    isActiveDay,
+    indulgenceKcal,
+  };
+}
+
+interface DayWeightDelta {
+  netLossGrams: number;
+  surplusGrams: number;
+}
+
+export function formatGainGramsLabel(grams: number): string {
+  const g = Math.round(Math.max(0, grams));
+  if (g >= 1000) return `+${(g / 1000).toFixed(2)} kg`;
+  if (g > 0) return `+${g} g`;
+  return "0 g";
+}
+
+function applyDayWeightDelta(
+  adherenceLossGrams: number,
+  penaltyGrams: number,
+  weightAboveStartAtDayStart: boolean,
+): DayWeightDelta {
+  if (weightAboveStartAtDayStart) {
+    return {
+      netLossGrams: Math.round(adherenceLossGrams),
+      surplusGrams: Math.round(penaltyGrams),
+    };
+  }
+  return {
+    netLossGrams: Math.max(0, Math.round(adherenceLossGrams - penaltyGrams)),
+    surplusGrams: Math.max(0, Math.round(penaltyGrams - adherenceLossGrams)),
+  };
+}
+
+function computeDayWeightDelta(
+  profile: OnboardingData,
+  day: DayPlan,
+  mealVisibleIdx: number[],
+  mealChecklist: MealChecklistState,
+  waterProgress: WaterProgressState,
+  stepProgress: StepProgressState,
+  deviationLog: DeviationLogState,
+  weightAboveStartAtDayStart = false,
+): DayWeightDelta {
+  const ratios = computeDayTrackingRatios(
+    profile,
+    day,
+    mealVisibleIdx,
+    mealChecklist,
+    waterProgress,
+    stepProgress,
+    deviationLog,
+  );
+  if (!ratios.isActiveDay) {
+    return { netLossGrams: 0, surplusGrams: 0 };
+  }
+
+  const adherenceLossGrams = getEstimatedDailyLossGrams(
+    profile,
+    ratios.dayRatio,
+    ratios.dayWaterRatio,
+    ratios.dayStepsRatio,
+    0,
+  );
+  const penaltyGrams = Math.max(0, ratios.indulgenceKcal) / 7.7;
+  return applyDayWeightDelta(adherenceLossGrams, penaltyGrams, weightAboveStartAtDayStart);
+}
+
+function weightKgFromCumulative(
+  startKg: number,
+  cumulativeNetLossGrams: number,
+  cumulativeSurplusGrams: number,
+): number {
+  const raw = startKg - cumulativeNetLossGrams / 1000 + cumulativeSurplusGrams / 1000;
+  return Math.max(35, raw);
+}
+
+function computeDayLossGrams(
+  profile: OnboardingData,
+  day: DayPlan,
+  mealVisibleIdx: number[],
+  mealChecklist: MealChecklistState,
+  waterProgress: WaterProgressState,
+  stepProgress: StepProgressState,
+  deviationLog: DeviationLogState,
+): number {
+  return computeDayWeightDelta(
+    profile,
+    day,
+    mealVisibleIdx,
+    mealChecklist,
+    waterProgress,
+    stepProgress,
+    deviationLog,
+  ).netLossGrams;
+}
+
+/** Perte nette estimée pour un jour de programme (≥ 0 g). */
+export function computeProgramDayLossGrams(
+  profile: OnboardingData,
+  day: DayPlan,
+  mealChecklist: MealChecklistState,
+  waterProgress: WaterProgressState,
+  stepProgress: StepProgressState,
+  deviationLog: DeviationLogState = {},
+): number {
+  const mealVisibleIdx = visibleMealIndices(profile.rythmeRepas);
+  return Math.max(
+    0,
+    computeDayLossGrams(
+      profile,
+      day,
+      mealVisibleIdx,
+      mealChecklist,
+      waterProgress,
+      stepProgress,
+      deviationLog,
+    ),
+  );
+}
+
+/** Poids objectif fin de programme (toujours en dessous du poids de départ). */
+export function computeProgramGoalWeightKg(profile: OnboardingData, programDays: number): number {
+  const startKg = profile.poidsKg;
+  const projectedPerDay = getEstimatedDailyLossGrams(profile, 1, 1, 1);
+  const modelEndKg = Math.max(40, startKg - (projectedPerDay * programDays) / 1000);
+  const userEnd =
+    profile.objectifPoidsKg != null && profile.objectifPoidsKg < startKg ? profile.objectifPoidsKg : modelEndKg;
+  return Math.min(startKg - 0.3, Math.max(modelEndKg, userEnd));
+}
+
 /**
  * Série jour par jour : poids « réel » cumulé (suivi) vs trajectoire indicative si tu tenais le rythme du régime.
  */
@@ -73,55 +291,40 @@ export function computeProgramWeightCurveSeries(
   mealChecklist: MealChecklistState,
   waterProgress: WaterProgressState,
   stepProgress: StepProgressState,
+  deviationLog: DeviationLogState = {},
 ): ProgramWeightCurvePoint[] {
   const mealVisibleIdx = visibleMealIndices(profile.rythmeRepas);
   const G = jours.length;
   if (G === 0) return [];
 
   const startKg = profile.poidsKg;
-  const projectedPerDay = getEstimatedDailyLossGrams(profile, 1, 1, 1);
-  const modelEndKg = Math.max(40, startKg - (projectedPerDay * G) / 1000);
-  const userEnd =
-    profile.objectifPoidsKg != null && profile.objectifPoidsKg < startKg ? profile.objectifPoidsKg : modelEndKg;
-  const endRef = Math.min(startKg - 0.3, Math.max(modelEndKg, userEnd));
+  const endRef = computeProgramGoalWeightKg(profile, G);
   const refCurve = buildWeightCurveEased(startKg, endRef, G, referenceCurvePower(profile.parcoursPerte));
 
-  let cumulativeGrams = 0;
+  let cumulativeNetLossGrams = 0;
+  let cumulativeSurplusGrams = 0;
   const out: ProgramWeightCurvePoint[] = [];
 
   for (let idx = 0; idx < jours.length; idx++) {
     const day = jours[idx]!;
-    const dayMealIndexes = mealVisibleIdx.filter(
-      (i) => i < day.repas.length && mealChecklist[mealKey(day.jour, i)],
+    const weightBeforeDay = weightKgFromCumulative(startKg, cumulativeNetLossGrams, cumulativeSurplusGrams);
+    const { netLossGrams, surplusGrams } = computeDayWeightDelta(
+      profile,
+      day,
+      mealVisibleIdx,
+      mealChecklist,
+      waterProgress,
+      stepProgress,
+      deviationLog,
+      weightBeforeDay > startKg,
     );
-    const dayWaterValue = Math.round(waterProgress[waterProgressStorageKey(day.jour)] ?? 0);
-    const dayStepValue = Math.round(stepProgress[stepsProgressStorageKey(day.jour)] ?? 0);
-    const dayWaterTarget = Math.round(getPersonalizedHydrationLiters(day.hydratationLitres, profile) * 1000);
-    const dayStepsTarget = getDailyWalkingRecommendation(profile).steps;
-    const dayWaterChecked = dayWaterValue >= dayWaterTarget;
-    const dayWalkingChecked = dayStepValue >= dayStepsTarget;
-    const dayWaterRatio = dayWaterTarget > 0 ? Math.min(1, Math.max(0, dayWaterValue / dayWaterTarget)) : 0;
-    const dayStepsRatio = dayStepsTarget > 0 ? Math.min(1, Math.max(0, dayStepValue / dayStepsTarget)) : 0;
-    const dayChecked = dayMealIndexes.length + (dayWaterChecked ? 1 : 0) + (dayWalkingChecked ? 1 : 0);
-    const dayTotal = mealVisibleIdx.filter((i) => i < day.repas.length).length + 2;
-    const dayManuallyValidatedInner = Boolean(mealChecklist[manualValidationKey(day.jour)]);
-    const dayRatio = dayTotal > 0 ? dayChecked / dayTotal : 0;
-    const isActiveDay =
-      dayMealIndexes.length > 0 ||
-      dayWaterChecked ||
-      dayWalkingChecked ||
-      dayWaterValue > 0 ||
-      dayStepValue > 0 ||
-      dayManuallyValidatedInner;
-
-    if (isActiveDay) {
-      cumulativeGrams += getEstimatedDailyLossGrams(profile, dayRatio, dayWaterRatio, dayStepsRatio);
-    }
+    cumulativeNetLossGrams += netLossGrams;
+    cumulativeSurplusGrams += surplusGrams;
 
     out.push({
       jour: day.jour,
       referenceKg: refCurve[idx + 1] ?? refCurve[refCurve.length - 1]!,
-      actualKg: Math.max(35, startKg - cumulativeGrams / 1000),
+      actualKg: weightKgFromCumulative(startKg, cumulativeNetLossGrams, cumulativeSurplusGrams),
     });
   }
 
@@ -129,8 +332,7 @@ export function computeProgramWeightCurveSeries(
 }
 
 /**
- * Poids « atteint », « fin de journée », « fin programme » pour un jour de programme donné
- * (même logique que l’ancien bloc PlanView / détails poids).
+ * Poids « atteint », « fin de journée », « fin programme » pour un jour de programme donné.
  */
 export function computePlanDayWeightSnapshot(
   profile: OnboardingData,
@@ -139,6 +341,7 @@ export function computePlanDayWeightSnapshot(
   mealChecklist: MealChecklistState,
   waterProgress: WaterProgressState,
   stepProgress: StepProgressState,
+  deviationLog: DeviationLogState = {},
 ): PlanDayWeightSnapshot {
   const mealVisibleIdx = visibleMealIndices(profile.rythmeRepas);
   const refDay = jours.find((d) => d.jour === refDayJour) ?? jours[0];
@@ -152,81 +355,110 @@ export function computePlanDayWeightSnapshot(
       projectedLossGrams: 0,
       remainingLossGrams: 0,
       dailyLossPercent: 0,
+      cumulativeLossGrams: 0,
+      selectedDayLossGrams: 0,
+      indulgencePenaltyGrams: 0,
+      selectedDaySurplusGrams: 0,
+      cumulativeSurplusGrams: 0,
+      weightAboveStartGrams: 0,
+      selectedDayStartedAboveStart: false,
     };
   }
 
-  const walking = getDailyWalkingRecommendation(profile);
-  const stepsTarget = walking.steps;
-  const stepsProgressKey = stepsProgressStorageKey(refDay.jour);
-  const stepsCurrent = Math.min(stepsTarget, Math.max(0, Math.round(stepProgress[stepsProgressKey] ?? 0)));
-  const stepsProgressRatio = stepsTarget > 0 ? stepsCurrent / stepsTarget : 0;
+  const startKg = profile.poidsKg;
+  let cumulativeBeforeRefDayNetLossGrams = 0;
+  let cumulativeBeforeRefDaySurplusGrams = 0;
+  for (const day of jours) {
+    if (day.jour >= refDayJour) break;
+    const weightBeforeDay = weightKgFromCumulative(
+      startKg,
+      cumulativeBeforeRefDayNetLossGrams,
+      cumulativeBeforeRefDaySurplusGrams,
+    );
+    const delta = computeDayWeightDelta(
+      profile,
+      day,
+      mealVisibleIdx,
+      mealChecklist,
+      waterProgress,
+      stepProgress,
+      deviationLog,
+      weightBeforeDay > startKg,
+    );
+    cumulativeBeforeRefDayNetLossGrams += delta.netLossGrams;
+    cumulativeBeforeRefDaySurplusGrams += delta.surplusGrams;
+  }
+  const selectedDayStartedAboveStart =
+    weightKgFromCumulative(startKg, cumulativeBeforeRefDayNetLossGrams, cumulativeBeforeRefDaySurplusGrams) > startKg;
 
-  const personalizedHydrationLiters = getPersonalizedHydrationLiters(refDay.hydratationLitres, profile);
-  const waterTargetMl = Math.round(personalizedHydrationLiters * 1000);
-  const waterProgressKey = waterProgressStorageKey(refDay.jour);
-  const waterRawMl = Math.max(0, Math.round(waterProgress[waterProgressKey] ?? 0));
-  const waterProgressRatio = waterTargetMl > 0 ? Math.min(1, Math.max(0, waterRawMl / waterTargetMl)) : 0;
-
-  const waterChecked = waterRawMl >= waterTargetMl;
-  const walkingChecked = stepsCurrent >= stepsTarget;
-  const checkedMealIndexes = mealVisibleIdx.filter(
-    (i) => i < refDay.repas.length && mealChecklist[mealKey(refDay.jour, i)],
-  );
-  const checkedMeals = checkedMealIndexes.length;
-  const mealSlots = mealVisibleIdx.filter((i) => i < refDay.repas.length).length;
-  const checkedToday = checkedMeals + (waterChecked ? 1 : 0) + (walkingChecked ? 1 : 0);
-  const totalTasks = mealSlots + 2;
-  const completionRatio = totalTasks > 0 ? checkedToday / totalTasks : 0;
-
-  const estimatedLossGrams = getEstimatedDailyLossGrams(
+  const refRatios = computeDayTrackingRatios(
     profile,
-    completionRatio,
-    waterProgressRatio,
-    stepsProgressRatio,
+    refDay,
+    mealVisibleIdx,
+    mealChecklist,
+    waterProgress,
+    stepProgress,
+    deviationLog,
   );
-  const projectedLossGrams = getEstimatedDailyLossGrams(profile, 1, 1, 1);
+
+  const estimatedLossGrams = refRatios.isActiveDay
+    ? computeDayWeightDelta(
+        profile,
+        refDay,
+        mealVisibleIdx,
+        mealChecklist,
+        waterProgress,
+        stepProgress,
+        deviationLog,
+        selectedDayStartedAboveStart,
+      ).netLossGrams
+    : 0;
+  /** Perte max du jour si objectifs atteints, après écarts enregistrés. */
+  const projectedLossGrams = getEstimatedDailyLossGrams(profile, 1, 1, 1, refRatios.indulgenceKcal);
+  const indulgencePenaltyGrams = Math.round(Math.max(0, refRatios.indulgenceKcal) / 7.7);
+  const refDayDelta = computeDayWeightDelta(
+    profile,
+    refDay,
+    mealVisibleIdx,
+    mealChecklist,
+    waterProgress,
+    stepProgress,
+    deviationLog,
+    selectedDayStartedAboveStart,
+  );
+  const selectedDaySurplusGrams = refDayDelta.surplusGrams;
   const remainingLossGrams = Math.max(0, projectedLossGrams - estimatedLossGrams);
   const dailyLossPercent =
-    projectedLossGrams > 0 ? Math.min(100, Math.round((estimatedLossGrams / projectedLossGrams) * 100)) : 0;
+    projectedLossGrams > 0
+      ? Math.min(100, Math.max(0, Math.round((Math.max(0, estimatedLossGrams) / projectedLossGrams) * 100)))
+      : 0;
 
-  const achievedLosses = jours
-    .slice(0, refDayJour)
-    .map((day) => {
-      const dayMealIndexes = mealVisibleIdx.filter(
-        (i) => i < day.repas.length && mealChecklist[mealKey(day.jour, i)],
-      );
-      const dayWaterValue = Math.round(waterProgress[waterProgressStorageKey(day.jour)] ?? 0);
-      const dayStepValue = Math.round(stepProgress[stepsProgressStorageKey(day.jour)] ?? 0);
-      const dayWaterTarget = Math.round(getPersonalizedHydrationLiters(day.hydratationLitres, profile) * 1000);
-      const dayStepsTarget = getDailyWalkingRecommendation(profile).steps;
-      const dayWaterChecked = dayWaterValue >= dayWaterTarget;
-      const dayWalkingChecked = dayStepValue >= dayStepsTarget;
-      const dayWaterRatio = dayWaterTarget > 0 ? Math.min(1, Math.max(0, dayWaterValue / dayWaterTarget)) : 0;
-      const dayStepsRatio = dayStepsTarget > 0 ? Math.min(1, Math.max(0, dayStepValue / dayStepsTarget)) : 0;
-      const dayChecked = dayMealIndexes.length + (dayWaterChecked ? 1 : 0) + (dayWalkingChecked ? 1 : 0);
-      const dayTotal = mealVisibleIdx.filter((i) => i < day.repas.length).length + 2;
-      const dayManuallyValidatedInner = Boolean(mealChecklist[manualValidationKey(day.jour)]);
-      const dayRatio = dayTotal > 0 ? dayChecked / dayTotal : 0;
-      const isActiveDay =
-        dayMealIndexes.length > 0 ||
-        dayWaterChecked ||
-        dayWalkingChecked ||
-        dayWaterValue > 0 ||
-        dayStepValue > 0 ||
-        dayManuallyValidatedInner;
+  let cumulativeNetLossGrams = cumulativeBeforeRefDayNetLossGrams;
+  let cumulativeSurplusGrams = cumulativeBeforeRefDaySurplusGrams;
+  const selectedDayLossGrams = refDayDelta.netLossGrams;
+  cumulativeNetLossGrams += refDayDelta.netLossGrams;
+  cumulativeSurplusGrams += refDayDelta.surplusGrams;
 
-      if (!isActiveDay) return null;
-      return getEstimatedDailyLossGrams(profile, dayRatio, dayWaterRatio, dayStepsRatio);
-    })
-    .filter((value): value is number => value !== null);
+  const cumulativeLossGrams = cumulativeNetLossGrams;
+  const currentWeightKg = weightKgFromCumulative(startKg, cumulativeNetLossGrams, cumulativeSurplusGrams);
+  const weightAboveStartGrams = Math.max(0, Math.round((currentWeightKg - startKg) * 1000));
 
-  const bilansEffectues = achievedLosses.length;
-  const joursRestantsProgramme = Math.max(0, jours.length - bilansEffectues);
-  const achievedCumulativeGrams = achievedLosses.reduce((sum, value) => sum + value, 0);
-  const currentWeightKg = Math.max(0, profile.poidsKg - achievedCumulativeGrams / 1000);
-  const potentialWeightKg = Math.max(0, profile.poidsKg - (achievedCumulativeGrams + remainingLossGrams) / 1000);
+  const fullDayAdherenceGrams = getEstimatedDailyLossGrams(profile, 1, 1, 1, 0);
+  const potentialNetForRefDay = selectedDayStartedAboveStart
+    ? Math.round(fullDayAdherenceGrams)
+    : Math.max(0, Math.round(fullDayAdherenceGrams - indulgencePenaltyGrams));
+  const potentialSurplusForRefDay = selectedDayStartedAboveStart
+    ? indulgencePenaltyGrams
+    : Math.max(0, Math.round(indulgencePenaltyGrams - fullDayAdherenceGrams));
+  const potentialWeightKg = weightKgFromCumulative(
+    startKg,
+    cumulativeNetLossGrams - selectedDayLossGrams + potentialNetForRefDay,
+    cumulativeSurplusGrams - selectedDaySurplusGrams + potentialSurplusForRefDay,
+  );
+
+  const joursRestantsProgramme = Math.max(0, jours.length - refDayJour);
   const projectedRemainingProgramLossGrams = projectedLossGrams * joursRestantsProgramme;
-  const programPotentialWeightKg = Math.max(0, currentWeightKg - projectedRemainingProgramLossGrams / 1000);
+  const programPotentialWeightKg = Math.max(35, currentWeightKg - projectedRemainingProgramLossGrams / 1000);
 
   return {
     currentWeightKg,
@@ -236,5 +468,12 @@ export function computePlanDayWeightSnapshot(
     projectedLossGrams,
     remainingLossGrams,
     dailyLossPercent,
+    cumulativeLossGrams,
+    selectedDayLossGrams,
+    indulgencePenaltyGrams,
+    selectedDaySurplusGrams,
+    cumulativeSurplusGrams,
+    weightAboveStartGrams,
+    selectedDayStartedAboveStart,
   };
 }

@@ -1,23 +1,39 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { Capacitor } from "@capacitor/core";
 import type { Product } from "@capgo/native-purchases";
 
 import { BrandLogo } from "@/components/BrandLogo";
+import { AppIconSvg } from "@/components/AppIconSvg";
 import { SubscriptionLegalLinks } from "@/components/SubscriptionLegalLinks";
 import { capacitorPublicAsset } from "@/utils/capacitorStaticHref";
 import { isCapacitorNative } from "@/utils/capacitorRuntime";
 import { getEstimatedDailyLossGrams } from "@/utils/mealPlan";
 import { normalizeParcours } from "@/utils/profileMigrate";
-import { STORAGE_KEYS } from "@/utils/storage";
+import { STORAGE_KEYS, isoDateLocalLabelFr } from "@/utils/storage";
 import type { OnboardingData, ParcoursPerte } from "@/utils/types";
 import {
   fetchSubscriptionProducts,
   purchaseSubscription,
   shouldUseNativeIap,
 } from "@/utils/subscriptionPurchase";
+import {
+  formatPriceAfterIntro,
+  getIntroOfferMissingMessage,
+  getNativeTrialFooterText,
+  getProductIntroLabel,
+  getSubscribeCtaLabel,
+  hasConfirmedStoreFreeTrial,
+} from "@/utils/subscriptionIntro";
 import { buildWeightCurveEased } from "@/utils/weightSummary";
+import {
+  ALLERGY_ITEMS,
+  EXCLUSION_ITEMS,
+  FOOD_PREFERENCES,
+  REGIME_OPTIONS,
+} from "@/data/foodPreferenceCatalog";
+import { brand } from "@/styles/brand";
 
 interface OnboardingFormProps {
   /** Identifiant utilisateur (Apple userId) pour isoler le brouillon d’onboarding. */
@@ -31,80 +47,92 @@ interface OnboardingFormProps {
   resumeProfile?: OnboardingData | null;
   /** Fermer l’éditeur sans enregistrer (modification profil). */
   onCancelResume?: () => void;
+  /** Date ISO affichée dans l’avertissement (réinitialisation jour 1). */
+  profileEditResetDateLabel?: string;
 }
 
-/** Palette Régime SOPK : perle chaud, prune douce, sauge — ton féminin, rassurant, premium. */
-const brand = {
-  shell: "from-[#faf7f4] via-[#f5f0f8] to-[#eef5f1]",
-  card: "border-[#e8e2eb]/90 bg-white/85 shadow-[0_18px_50px_-28px_rgba(45,36,58,0.18)]",
-  accent: "bg-[#6d5a7d]",
-  accentHover: "hover:bg-[#5d4c6d]",
-  accentSoft: "bg-[#6d5a7d]/12 border-[#6d5a7d]/25",
-  text: "text-[#2c2622]",
-  muted: "text-[#6b6560]",
-  progress: "bg-[#6d5a7d]",
-  progressTrack: "bg-[#e5dfe8]/80",
-  graphLine: "#6d5a7d",
-  graphFill: "url(#projectionFill)",
-};
+const COMORBIDITY_ITEMS = [
+  "Endométriose",
+  "Hypothyroïdie / Hashimoto",
+  "Ménopause / périménopause",
+  "Résistance à l’insuline",
+] as const;
 
-/** Prénom d’exemple et repli si le champ est vide (cohérent avec le reste de l’app). */
-const DEFAULT_DISPLAY_NAME = "Johana";
+const COMORBIDITY_UNKNOWN = "Je ne sais pas";
+
+const ONBOARDING_STEP_META: { phase: string; hint: string; footer?: string }[] = [
+  {
+    phase: "Bienvenue",
+    hint: "Conçu avec des nutritionnistes pour le SOPK",
+    footer: "Environ 2 minutes · programme sur mesure · sans engagement avant l’essai.",
+  },
+  { phase: "Votre corps", hint: "Pour calibrer calories, eau et portions", footer: "Vos données restent sur votre appareil." },
+  { phase: "Votre corps", hint: "Hydratation et portions ajustées à votre morphologie" },
+  { phase: "Vos objectifs", hint: "Des cibles réalistes, encadrées par l’équipe diététique" },
+  { phase: "Votre quotidien", hint: "Ce qui revient le plus souvent avec le SOPK" },
+  {
+    phase: "Profils associés",
+    hint: "Facultatif · pour affiner les repères si vous avez d’autres diagnostics",
+    footer: "Vous pouvez laisser « Je ne sais pas » et continuer.",
+  },
+  { phase: "Mouvement", hint: "Objectif pas ajusté sans vous mettre la pression" },
+  { phase: "Vos habitudes", hint: "Un plan tenable, pas un sprint impossible" },
+  { phase: "Vos goûts", hint: "Régime et aliments que vous aimez" },
+  { phase: "Vos goûts", hint: "Allergies et exclusions de goût" },
+  {
+    phase: "Votre rythme",
+    hint: "Même cible · quatre vitesses",
+    footer: "Estimation indicative · votre médecin reste le repère essentiel.",
+  },
+  { phase: "Dernière étape", hint: "Essai gratuit · annulable dans l’App Store" },
+];
+
+const ONBOARDING_DRAFT_VERSION = 2;
+
+const WELCOME_TRUST_PILLARS = [
+  { title: "Menus SOPK", desc: "30 jours à 1 an selon votre horizon" },
+  { title: "Repères clairs", desc: "Calories, eau, pas calibrés pour vous" },
+  { title: "Sans promesse miracle", desc: "Méthode tenable, repas concrets" },
+] as const;
 
 const defaultProfile: OnboardingData = {
-  prenom: "Johana",
+  prenom: "",
   age: 36,
   poidsKg: 87,
   tailleCm: 165,
   parcoursPerte: "j90",
   objectifPoidsKg: 77,
-  objectifs: ["Apaiser mon poids dans le cadre du SOPK"],
   diagnostics: ["SOPK"],
   symptomes: ["Peu ou pas de tout cela"],
   tentativePertePoids: "Oui, plusieurs fois (yo-yo)",
   niveauActivite: "Sédentaire",
   rythmeRepas: "3 repas",
   tempsCuisine: "15 - 30 min",
-  regimeAlimentaire: "Végétarienne",
+  regimeAlimentaire: "Omnivore",
   alimentsPreferes: ["Avocat", "Poulet"],
   allergies: ["Arachides"],
   alimentsDetestes: ["Brocoli"],
   billingPreference: "yearly",
 };
 
-const FOOD_PREFERENCES: { key: string; emoji: string }[] = [
-  { key: "Poulet", emoji: "🍗" },
-  { key: "Saumon", emoji: "🐟" },
-  { key: "Riz complet", emoji: "🍚" },
-  { key: "Légumes verts", emoji: "🥬" },
-  { key: "Avocat", emoji: "🥑" },
-  { key: "Yaourt", emoji: "🥛" },
-  { key: "Œufs", emoji: "🥚" },
-  { key: "Lentilles", emoji: "🫘" },
-  { key: "Fraises", emoji: "🍓" },
-  { key: "Fromage", emoji: "🧀" },
-];
-
-const ALLERGY_ITEMS: { key: string; emoji: string }[] = [
-  { key: "Arachides", emoji: "🥜" },
-  { key: "Lait", emoji: "🥛" },
-  { key: "Gluten", emoji: "🌾" },
-  { key: "Fruits à coque", emoji: "🌰" },
-  { key: "Soja", emoji: "🌱" },
-  { key: "Crustacés", emoji: "🦐" },
-];
-
-const EXCLUSION_ITEMS: { key: string; emoji: string }[] = [
-  { key: "Brocoli", emoji: "🥦" },
-  { key: "Champignons", emoji: "🍄" },
-  { key: "Aubergine", emoji: "🍆" },
-  { key: "Coriandre", emoji: "🌿" },
-  { key: "Poivron", emoji: "🫑" },
-  { key: "Tomate", emoji: "🍅" },
-];
-
 function draftStorageKey(userScope: string) {
   return `${STORAGE_KEYS.onboardingDraft}_${userScope}`;
+}
+
+/** Migre l’étape sauvegardée selon la version du brouillon (12 étapes max). */
+function migrateOnboardingDraftStep(rawStep: number, draftVersion = 0): number {
+  let s = Math.floor(rawStep);
+  if (draftVersion < 1) {
+    if (s <= 2) s = 0;
+    else if (s >= 3 && s <= 5) s = s - 2;
+    else if (s === 6) s = 4;
+    else if (s >= 7 && s <= 10) s = Math.min(10, s - 2);
+    else if (s === 11) s = 9;
+    else if (s === 12) s = 10;
+    else if (s >= 5 && s <= 10) s = Math.min(10, s + 1);
+  }
+  if (draftVersion < 2 && s >= 9) s = Math.min(11, s + 1);
+  return Math.max(0, Math.min(11, s));
 }
 
 function readOnboardingDraft(userScope: string): { step: number; profile: OnboardingData } | null {
@@ -112,30 +140,24 @@ function readOnboardingDraft(userScope: string): { step: number; profile: Onboar
   try {
     const raw = window.localStorage.getItem(draftStorageKey(userScope));
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { step?: unknown; profile?: OnboardingData };
+    const parsed = JSON.parse(raw) as { step?: unknown; profile?: OnboardingData; draftVersion?: number };
     if (typeof parsed.step !== "number" || !parsed.profile || !Number.isFinite(parsed.step)) return null;
-    let migratedStep = Math.floor(parsed.step);
-    if (migratedStep === 12) migratedStep = 11;
-    else if (migratedStep === 13) migratedStep = 12;
+    const migratedStep = migrateOnboardingDraftStep(Math.floor(parsed.step), parsed.draftVersion ?? 0);
     const draftProfile = { ...parsed.profile };
     delete draftProfile.onboardingCompleted;
+    const diagnostics = (draftProfile.diagnostics ?? []).filter((d) => d !== "Aucun diagnostic");
     return {
-      step: Math.max(0, Math.min(12, migratedStep)),
+      step: Math.max(0, Math.min(11, migratedStep)),
       profile: {
         ...defaultProfile,
         ...draftProfile,
+        diagnostics: diagnostics.includes("SOPK") ? diagnostics : ["SOPK", ...diagnostics],
         parcoursPerte: normalizeParcours(draftProfile.parcoursPerte as string),
       },
     };
   } catch {
     return null;
   }
-}
-
-function titleCasePrénom(raw: string): string {
-  const t = raw.trim();
-  if (!t) return t;
-  return t.charAt(0).toLocaleUpperCase("fr-FR") + t.slice(1);
 }
 
 export function OnboardingForm({
@@ -145,8 +167,9 @@ export function OnboardingForm({
   skipPricingStep = false,
   resumeProfile = null,
   onCancelResume,
+  profileEditResetDateLabel,
 }: OnboardingFormProps) {
-  /** Produits abonnement (App Store / Play) — undefined = pas encore chargé, null = échec. */
+  /** Produits abonnement (App Store / Play) - undefined = pas encore chargé, null = échec. */
   const [iapProducts, setIapProducts] = useState<{ monthly: Product; yearly: Product } | null | undefined>(undefined);
   const [iapError, setIapError] = useState<string | null>(null);
   const [iapBusy, setIapBusy] = useState(false);
@@ -164,15 +187,18 @@ export function OnboardingForm({
     return d?.profile ?? defaultProfile;
   });
   const [step, setStep] = useState(() => (resumeProfile ? 0 : readOnboardingDraft(userScope)?.step ?? 0));
-  /** 0–10 questions, 11 projection + courbes, 12 offre & essai (sauf si skipPricingStep). */
-  const stepCount = skipPricingStep ? 12 : 13;
-  const lastNavigableStep = skipPricingStep ? 11 : 12;
+  /** 0 accueil, 1-9 profil, 10 projection, 11 offre (sauf si skipPricingStep). */
+  const stepCount = skipPricingStep ? 11 : 12;
+  const lastNavigableStep = skipPricingStep ? 10 : 11;
 
   useEffect(() => {
     if (typeof window === "undefined" || resumeProfile) return;
     const t = window.setTimeout(() => {
       try {
-        window.localStorage.setItem(draftStorageKey(userScope), JSON.stringify({ step, profile }));
+        window.localStorage.setItem(
+          draftStorageKey(userScope),
+          JSON.stringify({ step, profile, draftVersion: ONBOARDING_DRAFT_VERSION }),
+        );
       } catch {
         /* ignore */
       }
@@ -181,7 +207,7 @@ export function OnboardingForm({
   }, [step, profile, userScope, resumeProfile]);
 
   useEffect(() => {
-    if (skipPricingStep || step !== 12) {
+    if (skipPricingStep || step !== 11) {
       setIapProducts(undefined);
       setIapError(null);
       return;
@@ -222,19 +248,18 @@ export function OnboardingForm({
   const deltaKg = Math.max(0.1, profile.poidsKg - targetKg);
 
   const iapGateBlocksContinue = useMemo(() => {
-    if (skipPricingStep || step !== 12) return false;
+    if (skipPricingStep || step !== 11) return false;
     if (!shouldUseNativeIap()) return false;
     return iapProducts === undefined || iapProducts === null;
   }, [iapProducts, skipPricingStep, step]);
 
   const canProceed = useMemo(() => {
-    if (step === 0) return Boolean(profile.prenom?.trim().length);
-    if (!skipPricingStep && step === 12) {
+    if (!skipPricingStep && step === 11) {
       if (!profile.billingPreference) return false;
       if (iapGateBlocksContinue) return false;
     }
     return true;
-  }, [iapGateBlocksContinue, profile.billingPreference, profile.prenom, skipPricingStep, step]);
+  }, [iapGateBlocksContinue, profile.billingPreference, skipPricingStep, step]);
 
   function handleStart() {
     const age = Number.isFinite(Number(profile.age)) ? Number(profile.age) : 30;
@@ -248,18 +273,27 @@ export function OnboardingForm({
       (document.activeElement as HTMLElement | null)?.blur?.();
     }
 
+    const comorbidities = (profile.diagnostics ?? []).filter((d) => d !== "SOPK" && d !== "Aucun diagnostic");
+
     onComplete({
       ...profile,
-      prenom: profile.prenom?.trim() || DEFAULT_DISPLAY_NAME,
+      prenom: "",
       age: Math.min(60, Math.max(18, age)),
       poidsKg: Math.min(180, Math.max(40, poidsKg)),
       tailleCm: Math.min(210, Math.max(130, tailleCm)),
       objectifPoidsKg: Math.min(150, Math.max(35, objectifPoidsKg)),
+      diagnostics: ["SOPK", ...comorbidities],
       parcoursPerte: normalizeParcours(profile.parcoursPerte),
       billingPreference: profile.billingPreference ?? "yearly",
       onboardingCompleted: true,
     });
   }
+
+  const selectedStoreProduct = useMemo(() => {
+    if (!iapProducts) return undefined;
+    const plan = profile.billingPreference ?? "yearly";
+    return plan === "monthly" ? iapProducts.monthly : iapProducts.yearly;
+  }, [iapProducts, profile.billingPreference]);
 
   async function nextStep() {
     if (step === lastNavigableStep) {
@@ -276,9 +310,9 @@ export function OnboardingForm({
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e ?? "");
           if (/cancel|annul|annulée|user cancelled/i.test(msg)) {
-            setIapError("Paiement annulé.");
+            setIapError("Abonnement annulé. Vous pouvez réessayer quand vous voulez.");
           } else {
-            setIapError(msg || "Le paiement n’a pas abouti. Réessaie ou vérifie ton compte App Store.");
+            setIapError(msg || "L’abonnement n’a pas abouti. Réessayez ou vérifiez votre compte App Store.");
           }
         } finally {
           setIapBusy(false);
@@ -297,7 +331,7 @@ export function OnboardingForm({
   }
 
   function toggleArrayValue(
-    field: "objectifs" | "diagnostics" | "symptomes" | "alimentsPreferes" | "allergies" | "alimentsDetestes",
+    field: "symptomes" | "alimentsPreferes" | "allergies" | "alimentsDetestes",
     value: string,
   ) {
     setProfile((prev) => {
@@ -309,307 +343,369 @@ export function OnboardingForm({
     });
   }
 
-  const displayName = titleCasePrénom(profile.prenom?.trim() || DEFAULT_DISPLAY_NAME);
-  const diagnosticTag = (profile.diagnostics ?? []).find((d) => d !== "Aucun diagnostic") ?? "SOPK";
+  function toggleComorbidity(value: string) {
+    setProfile((prev) => {
+      if (value === COMORBIDITY_UNKNOWN) {
+        const hasUnknown = (prev.diagnostics ?? []).includes(COMORBIDITY_UNKNOWN);
+        return {
+          ...prev,
+          diagnostics: hasUnknown ? ["SOPK"] : ["SOPK", COMORBIDITY_UNKNOWN],
+        };
+      }
+      const current = (prev.diagnostics ?? []).filter(
+        (d) => d !== "SOPK" && d !== "Aucun diagnostic" && d !== COMORBIDITY_UNKNOWN,
+      );
+      const next = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
+      return { ...prev, diagnostics: ["SOPK", ...next] };
+    });
+  }
+
+  const diagnosticTag = useMemo(() => {
+    const tags = (profile.diagnostics ?? []).filter(
+      (d) => d !== "Aucun diagnostic" && d !== COMORBIDITY_UNKNOWN,
+    );
+    return tags.length > 0 ? tags.join(" · ") : "SOPK";
+  }, [profile.diagnostics]);
+  const profileEditResetLabel = profileEditResetDateLabel
+    ? isoDateLocalLabelFr(profileEditResetDateLabel)
+    : "aujourd'hui";
+
+  const stepMeta = ONBOARDING_STEP_META[step] ?? ONBOARDING_STEP_META[0];
+  const progressPercent = Math.round(((step + 1) / stepCount) * 100);
+
+  function handleBack() {
+    if (step === 0 && onCancelResume) {
+      onCancelResume();
+      return;
+    }
+    if (step === 0 && onLeaveToAuth) {
+      onLeaveToAuth();
+      return;
+    }
+    previousStep();
+  }
+
+  const showBackButton = step > 0 || (step === 0 && (onLeaveToAuth || onCancelResume));
 
   return (
     <section
-      className={`relative flex h-full min-h-0 max-h-full flex-col overflow-hidden rounded-[22px] border border-[#e8e2eb]/80 bg-gradient-to-b ${brand.shell} shadow-[0_24px_64px_-32px_rgba(45,36,58,0.22)] sm:rounded-[28px]`}
+      className={`relative flex h-full min-h-0 max-h-full flex-col overflow-hidden rounded-[22px] border border-brand-200/70 bg-gradient-to-b ${brand.shell} shadow-elevated sm:rounded-[28px]`}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(109,90,125,0.08),transparent)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_55%_at_50%_-15%,rgba(109,90,125,0.14),transparent)]" />
+      <div className="pointer-events-none absolute -right-20 top-32 h-48 w-48 rounded-full bg-accent/10 blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -left-16 bottom-40 h-40 w-40 rounded-full bg-brand-600/8 blur-3xl" aria-hidden />
 
-      <header className="relative shrink-0 px-4 pb-1.5 pt-1 sm:px-5 sm:pb-2 sm:pt-2">
-        <div className="mb-1.5 flex items-center justify-end sm:mb-2">
-          <p className={`shrink-0 text-[10px] font-medium sm:text-xs ${brand.muted}`}>
-            {step + 1} / {stepCount}
-          </p>
+      <header className="relative shrink-0 px-3 pb-1.5 pt-0.5 sm:px-4">
+        <div className="flex items-center gap-2">
+          {showBackButton ? (
+            <button
+              type="button"
+              onClick={handleBack}
+              aria-label="Retour"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-brand-200/80 bg-white/90 text-sm font-bold text-brand-700 shadow-sm transition hover:bg-brand-50 active:scale-[0.97]"
+            >
+              ←
+            </button>
+          ) : (
+            <div className="h-8 w-8 shrink-0" aria-hidden />
+          )}
+          {step === 0 ? (
+            <div className="min-w-0 flex-1" aria-hidden />
+          ) : (
+            <BrandLogo variant="minimal" className="min-w-0 flex-1" />
+          )}
+          <div className="shrink-0 rounded-full border border-brand-200/90 bg-white/90 px-2 py-0.5 shadow-sm">
+            <p className="text-[10px] font-bold tabular-nums text-brand-700">
+              {step + 1}
+              <span className="font-medium text-brand-400"> / {stepCount}</span>
+            </p>
+          </div>
         </div>
-        <BrandLogo variant="onboarding" />
-        <div className="grid grid-cols-[repeat(14,minmax(0,1fr))] gap-0.5 sm:gap-1">
-          {Array.from({ length: stepCount }).map((_, index) => (
+
+        <div className="mt-1.5">
+          <div className="mb-0.5 flex items-center justify-between gap-2">
+            <p className="truncate text-[10px] font-bold uppercase tracking-wide text-brand-600">{stepMeta.phase}</p>
+            <p className="shrink-0 text-[10px] font-semibold tabular-nums text-brand-500">{progressPercent} %</p>
+          </div>
+          <div className="h-1 overflow-hidden rounded-full bg-brand-200/70">
             <div
-              key={index}
-              className={`h-0.5 rounded-full transition-all duration-300 sm:h-1 ${
-                index <= step ? brand.progress : brand.progressTrack
-              }`}
+              className="h-full rounded-full bg-gradient-to-r from-brand-600 via-brand-500 to-accent transition-all duration-500 ease-out"
+              style={{ width: `${progressPercent}%` }}
             />
-          ))}
+          </div>
         </div>
       </header>
 
-      <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 pb-2 pt-0.5 [-webkit-overflow-scrolling:touch] sm:px-5 sm:pb-3 sm:pt-1">
-        {step > 0 || (step === 0 && (onLeaveToAuth || onCancelResume)) ? (
-          <button
-            type="button"
-            onClick={() => {
-              if (step === 0 && onCancelResume) {
-                onCancelResume();
-                return;
-              }
-              if (step === 0 && onLeaveToAuth) {
-                onLeaveToAuth();
-                return;
-              }
-              previousStep();
-            }}
-            className={`mb-2 text-xs font-medium sm:mb-3 sm:text-sm ${brand.muted} transition hover:text-[#4a4240]`}
-          >
-            ← Retour
-          </button>
-        ) : null}
+      {onCancelResume ? (
+        <div className="relative z-10 mx-3 mt-0.5 shrink-0 rounded-lg border border-amber-200/90 bg-amber-50/95 px-2.5 py-1.5 shadow-sm sm:mx-4">
+          <p className="text-[10px] leading-snug text-amber-950">
+            Enregistrer remet le jour 1 au <strong className="font-semibold">{profileEditResetLabel}</strong>.
+          </p>
+        </div>
+      ) : null}
+
+      <div className="relative flex min-h-0 flex-1 flex-col justify-center overflow-hidden px-3 py-0.5 sm:px-4">
 
         {step === 0 ? (
-          <div className="text-center">
-            <div
-              className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-[#6d5a7d]/10 text-xl sm:h-14 sm:w-14 sm:rounded-2xl sm:text-2xl"
-              aria-hidden
-            >
-              ✦
-            </div>
-            <h2
-              className={`mt-2 text-lg font-semibold leading-snug tracking-tight sm:mt-4 sm:text-[1.65rem] sm:leading-tight md:text-4xl ${brand.text}`}
-            >
-              Par quel prénom souhaitez-vous qu’on vous accompagne&nbsp;?
-            </h2>
-            <p className={`mt-1 text-sm leading-snug sm:mt-2 sm:text-base ${brand.muted}`}>
-              Il sera utilisé dans l’app, comme un petit marque-page entre vous et votre programme.
-            </p>
-            <input
-              value={profile.prenom}
-              onChange={(e) => setProfile((prev) => ({ ...prev, prenom: e.target.value }))}
-              placeholder="Prénom"
-              className={`mt-4 h-12 w-full rounded-xl border border-[#e0d8e4] bg-white/90 px-3 text-center text-xl font-medium outline-none transition focus:border-[#6d5a7d] focus:ring-2 focus:ring-[#6d5a7d]/20 sm:mt-8 sm:h-14 sm:rounded-2xl sm:text-2xl ${brand.text}`}
-            />
-          </div>
+          <WelcomeHero />
         ) : null}
 
         {step === 1 ? (
-          <ChoiceScreen
-            title={`${displayName}, qu’est-ce qui compte le plus pour vous en ce moment\u00a0?`}
-            subtitle="Vous pouvez cocher plusieurs réponses."
-            items={[
-              "Apaiser mon poids dans le cadre du SOPK",
-              "Structurer mon assiette sans rigidité",
-              "Mieux comprendre les signaux de mon corps",
-              "Retrouver de l’énergie au fil des semaines",
-            ]}
-            selected={profile.objectifs ?? []}
-            onPick={(v) => toggleArrayValue("objectifs", v)}
-          />
+          <OnboardingStepCard>
+            <SliderScreen
+              compact
+              title="Votre âge"
+              subtitle="Pour calibrer calories, eau et portions."
+              value={profile.age}
+              unit="ans"
+              min={18}
+              max={60}
+              onChange={(value) => setProfile((prev) => ({ ...prev, age: value }))}
+            />
+          </OnboardingStepCard>
         ) : null}
 
         {step === 2 ? (
-          <MessageScreen
-            title="Ici, on part de votre réalité — pas d’un modèle unique."
-            text="Le syndrome des ovaires polykystiques modifie souvent la faim, la fatigue ou la façon dont le corps stocke l’énergie. Régime SOPK a été pensé avec des nutritionnistes pour traduire ces contraintes en menus concrets, en repères clairs et en encouragements mesurés — sans promesse magique, avec une méthode que vous pouvez tenir."
-          />
+          <OnboardingStepCard>
+            <SliderScreen
+              compact
+              title="Votre taille"
+              subtitle="Hydratation et portions ajustées à votre morphologie."
+              value={profile.tailleCm}
+              unit="cm"
+              min={140}
+              max={210}
+              onChange={(value) => setProfile((prev) => ({ ...prev, tailleCm: value }))}
+            />
+          </OnboardingStepCard>
         ) : null}
 
         {step === 3 ? (
-          <SliderScreen
-            title="Votre âge aujourd’hui"
-            subtitle="Nous en tenons compte pour calibrer les repères du programme (sans réduire votre parcours à un chiffre)."
-            value={profile.age}
-            unit="ans"
-            min={18}
-            max={60}
-            onChange={(value) => setProfile((prev) => ({ ...prev, age: value }))}
-          />
+          <OnboardingStepCard>
+            <div>
+              <h3 className={`text-base font-bold leading-snug ${brand.text}`}>Poids de départ et cible</h3>
+              <p className={`mt-1 text-[11px] leading-snug ${brand.muted}`}>
+                Objectifs compatibles avec un suivi encadré (en général 0,5 à 1 kg/semaine).
+              </p>
+              <div className="mt-2.5 grid grid-cols-2 gap-2">
+                <NumericCard compact label="Poids" value={profile.poidsKg} onChange={(v) => setProfile((p) => ({ ...p, poidsKg: v }))} />
+                <NumericCard
+                  compact
+                  label="Cible"
+                  value={profile.objectifPoidsKg ?? 77}
+                  onChange={(v) => setProfile((p) => ({ ...p, objectifPoidsKg: v }))}
+                />
+              </div>
+            </div>
+          </OnboardingStepCard>
         ) : null}
 
         {step === 4 ? (
-          <SliderScreen
-            title="Votre taille"
-            subtitle="Elle nous aide à ajuster hydratation et portions — toujours en restant dans des fourchettes raisonnables."
-            value={profile.tailleCm}
-            unit="cm"
-            min={140}
-            max={195}
-            onChange={(value) => setProfile((prev) => ({ ...prev, tailleCm: value }))}
-          />
+          <OnboardingStepCard>
+            <ChoiceScreen
+              compact
+              title="Ce qui vous parle le plus"
+              subtitle="Cochez ce qui revient souvent avec le SOPK."
+              items={[
+                "Coupes de fatigue à répétition",
+                "Fringales difficiles à calmer",
+                "Ventre gonflé ou inconfort digestif",
+                "Graisse qui se concentre au niveau du ventre",
+                "Nuits agitées ou trop courtes",
+                "Humeur qui varie vite",
+                "Jambes lourdes / sensation de rétention",
+                "Peu ou pas de tout cela",
+              ]}
+              selected={profile.symptomes ?? []}
+              onPick={(v) => toggleArrayValue("symptomes", v)}
+            />
+          </OnboardingStepCard>
         ) : null}
 
         {step === 5 ? (
-          <div>
-            <h3 className={`text-base font-semibold leading-snug sm:text-[1.65rem] sm:leading-tight md:text-4xl ${brand.text}`}>
-              Poids de départ et cible
-            </h3>
-            <p className={`mt-1 text-sm leading-snug sm:mt-2 sm:text-base ${brand.muted}`}>
-              Indiquez où vous en êtes et où vous aimeriez vous rapprocher. Nous restons dans des objectifs compatibles
-              avec un suivi encadré.
-            </p>
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-8 sm:gap-3">
-              <NumericCard label="Poids saisi" value={profile.poidsKg} onChange={(v) => setProfile((p) => ({ ...p, poidsKg: v }))} />
-              <NumericCard
-                label="Cible saisie"
-                value={profile.objectifPoidsKg ?? 77}
-                onChange={(v) => setProfile((p) => ({ ...p, objectifPoidsKg: v }))}
-              />
-            </div>
-            <p className={`mt-2 rounded-xl border border-[#dfe8e3] bg-[#f4faf6] px-3 py-2 text-xs leading-snug sm:mt-4 sm:px-4 sm:py-3 sm:text-sm ${brand.muted}`}>
-              Rappel des équipes diététiques Régime SOPK&nbsp;: viser en général environ{" "}
-              <strong className={brand.text}>0,5 à 1&nbsp;kg</strong> par semaine limite les rechutes et préserve la
-              masse maigre.
-            </p>
-          </div>
+          <OnboardingStepCard>
+            <ChoiceScreen
+              compact
+              title="Profils associés"
+              subtitle="Facultatif · ou « Je ne sais pas »."
+              items={[...COMORBIDITY_ITEMS, COMORBIDITY_UNKNOWN]}
+              selected={(profile.diagnostics ?? []).filter((d) => d !== "SOPK" && d !== "Ancun diagnostic")}
+              onPick={(v) => toggleComorbidity(v)}
+            />
+          </OnboardingStepCard>
         ) : null}
 
         {step === 6 ? (
-          <ChoiceScreen
-            title="Parcours de santé"
-            subtitle="Cochez tout ce qui correspond à votre dossier ou à ce que vous soupçonnez — rien n’est définitif ici, c’est pour affiner les conseils."
-            items={[
-              "SOPK",
-              "Endométriose",
-              "Hypothyroïdie / Hashimoto",
-              "Ménopause / périménopause",
-              "Résistance à l’insuline",
-              "Aucun diagnostic",
-            ]}
-            selected={profile.diagnostics ?? []}
-            onPick={(v) => toggleArrayValue("diagnostics", v)}
-          />
+          <OnboardingStepCard>
+            <ChoiceScreen
+              compact
+              singleSelect
+              title="Mouvement au quotidien"
+              subtitle="Une seule réponse · pas ajustés sans pression."
+              items={["Sédentaire", "Légèrement active", "Modérément active", "Très active"]}
+              selected={[profile.niveauActivite ?? "Sédentaire"]}
+              onPick={(v) => setProfile((prev) => ({ ...prev, niveauActivite: v }))}
+            />
+          </OnboardingStepCard>
         ) : null}
 
         {step === 7 ? (
-          <ChoiceScreen
-            title="Signaux du quotidien"
-            subtitle="Ce qui revient souvent, même quand vous faites attention."
-            items={[
-              "Coupes de fatigue à répétition",
-              "Fringales difficiles à calmer",
-              "Ventre gonflé ou inconfort digestif",
-              "Graisse qui se concentre au niveau du ventre",
-              "Nuits agitées ou trop courtes",
-              "Humeur qui varie vite",
-              "Jambes lourdes / sensation de rétention",
-              "Peu ou pas de tout cela",
-            ]}
-            selected={profile.symptomes ?? []}
-            onPick={(v) => toggleArrayValue("symptomes", v)}
-          />
+          <OnboardingStepCard>
+            <div>
+              <h3 className={`text-base font-bold leading-snug ${brand.text}`}>Repas et cuisine</h3>
+              <p className={`mt-1 text-[11px] leading-snug ${brand.muted}`}>Un plan tenable pour votre semaine.</p>
+              <OnboardingSectionLabel compact>Prises alimentaires</OnboardingSectionLabel>
+              <div className="mt-1 grid grid-cols-2 gap-1">
+                {["2 repas", "3 repas", "3 repas + collations"].map((item) => (
+                  <ChoicePill
+                    compact
+                    key={item}
+                    label={item}
+                    active={profile.rythmeRepas === item}
+                    onClick={() => setProfile((p) => ({ ...p, rythmeRepas: item }))}
+                  />
+                ))}
+              </div>
+              <OnboardingSectionLabel compact>Temps pour préparer</OnboardingSectionLabel>
+              <div className="mt-1 grid grid-cols-2 gap-1">
+                {["Moins de 15 min", "15 - 30 min", "30 - 45 min", "Peu importe"].map((item) => (
+                  <ChoicePill
+                    compact
+                    key={item}
+                    label={item}
+                    active={profile.tempsCuisine === item}
+                    onClick={() => setProfile((p) => ({ ...p, tempsCuisine: item }))}
+                  />
+                ))}
+              </div>
+            </div>
+          </OnboardingStepCard>
         ) : null}
 
         {step === 8 ? (
-          <ChoiceScreen
-            title="Mouvement au quotidien"
-            subtitle="Une seule réponse — on ajuste ensuite les pas suggérés sans vous mettre la pression."
-            items={["Sédentaire", "Légèrement active", "Modérément active", "Très active"]}
-            selected={[profile.niveauActivite ?? "Sédentaire"]}
-            onPick={(v) => setProfile((prev) => ({ ...prev, niveauActivite: v }))}
-          />
+          <OnboardingStepCard>
+            <FoodPreferencesRegimeStep
+              profile={profile}
+              onToggle={(field, key) => toggleArrayValue(field, key)}
+              onRegimeChange={(regimeAlimentaire) => setProfile((p) => ({ ...p, regimeAlimentaire }))}
+            />
+          </OnboardingStepCard>
         ) : null}
 
         {step === 9 ? (
-          <div>
-            <h3 className={`text-base font-semibold leading-snug sm:text-[1.65rem] sm:leading-tight md:text-4xl ${brand.text}`}>Repas et temps en cuisine</h3>
-            <p className={`mt-1 text-sm leading-snug sm:mt-2 sm:text-base ${brand.muted}`}>
-              On évite les plans irréalistes&nbsp;: dites-nous simplement comment vous vivez la semaine.
-            </p>
-            <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a8494] sm:mt-6 sm:text-[11px]">Nombre de prises alimentaires</p>
-            <div className="mt-1.5 grid gap-1.5 sm:mt-2 sm:gap-2">
-              {["2 repas", "3 repas", "3 repas + collations"].map((item) => (
-                <ChoicePill key={item} label={item} active={profile.rythmeRepas === item} onClick={() => setProfile((p) => ({ ...p, rythmeRepas: item }))} />
-              ))}
-            </div>
-            <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a8494] sm:mt-5 sm:text-[11px]">Temps pour préparer</p>
-            <div className="mt-1.5 grid gap-1.5 sm:mt-2 sm:gap-2">
-              {["Moins de 15 min", "15 – 30 min", "30 – 45 min", "Peu importe"].map((item) => (
-                <ChoicePill key={item} label={item} active={profile.tempsCuisine === item} onClick={() => setProfile((p) => ({ ...p, tempsCuisine: item }))} />
-              ))}
-            </div>
-          </div>
+          <OnboardingStepCard>
+            <FoodPreferencesExclusionsStep
+              profile={profile}
+              onToggle={(field, key) => toggleArrayValue(field, key)}
+            />
+          </OnboardingStepCard>
         ) : null}
 
         {step === 10 ? (
-          <FoodPreferencesStep
-            profile={profile}
-            onToggle={(field, key) => toggleArrayValue(field, key)}
-          />
+          <OnboardingStepCard>
+            <ProjectionStep
+              compact
+              profile={profile}
+              onParcoursChange={(parcoursPerte) =>
+                setProfile((p) => ({ ...p, parcoursPerte: normalizeParcours(parcoursPerte) }))
+              }
+              currentKg={profile.poidsKg}
+              targetKg={targetKg}
+              deltaKg={deltaKg}
+              diagnosticTag={diagnosticTag}
+            />
+          </OnboardingStepCard>
         ) : null}
 
-        {step === 11 ? (
-          <ProjectionStep
-            profile={profile}
-            onParcoursChange={(parcoursPerte) =>
-              setProfile((p) => ({ ...p, parcoursPerte: normalizeParcours(parcoursPerte) }))
-            }
-            displayName={displayName}
-            currentKg={profile.poidsKg}
-            targetKg={targetKg}
-            deltaKg={deltaKg}
-            diagnosticTag={diagnosticTag}
-          />
+        {!skipPricingStep && step === 11 ? (
+          <OnboardingStepCard>
+            <PricingStep
+              compact
+              billing={profile.billingPreference ?? "yearly"}
+              onSelect={(plan) => setProfile((p) => ({ ...p, billingPreference: plan }))}
+              storeProducts={iapProducts}
+              storeLoading={shouldUseNativeIap() && iapProducts === undefined}
+              nativeIap={shouldUseNativeIap()}
+              showStoreConfigHint={false}
+              onRetryStore={
+                shouldUseNativeIap()
+                  ? () => {
+                      setIapProducts(undefined);
+                      setIapError(null);
+                      void fetchSubscriptionProducts()
+                        .then((r) => {
+                          setIapProducts(r);
+                          if (!r) {
+                            setIapError(
+                              "Impossible de charger les offres depuis l'App Store. Réessaie dans un instant.",
+                            );
+                          }
+                        })
+                        .catch((e) => {
+                          setIapProducts(null);
+                          setIapError(e instanceof Error ? e.message : "Erreur lors du chargement des offres.");
+                        });
+                    }
+                  : undefined
+              }
+            />
+          </OnboardingStepCard>
         ) : null}
-
-        {!skipPricingStep && step === 12 ? (
-          <PricingStep
-            billing={profile.billingPreference ?? "yearly"}
-            onSelect={(plan) => setProfile((p) => ({ ...p, billingPreference: plan }))}
-            storeProducts={iapProducts}
-            storeLoading={shouldUseNativeIap() && iapProducts === undefined}
-            nativeIap={shouldUseNativeIap()}
-            showStoreConfigHint={false}
-            onRetryStore={
-              shouldUseNativeIap()
-                ? () => {
-                    setIapProducts(undefined);
-                    setIapError(null);
-                    void fetchSubscriptionProducts()
-                      .then((r) => {
-                        setIapProducts(r);
-                        if (!r) {
-                          setIapError(
-                            "Impossible de charger les offres depuis l'App Store. Réessaie dans un instant.",
-                          );
-                        }
-                      })
-                      .catch((e) => {
-                        setIapProducts(null);
-                        setIapError(e instanceof Error ? e.message : "Erreur lors du chargement des offres.");
-                      });
-                  }
-                : undefined
-            }
-          />
-        ) : null}
-        {!skipPricingStep && step === 12 && iapError ? (
-          <p className="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-center text-[10px] font-semibold leading-snug text-rose-800 sm:mt-3 sm:px-3 sm:py-2 sm:text-xs">
+        {!skipPricingStep && step === 11 && iapError ? (
+          <p className="mt-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-center text-[10px] font-semibold leading-snug text-rose-800">
             {iapError}
           </p>
         ) : null}
       </div>
 
-      <footer className="relative shrink-0 border-t border-white/55 bg-white/85 px-3 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_24px_-12px_rgba(45,36,58,0.12)] backdrop-blur-md sm:px-4 sm:pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pt-2">
-        <div className="rounded-xl border border-white/60 bg-white/70 p-2 shadow-sm sm:rounded-[22px] sm:p-3">
+      <footer className="relative shrink-0 border-t border-brand-200/40 bg-white/90 px-3 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_24px_-12px_rgba(61,42,74,0.15)] backdrop-blur-md sm:px-4">
+        <div className="rounded-xl border border-brand-100/80 bg-gradient-to-b from-white to-brand-50/40 p-2 shadow-sm">
+          {onCancelResume ? (
+            <button
+              type="button"
+              onClick={onCancelResume}
+              className="mb-1.5 h-9 w-full rounded-lg border-2 border-brand-200 bg-white text-[12px] font-bold text-brand-700 transition hover:bg-brand-50"
+            >
+              Annuler
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => void nextStep()}
             disabled={!canProceed || iapBusy}
-            className={`h-11 w-full rounded-xl px-3 text-sm font-semibold text-white transition sm:h-12 sm:rounded-2xl sm:px-4 sm:text-base ${brand.accent} ${brand.accentHover} disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.99]`}
+            className={`relative h-11 w-full overflow-hidden rounded-xl bg-gradient-to-r from-brand-700 via-brand-600 to-accent px-3 text-sm font-bold text-white shadow-[0_8px_22px_-6px_rgba(109,90,125,0.4)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.99] ${
+              !iapBusy && canProceed ? "[animation:onboarding-progress-glow_2.5s_ease-in-out_infinite]" : ""
+            }`}
           >
+            <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/20 to-transparent" aria-hidden />
+            <span className="relative">
             {iapBusy
-              ? "Paiement en cours…"
-              : skipPricingStep && step === 11
+              ? "Abonnement en cours…"
+              : skipPricingStep && step === 10
                 ? "Enregistrer le profil"
-                : step === 11
-                  ? "Suite"
-                  : step === 12
+                : step === 10
+                  ? "Voir mon offre"
+                  : step === 11
                     ? shouldUseNativeIap()
-                      ? "Payer et activer l’abonnement"
-                      : "Lancer mon essai de 7 jours"
-                    : "Suite"}
+                      ? getSubscribeCtaLabel(selectedStoreProduct, "Commencer l’essai gratuit de 7 jours", true)
+                      : "Commencer le programme"
+                    : step === 0
+                      ? "Commencer mon profil"
+                      : "Continuer"}
+            </span>
           </button>
-          <p className={`mt-1 line-clamp-3 text-center text-[9px] leading-snug sm:mt-2 sm:text-xs ${brand.muted}`}>
-            {step === 11 &&
-              (skipPricingStep
-                ? "Vos critères et préférences sont mis à jour ; votre accès reste inchangé."
-                : "Courbe à titre indicatif — la régularité du programme et votre médecin restent les repères essentiels.")}
-            {!skipPricingStep && step === 12 &&
-              (shouldUseNativeIap()
-                ? "Le tarif affiché vient de l'App Store (obligatoire pour la publication). Le paiement s’effectue via Apple avant l’accès au programme."
-                : "Après l’essai gratuit de 7\u00a0jours\u00a0: les montants indicatifs 7,99\u00a0€/mois ou 59,99\u00a0€/an s’appliquent selon l’offre retenue sur les stores. Vous pouvez annuler avant la fin de l’essai.")}
-            {step < 11 && "Vous pourrez ajuster ces informations depuis les réglages du compte."}
+          <p className={`mt-1 line-clamp-1 text-center text-[10px] leading-snug ${brand.muted}`}>
+            {stepMeta.footer ??
+              stepMeta.hint ??
+              (step === 10 && skipPricingStep
+                ? "Vos critères sont mis à jour ; votre accès reste inchangé."
+                : step === 11 && !skipPricingStep
+                  ? shouldUseNativeIap()
+                    ? getNativeTrialFooterText(selectedStoreProduct)
+                    : "Abonnement et essai via l’App Store."
+                  : step < 10
+                    ? "Modifiable dans les réglages."
+                    : null)}
           </p>
         </div>
       </footer>
@@ -622,50 +718,85 @@ function FoodIconTile({
   label,
   selected,
   onClick,
+  compact = false,
 }: {
   emoji: string;
   label: string;
   selected: boolean;
   onClick: () => void;
+  compact?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-[3.25rem] flex-col items-center justify-center rounded-xl border-2 px-0.5 py-1.5 text-center transition active:scale-[0.97] sm:min-h-[5.25rem] sm:rounded-2xl sm:px-1 sm:py-2.5 ${
+      className={`flex flex-col items-center justify-center rounded-lg border-2 text-center transition active:scale-[0.97] ${
+        compact
+          ? "min-h-[2.35rem] px-0.5 py-1"
+          : "min-h-[3.25rem] rounded-xl px-0.5 py-1.5 sm:min-h-[5.25rem] sm:rounded-2xl sm:px-1 sm:py-2.5"
+      } ${
         selected
           ? "border-[#6d5a7d] bg-[#6d5a7d]/10 shadow-sm ring-1 ring-[#6d5a7d]/25"
           : "border-[#e8e2eb] bg-white/90 hover:border-[#cfc8d4]"
       }`}
     >
-      <span className="text-lg leading-none sm:text-[1.75rem]" aria-hidden>
+      <span className={`leading-none ${compact ? "text-base" : "text-lg sm:text-[1.75rem]"}`} aria-hidden>
         {emoji}
       </span>
-      <span className={`mt-0.5 px-0.5 text-[9px] font-semibold leading-tight sm:mt-1.5 sm:text-[10px] sm:leading-tight md:text-[11px] ${brand.text}`}>{label}</span>
+      <span
+        className={`mt-0.5 px-0.5 font-semibold leading-tight ${compact ? "text-[7px]" : "text-[9px] sm:mt-1.5 sm:text-[10px] md:text-[11px]"} ${brand.text}`}
+      >
+        {label}
+      </span>
     </button>
   );
 }
 
-function FoodPreferencesStep({
+function RegimeChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full border px-2 py-1 text-[10px] font-semibold transition active:scale-[0.98] ${
+        active
+          ? "border-brand-600 bg-brand-600/10 text-brand-800 ring-1 ring-brand-600/20"
+          : "border-brand-200 bg-white text-ink hover:border-brand-300"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function FoodPreferencesRegimeStep({
   profile,
   onToggle,
+  onRegimeChange,
 }: {
   profile: OnboardingData;
-  onToggle: (field: "alimentsPreferes" | "allergies" | "alimentsDetestes", key: string) => void;
+  onToggle: (field: "alimentsPreferes", key: string) => void;
+  onRegimeChange: (regime: string) => void;
 }) {
   return (
     <div>
-      <h3 className={`text-base font-semibold leading-snug sm:text-[1.65rem] sm:leading-tight md:text-4xl ${brand.text}`}>
-        Ingrédients que vous aimez… ou pas
-      </h3>
-      <p className={`mt-1 text-xs leading-snug sm:mt-2 sm:text-sm md:text-base ${brand.muted}`}>
-        Touchez une icône pour l’activer ou la désactiver. Allergènes et exclusions «&nbsp;goût&nbsp;» sont séparés&nbsp;:
-        les deux listes comptent pour vos futurs menus.
-      </p>
-      <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8494] sm:mt-4 sm:text-[11px] sm:tracking-[0.14em]">Souvent appréciés</p>
-      <div className="mt-1.5 grid grid-cols-5 gap-1 sm:mt-2 sm:grid-cols-5 sm:gap-2">
+      <h3 className={`text-base font-bold leading-snug ${brand.text}`}>Régime et favoris</h3>
+      <p className={`mt-0.5 text-[11px] leading-snug ${brand.muted}`}>Repas compatibles SOPK dès le jour 1.</p>
+      <OnboardingSectionLabel compact>Régime</OnboardingSectionLabel>
+      <div className="mt-1 flex flex-wrap gap-1">
+        {REGIME_OPTIONS.map((item) => (
+          <RegimeChip
+            key={item}
+            label={item}
+            active={profile.regimeAlimentaire === item}
+            onClick={() => onRegimeChange(item)}
+          />
+        ))}
+      </div>
+      <OnboardingSectionLabel compact>Souvent appréciés</OnboardingSectionLabel>
+      <div className="mt-1 grid grid-cols-6 gap-0.5">
         {FOOD_PREFERENCES.map(({ key, emoji }) => (
           <FoodIconTile
+            compact
             key={key}
             emoji={emoji}
             label={key}
@@ -674,10 +805,26 @@ function FoodPreferencesStep({
           />
         ))}
       </div>
-      <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8494] sm:mt-6 sm:text-[11px] sm:tracking-[0.14em]">Allergènes</p>
-      <div className="mt-1.5 grid grid-cols-3 gap-1 sm:mt-2 sm:grid-cols-6 sm:gap-2">
+    </div>
+  );
+}
+
+function FoodPreferencesExclusionsStep({
+  profile,
+  onToggle,
+}: {
+  profile: OnboardingData;
+  onToggle: (field: "allergies" | "alimentsDetestes", key: string) => void;
+}) {
+  return (
+    <div>
+      <h3 className={`text-base font-bold leading-snug ${brand.text}`}>Allergies et exclusions</h3>
+      <p className={`mt-0.5 text-[11px] leading-snug ${brand.muted}`}>Facultatif · cochez ce qui s’applique.</p>
+      <OnboardingSectionLabel compact>Allergènes</OnboardingSectionLabel>
+      <div className="mt-1 grid grid-cols-6 gap-0.5">
         {ALLERGY_ITEMS.map(({ key, emoji }) => (
           <FoodIconTile
+            compact
             key={key}
             emoji={emoji}
             label={key}
@@ -686,10 +833,11 @@ function FoodPreferencesStep({
           />
         ))}
       </div>
-      <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8494] sm:mt-6 sm:text-[11px] sm:tracking-[0.14em]">Exclusions (goût)</p>
-      <div className="mt-1.5 grid grid-cols-3 gap-1 sm:mt-2 sm:grid-cols-6 sm:gap-2">
+      <OnboardingSectionLabel compact>Exclusions (goût)</OnboardingSectionLabel>
+      <div className="mt-1 grid grid-cols-5 gap-0.5">
         {EXCLUSION_ITEMS.map(({ key, emoji }) => (
           <FoodIconTile
+            compact
             key={key}
             emoji={emoji}
             label={key}
@@ -719,53 +867,53 @@ const PROJECTION_HORIZONS: readonly {
   {
     id: "j30",
     days: 30,
-    cardTitle: "Intense — 30 jours",
+    cardTitle: "Intense - 30 jours",
     power: 1.22,
     lineColor: "#9b4d5a",
     accentClass: "text-[#7a3e45]",
     tickIndices: [0, 10, 20, 30],
     tickLabels: ["J1", "J10", "J20", "J30"],
     ariaLabel: "Courbe indicative du poids sur trente jours jusqu’à la cible",
-    choiceTitle: "30 jours — intense",
+    choiceTitle: "30 jours - intense",
     choiceHint: "Déficit le plus marqué dans le modèle ; discipline forte (repas, eau, marche).",
   },
   {
     id: "j90",
     days: 90,
-    cardTitle: "Équilibré — 90 jours",
+    cardTitle: "Équilibré - 90 jours",
     power: 1.52,
     lineColor: "#6d5a7d",
     accentClass: brand.muted,
     tickIndices: [0, 30, 60, 90],
     tickLabels: ["J1", "J30", "J60", "J90"],
     ariaLabel: "Courbe indicative du poids sur quatre-vingt-dix jours jusqu’à la cible",
-    choiceTitle: "90 jours — équilibré",
+    choiceTitle: "90 jours - équilibré",
     choiceHint: "Compromis fréquent : assez court pour rester motivante, assez long pour s’habituer.",
   },
   {
     id: "j180",
     days: 180,
-    cardTitle: "Progressive — 180 jours",
+    cardTitle: "Progressive - 180 jours",
     power: 1.68,
     lineColor: "#5a6b8a",
     accentClass: brand.muted,
     tickIndices: [0, 60, 120, 180],
     tickLabels: ["J1", "J60", "J120", "J180"],
     ariaLabel: "Courbe indicative du poids sur six mois jusqu’à la cible",
-    choiceTitle: "180 jours — progressive",
+    choiceTitle: "180 jours - progressive",
     choiceHint: "Rythme plus doux au quotidien ; les repères nutritionnels restent serrés mais moins « sprint ».",
   },
   {
     id: "j365",
     days: 365,
-    cardTitle: "Ancrée — 1 an",
+    cardTitle: "Ancrée - 1 an",
     power: 1.82,
     lineColor: "#4a6d72",
     accentClass: brand.muted,
     tickIndices: [0, 120, 240, 365],
     tickLabels: ["J1", "~4 m.", "~8 m.", "1 an"],
     ariaLabel: "Courbe indicative du poids sur un an jusqu’à la cible",
-    choiceTitle: "365 jours — ancrée",
+    choiceTitle: "365 jours - ancrée",
     choiceHint: "Même objectif poids, sur douze mois : idéal pour stabiliser sans yo-yo.",
   },
 ];
@@ -836,19 +984,19 @@ function MiniWeightChart({
 function ProjectionStep({
   profile,
   onParcoursChange,
-  displayName,
   currentKg,
   targetKg,
   deltaKg,
   diagnosticTag,
+  compact = false,
 }: {
   profile: OnboardingData;
   onParcoursChange: (parcours: OnboardingData["parcoursPerte"]) => void;
-  displayName: string;
   currentKg: number;
   targetKg: number;
   deltaKg: number;
   diagnosticTag: string;
+  compact?: boolean;
 }) {
   const reactId = useId().replace(/:/g, "");
   const selected = normalizeParcours(profile.parcoursPerte);
@@ -875,94 +1023,98 @@ function ProjectionStep({
 
   return (
     <div>
-      <h3 className={`text-base font-semibold leading-snug sm:text-[1.55rem] sm:leading-tight md:text-[2rem] ${brand.text}`}>
-        {displayName}, quatre vitesses pour une même cible
+      <h3 className={`font-semibold leading-snug ${compact ? "text-base" : "text-base sm:text-[1.55rem] md:text-[2rem]"} ${brand.text}`}>
+        {compact ? "Choisissez votre rythme" : "Quatre vitesses pour une même cible"}
       </h3>
-      <p className={`mt-1 text-sm leading-snug sm:mt-2 sm:text-base ${brand.muted}`}>
-        Les quatre courbes se rejoignent sur <strong className={brand.text}>la même cible de poids</strong> que vous
-        avez indiquée. Ce qui change, c’est la durée et donc le rythme quotidien (déficit modélisé, repères marche et
-        hydratation dans l’app). Choisissez l’horizon qui colle à votre réalité — vous pourrez l’ajuster plus tard.
-      </p>
-      <p className={`mt-1 text-xs leading-snug sm:mt-2 sm:text-sm ${brand.muted}`}>
-        Estimations indicatives à partir de votre âge, taille, poids, activité et symptômes — pas une prescription
-        médicale.
+      <p className={`mt-0.5 leading-snug ${compact ? "text-[11px]" : "mt-1 text-sm sm:mt-2 sm:text-base"} ${brand.muted}`}>
+        {compact
+          ? "Même cible de poids · durée et rythme quotidien différents."
+          : "Les quatre courbes se rejoignent sur la même cible de poids que vous avez indiquée."}
       </p>
 
-      <div className={`mt-3 rounded-[18px] border p-3 sm:mt-6 sm:rounded-[22px] sm:p-4 ${brand.card}`}>
+      <div className={`mt-2 rounded-xl border p-2.5 ${compact ? "" : "mt-3 rounded-[18px] p-3 sm:mt-6 sm:rounded-[22px] sm:p-4"} ${brand.card}`}>
         <div className="flex items-end justify-between gap-2">
           <div>
-            <p className={`text-[10px] font-medium uppercase tracking-wide sm:text-xs ${brand.muted}`}>Poids indiqué</p>
-            <p className={`text-xl font-semibold tabular-nums sm:text-2xl ${brand.text}`}>{currentKg.toFixed(0)} kg</p>
+            <p className={`text-[9px] font-medium uppercase tracking-wide ${brand.muted}`}>Départ</p>
+            <p className={`text-lg font-semibold tabular-nums ${brand.text}`}>{currentKg.toFixed(0)} kg</p>
           </div>
-          <div className="pb-0.5 text-[#c4bdc8] sm:pb-1">→</div>
+          <div className="pb-0.5 text-[#c4bdc8]">→</div>
           <div className="text-right">
-            <p className={`text-[10px] font-medium uppercase tracking-wide sm:text-xs ${brand.muted}`}>Cible indiquée</p>
-            <p className={`text-xl font-semibold tabular-nums sm:text-2xl ${brand.text}`}>{targetKg.toFixed(0)} kg</p>
+            <p className={`text-[9px] font-medium uppercase tracking-wide ${brand.muted}`}>Cible</p>
+            <p className={`text-lg font-semibold tabular-nums ${brand.text}`}>{targetKg.toFixed(0)} kg</p>
           </div>
         </div>
-        <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[#6d5a7d]/20 bg-[#6d5a7d]/8 px-2.5 py-1 text-[10px] font-semibold text-[#4a3d56] sm:mt-3 sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs">
-          <span aria-hidden>◎</span>
-          Écart cible sur le long terme : environ −{deltaKg.toFixed(1)} kg
-        </div>
-        <div className="mt-1.5 inline-flex rounded-full border border-[#dfe8e3] bg-[#f4faf6] px-2 py-0.5 text-[10px] font-medium text-[#5a6b62] sm:mt-2 sm:px-2.5 sm:py-1 sm:text-[11px]">
-          {diagnosticTag}
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          <span className="inline-flex items-center rounded-full border border-[#6d5a7d]/20 bg-[#6d5a7d]/8 px-2 py-0.5 text-[9px] font-semibold text-[#4a3d56]">
+            −{deltaKg.toFixed(1)} kg
+          </span>
+          <span className="inline-flex rounded-full border border-[#dfe8e3] bg-[#f4faf6] px-2 py-0.5 text-[9px] font-medium text-[#5a6b62]">
+            {diagnosticTag}
+          </span>
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:gap-3 md:grid-cols-2">
-        {PROJECTION_HORIZONS.map((h) => {
-          const loss = getEstimatedDailyLossGrams({ ...profile, parcoursPerte: h.id }, 1, 1, 1);
-          const gradId = `${reactId}-fill-${h.id}`;
-          return (
-            <div key={h.id} className={`rounded-[16px] border p-2.5 sm:rounded-[22px] sm:p-4 ${brand.card}`}>
-              <p className={`text-[10px] font-semibold uppercase tracking-[0.1em] sm:text-xs sm:tracking-[0.12em] ${h.accentClass}`}>{h.cardTitle}</p>
-              <p className={`mt-0.5 text-[10px] leading-tight sm:mt-1 sm:text-[11px] sm:leading-snug ${brand.muted}`}>
-                Déficit estimé ~{Math.round(loss)} g/j (si suivi strict) — même arrivée à {targetKg.toFixed(0)} kg, sur{" "}
-                {h.days} jours.
-              </p>
-              <MiniWeightChart
-                weights={weightsByHorizon[h.id]}
-                xTickIndices={[...h.tickIndices]}
-                xTickLabels={[...h.tickLabels]}
-                gradientId={gradId}
-                lineColor={h.lineColor}
-                ariaLabel={h.ariaLabel}
-                compact
-              />
-            </div>
-          );
-        })}
-      </div>
+      {!compact ? (
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:gap-3 md:grid-cols-2">
+          {PROJECTION_HORIZONS.map((h) => {
+            const loss = getEstimatedDailyLossGrams({ ...profile, parcoursPerte: h.id }, 1, 1, 1);
+            const gradId = `${reactId}-fill-${h.id}`;
+            return (
+              <div key={h.id} className={`rounded-[16px] border p-2.5 sm:rounded-[22px] sm:p-4 ${brand.card}`}>
+                <p className={`text-[10px] font-semibold uppercase tracking-[0.1em] sm:text-xs sm:tracking-[0.12em] ${h.accentClass}`}>{h.cardTitle}</p>
+                <p className={`mt-0.5 text-[10px] leading-tight sm:mt-1 sm:text-[11px] sm:leading-snug ${brand.muted}`}>
+                  Déficit estimé ~{Math.round(loss)} g/j - même arrivée à {targetKg.toFixed(0)} kg, sur {h.days} jours.
+                </p>
+                <MiniWeightChart
+                  weights={weightsByHorizon[h.id]}
+                  xTickIndices={[...h.tickIndices]}
+                  xTickLabels={[...h.tickLabels]}
+                  gradientId={gradId}
+                  lineColor={h.lineColor}
+                  ariaLabel={h.ariaLabel}
+                  compact
+                />
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
 
-      <p className={`mt-2 text-sm font-medium sm:mt-4 ${brand.text}`}>Quel horizon appliquer à votre plan ?</p>
-      <div className="mt-2 grid grid-cols-2 gap-2 sm:mt-3 sm:gap-3">
+      <p className={`mt-2 font-medium ${compact ? "text-[11px]" : "text-sm sm:mt-4"} ${brand.text}`}>
+        Quel horizon pour votre plan ?
+      </p>
+      <div className={`mt-1.5 grid grid-cols-2 gap-1.5 ${compact ? "" : "mt-2 gap-2 sm:mt-3 sm:gap-3"}`}>
         {PROJECTION_HORIZONS.map((h) => (
           <button
             key={h.id}
             type="button"
             onClick={() => onParcoursChange(h.id)}
-            className={`rounded-xl border-2 px-2.5 py-2 text-left text-xs transition active:scale-[0.99] sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm ${
-              selected === h.id ? selectedChoiceRing[h.id] : "border-[#e8e2eb] bg-white/80 hover:border-[#d4cdd8]"
-            }`}
+            className={`rounded-lg border-2 px-2 py-1.5 text-left transition active:scale-[0.99] ${
+              compact ? "text-[11px]" : "rounded-xl px-2.5 py-2 text-xs sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm"
+            } ${selected === h.id ? selectedChoiceRing[h.id] : "border-[#e8e2eb] bg-white/80 hover:border-[#d4cdd8]"}`}
           >
             <span className={`font-semibold ${brand.text}`}>{h.choiceTitle}</span>
-            <span className={`mt-0.5 block text-[10px] leading-tight sm:mt-1 sm:text-xs ${brand.muted}`}>{h.choiceHint}</span>
+            {!compact ? (
+              <span className={`mt-0.5 block text-[10px] leading-tight sm:mt-1 sm:text-xs ${brand.muted}`}>{h.choiceHint}</span>
+            ) : null}
           </button>
         ))}
       </div>
 
-      <div className="mt-2 grid grid-cols-3 gap-1.5 sm:mt-4 sm:gap-2 md:grid-cols-3">
-        {[
-          { t: "Menus SOPK", d: "De 30 jours à 1 an de menus selon l’horizon choisi" },
-          { t: "Repères personnalisés", d: "Âge, symptômes, goûts, allergies" },
-          { t: "Encadrement clair", d: "Repères nutritionnels, pas de promesse magique" },
-        ].map((c) => (
-          <div key={c.t} className="rounded-lg border border-[#e8e2eb]/90 bg-white/70 px-1.5 py-2 text-center sm:rounded-2xl sm:px-2 sm:py-3">
-            <p className={`text-[9px] font-semibold leading-tight sm:text-[11px] ${brand.text}`}>{c.t}</p>
-            <p className={`mt-0.5 text-[8px] leading-tight sm:mt-1 sm:text-[10px] ${brand.muted}`}>{c.d}</p>
-          </div>
-        ))}
-      </div>
+      {!compact ? (
+        <div className="mt-2 grid grid-cols-3 gap-1.5 sm:mt-4 sm:gap-2 md:grid-cols-3">
+          {[
+            { t: "Menus SOPK", d: "De 30 jours à 1 an de menus selon l’horizon choisi" },
+            { t: "Repères personnalisés", d: "Âge, symptômes, goûts, allergies" },
+            { t: "Encadrement clair", d: "Repères nutritionnels, pas de promesse magique" },
+          ].map((c) => (
+            <div key={c.t} className="rounded-lg border border-[#e8e2eb]/90 bg-white/70 px-1.5 py-2 text-center sm:rounded-2xl sm:px-2 sm:py-3">
+              <p className={`text-[9px] font-semibold leading-tight sm:text-[11px] ${brand.text}`}>{c.t}</p>
+              <p className={`mt-0.5 text-[8px] leading-tight sm:mt-1 sm:text-[10px] ${brand.muted}`}>{c.d}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -983,7 +1135,7 @@ function WebBuildStamp() {
   return <p className={`mt-4 text-center text-[10px] ${brand.muted}`}>Version app : {stamp}</p>;
 }
 
-function PricingStep({
+export function PricingStep({
   billing,
   onSelect,
   storeProducts,
@@ -991,6 +1143,7 @@ function PricingStep({
   nativeIap,
   showStoreConfigHint,
   onRetryStore,
+  compact = false,
 }: {
   billing: "monthly" | "yearly";
   onSelect: (plan: "monthly" | "yearly") => void;
@@ -999,21 +1152,54 @@ function PricingStep({
   nativeIap: boolean;
   showStoreConfigHint: boolean;
   onRetryStore?: () => void;
+  compact?: boolean;
 }) {
   const yearlyProduct = storeProducts?.yearly;
   const monthlyProduct = storeProducts?.monthly;
   const yearlyTitle = yearlyProduct?.title?.trim() || "Abonnement annuel";
   const monthlyTitle = monthlyProduct?.title?.trim() || "Abonnement mensuel";
+  const yearlyIntro = getProductIntroLabel(yearlyProduct, nativeIap);
+  const monthlyIntro = getProductIntroLabel(monthlyProduct, nativeIap);
   const yearlyPrice = yearlyProduct?.priceString ?? (nativeIap ? "…" : "59,99 €");
   const monthlyPrice = monthlyProduct?.priceString ?? (nativeIap ? "…" : "7,99 €");
+  const introMissingMessage = getIntroOfferMissingMessage(nativeIap, storeProducts ?? null, storeLoading);
+  const storeHasFreeTrial =
+    hasConfirmedStoreFreeTrial(yearlyProduct) || hasConfirmedStoreFreeTrial(monthlyProduct);
 
   return (
     <div>
-      <h3 className={`text-base font-semibold leading-snug sm:text-[1.55rem] md:text-[2rem] ${brand.text}`}>Abonnement après l’essai gratuit</h3>
-      <p className={`mt-1 text-sm leading-snug sm:mt-2 sm:text-base ${brand.muted}`}>
-        Sept jours pour explorer l’app sans payer. Ensuite, choisissez la formule qui correspond à votre budget — vous
-        gardez la main sur l’arrêt avant la fin de l’essai.
-      </p>
+      <h3 className={`font-semibold leading-snug ${compact ? "text-base" : "text-base sm:text-[1.55rem] md:text-[2rem]"} ${brand.text}`}>
+        {compact
+          ? nativeIap && storeHasFreeTrial
+            ? "Essai 7 jours · App Store"
+            : "Votre formule"
+          : nativeIap && storeHasFreeTrial
+            ? "Essai gratuit de 7 jours via l’App Store"
+            : nativeIap
+              ? "Choisissez votre abonnement"
+              : "Choisissez votre formule"}
+      </h3>
+      {!compact ? (
+        <p className={`mt-1 text-sm leading-snug sm:mt-2 sm:text-base ${brand.muted}`}>
+          {nativeIap && storeHasFreeTrial
+            ? "La première semaine est offerte par Apple (offre d’introduction). Choisissez ensuite la formule mensuelle ou annuelle - vous pouvez annuler avant la fin de l’essai."
+            : nativeIap
+              ? "Les tarifs et l’éligibilité à l’essai gratuit sont gérés par l’App Store."
+              : "Tarifs indicatifs hors magasin. Sur iPhone, l’essai gratuit de 7 jours et l’abonnement sont gérés par l’App Store."}
+        </p>
+      ) : null}
+
+      {nativeIap && storeHasFreeTrial && !compact ? (
+        <p className="mt-3 rounded-xl border border-[#6d5a7d]/25 bg-[#6d5a7d]/8 px-3 py-2.5 text-center text-sm font-bold text-[#6d5a7d] sm:text-base">
+          7 jours gratuits · puis abonnement au tarif choisi
+        </p>
+      ) : null}
+
+      {introMissingMessage && !compact ? (
+        <p className="mt-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-left text-xs font-medium leading-snug text-amber-950 sm:text-sm">
+          {introMissingMessage}
+        </p>
+      ) : null}
 
       {showStoreConfigHint ? (
         <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-center text-[10px] font-semibold leading-snug text-amber-900 sm:mt-3 sm:rounded-xl sm:px-3 sm:py-2 sm:text-[11px]">
@@ -1024,11 +1210,13 @@ function PricingStep({
       ) : null}
 
       {nativeIap && storeLoading ? (
-        <p className={`mt-3 text-center text-sm font-medium ${brand.muted}`}>Chargement des offres depuis le magasin…</p>
+        <p className={`${compact ? "mt-1" : "mt-3"} text-center text-xs font-medium ${brand.muted}`}>
+          Chargement des offres…
+        </p>
       ) : null}
 
       {nativeIap && storeProducts === null && onRetryStore ? (
-        <div className="mt-3 flex justify-center">
+        <div className={`${compact ? "mt-1" : "mt-3"} flex justify-center`}>
           <button
             type="button"
             onClick={onRetryStore}
@@ -1039,31 +1227,48 @@ function PricingStep({
         </div>
       ) : null}
 
-      <div className="mt-3 space-y-2 sm:mt-6 sm:space-y-3">
+      <div className={`${compact ? "mt-1.5 space-y-1.5" : "mt-3 space-y-2 sm:mt-6 sm:space-y-3"}`}>
         <button
           type="button"
           onClick={() => onSelect("yearly")}
-          className={`w-full rounded-[16px] border-2 p-3 text-left transition sm:rounded-[20px] sm:p-4 ${
+          className={`w-full rounded-xl border-2 text-left transition ${compact ? "p-2" : "rounded-[16px] p-3 sm:rounded-[20px] sm:p-4"} ${
             billing === "yearly" ? "border-[#6d5a7d] bg-[#6d5a7d]/6 shadow-sm" : "border-[#e8e2eb] bg-white/80 hover:border-[#d4cdd8]"
           }`}
         >
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className={`text-xs font-bold uppercase tracking-wide text-[#6d5a7d]`}>Formule la plus avantageuse</p>
-              <p className={`mt-0.5 line-clamp-2 text-base font-semibold sm:mt-1 sm:text-lg ${brand.text}`}>{yearlyTitle}</p>
-              <p className={`text-xl font-bold tabular-nums sm:text-2xl ${brand.text}`}>
-                {storeLoading ? "…" : yearlyPrice}
-                {!nativeIap ? (
+              {!compact ? (
+                <p className={`text-xs font-bold uppercase tracking-wide text-[#6d5a7d]`}>Formule la plus avantageuse</p>
+              ) : null}
+              <p className={`line-clamp-1 font-semibold ${compact ? "text-sm" : "mt-0.5 text-base sm:mt-1 sm:text-lg"} ${brand.text}`}>{yearlyTitle}</p>
+              {hasConfirmedStoreFreeTrial(yearlyProduct) ? (
+                <p className="mt-1 text-sm font-bold text-[#6d5a7d]">{yearlyIntro}</p>
+              ) : null}
+              {hasConfirmedStoreFreeTrial(yearlyProduct) ? (
+                <p className="mt-0.5 text-lg font-bold tabular-nums text-emerald-700 sm:text-xl">
+                  {yearlyProduct?.introductoryPrice?.priceString ?? "0,00 €"}
+                  <span className={`ml-1 text-sm font-semibold ${brand.muted}`}>aujourd’hui</span>
+                </p>
+              ) : null}
+              <p className={`${yearlyIntro ? "mt-0.5" : "mt-0"} font-bold tabular-nums ${compact ? "text-base" : "text-xl sm:text-2xl"} ${brand.text}`}>
+                {storeLoading
+                  ? "…"
+                  : hasConfirmedStoreFreeTrial(yearlyProduct)
+                    ? formatPriceAfterIntro(yearlyProduct, nativeIap) ?? yearlyPrice
+                    : yearlyPrice}
+                {!nativeIap && !yearlyIntro ? (
                   <span className={`text-sm font-normal ${brand.muted}`}>/an</span>
-                ) : (
+                ) : nativeIap && !yearlyIntro ? (
                   <span className={`text-sm font-normal ${brand.muted}`}> / période</span>
-                )}
+                ) : null}
               </p>
-              <p className={`mt-1 text-xs ${brand.muted}`}>
-                {nativeIap
-                  ? "Durée : 1 an · Renouvelé une fois par an — annulable à tout moment depuis les réglages Apple."
-                  : "Durée : 1 an · Un seul prélèvement par an, pour un tarif mensuel équivalent plus bas (indicatif hors magasin)."}
-              </p>
+              {!compact ? (
+                <p className={`mt-1 text-xs ${brand.muted}`}>
+                  {nativeIap
+                    ? "Durée : 1 an · Renouvelé une fois par an - annulable à tout moment depuis les réglages Apple."
+                    : "Durée : 1 an · Un seul prélèvement par an, pour un tarif mensuel équivalent plus bas (indicatif hors magasin)."}
+                </p>
+              ) : null}
             </div>
             <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${billing === "yearly" ? "bg-[#6d5a7d] text-white" : "bg-[#e8e2eb] text-[#6b6560]"}`}>
               {billing === "yearly" ? "✓" : ""}
@@ -1074,26 +1279,41 @@ function PricingStep({
         <button
           type="button"
           onClick={() => onSelect("monthly")}
-          className={`w-full rounded-[16px] border-2 p-3 text-left transition sm:rounded-[20px] sm:p-4 ${
+          className={`w-full rounded-xl border-2 text-left transition ${compact ? "p-2" : "rounded-[16px] p-3 sm:rounded-[20px] sm:p-4"} ${
             billing === "monthly" ? "border-[#6d5a7d] bg-[#6d5a7d]/6 shadow-sm" : "border-[#e8e2eb] bg-white/80 hover:border-[#d4cdd8]"
           }`}
         >
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className={`line-clamp-2 text-base font-semibold sm:text-lg ${brand.text}`}>{monthlyTitle}</p>
-              <p className={`text-xl font-bold tabular-nums sm:text-2xl ${brand.text}`}>
-                {storeLoading ? "…" : monthlyPrice}
-                {!nativeIap ? (
+              <p className={`line-clamp-1 font-semibold ${compact ? "text-sm" : "text-base sm:text-lg"} ${brand.text}`}>{monthlyTitle}</p>
+              {hasConfirmedStoreFreeTrial(monthlyProduct) ? (
+                <p className="mt-1 text-sm font-bold text-[#6d5a7d]">{monthlyIntro}</p>
+              ) : null}
+              {hasConfirmedStoreFreeTrial(monthlyProduct) ? (
+                <p className="mt-0.5 text-lg font-bold tabular-nums text-emerald-700 sm:text-xl">
+                  {monthlyProduct?.introductoryPrice?.priceString ?? "0,00 €"}
+                  <span className={`ml-1 text-sm font-semibold ${brand.muted}`}>aujourd’hui</span>
+                </p>
+              ) : null}
+              <p className={`${monthlyIntro ? "mt-0.5" : "mt-0"} font-bold tabular-nums ${compact ? "text-base" : "text-xl sm:text-2xl"} ${brand.text}`}>
+                {storeLoading
+                  ? "…"
+                  : hasConfirmedStoreFreeTrial(monthlyProduct)
+                    ? formatPriceAfterIntro(monthlyProduct, nativeIap) ?? monthlyPrice
+                    : monthlyPrice}
+                {!nativeIap && !monthlyIntro ? (
                   <span className={`text-sm font-normal ${brand.muted}`}>/mois</span>
-                ) : (
+                ) : nativeIap && !monthlyIntro ? (
                   <span className={`text-sm font-normal ${brand.muted}`}> / période</span>
-                )}
+                ) : null}
               </p>
-              <p className={`mt-1 text-xs ${brand.muted}`}>
-                {nativeIap
-                  ? "Durée : 1 mois · Renouvelé chaque mois — annulable à tout moment depuis les réglages Apple."
-                  : "Durée : 1 mois · Idéal si vous préférez évaluer mois après mois (indicatif hors magasin)."}
-              </p>
+              {!compact ? (
+                <p className={`mt-1 text-xs ${brand.muted}`}>
+                  {nativeIap
+                    ? "Durée : 1 mois · Renouvelé chaque mois - annulable à tout moment depuis les réglages Apple."
+                    : "Durée : 1 mois · Idéal si vous préférez évaluer mois après mois (indicatif hors magasin)."}
+                </p>
+              ) : null}
             </div>
             <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${billing === "monthly" ? "bg-[#6d5a7d] text-white" : "bg-[#e8e2eb] text-[#6b6560]"}`}>
               {billing === "monthly" ? "✓" : ""}
@@ -1102,8 +1322,66 @@ function PricingStep({
         </button>
       </div>
 
-      <SubscriptionLegalLinks compact className="mt-3 text-center sm:mt-4" />
-      <WebBuildStamp />
+      {!compact ? (
+        <>
+          <SubscriptionLegalLinks compact className="mt-3 text-center sm:mt-4" />
+          <WebBuildStamp />
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function OnboardingStepCard({ children }: { children: ReactNode }) {
+  return (
+    <div className="animate-[onboarding-fade-in_0.35s_ease-out]">
+      <div className="rounded-xl border border-brand-200/55 bg-white/95 p-2.5 shadow-card ring-1 ring-white/90">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function OnboardingSectionLabel({ children, compact = false }: { children: ReactNode; compact?: boolean }) {
+  return (
+    <p className={`text-[10px] font-bold uppercase tracking-wide text-brand-600/90 first:mt-0 ${compact ? "mt-2" : "mt-4 sm:mt-5"}`}>
+      {children}
+    </p>
+  );
+}
+
+function WelcomeHero() {
+  return (
+    <div className="animate-[onboarding-fade-in_0.45s_ease-out] space-y-2">
+      <div className="relative overflow-hidden rounded-xl border border-brand-400/30 bg-gradient-to-br from-brand-800 via-brand-600 to-accent p-[1px] shadow-elevated">
+        <div className="relative overflow-hidden rounded-[calc(0.75rem-1px)] bg-gradient-to-br from-brand-800 via-brand-600 to-brand-700 px-4 py-4 text-center text-white">
+          <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/15 blur-2xl" aria-hidden />
+          <div className="relative mx-auto flex justify-center">
+            <AppIconSvg size="md" className="ring-2 ring-white/20" />
+          </div>
+          <p className="relative mt-2 text-[9px] font-bold uppercase tracking-[0.16em] text-brand-100/90">
+            Programme nutrition SOPK
+          </p>
+          <h2 className="relative mt-1 text-lg font-black leading-snug tracking-tight">
+            Reprendre le contrôle, sans culpabiliser
+          </h2>
+          <p className="relative mx-auto mt-1.5 max-w-sm text-[11px] leading-snug text-white/90">
+            Menus concrets, repères quotidiens et suivi personnalisé pour le SOPK.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-1">
+        {WELCOME_TRUST_PILLARS.map((item) => (
+          <div
+            key={item.title}
+            className="rounded-lg border border-brand-200/80 bg-white/95 px-1.5 py-2 text-center shadow-sm ring-1 ring-white/80"
+          >
+            <p className={`text-[9px] font-bold leading-tight ${brand.text}`}>{item.title}</p>
+            <p className={`mt-0.5 text-[8px] leading-tight ${brand.muted}`}>{item.desc}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1114,43 +1392,72 @@ function ChoiceScreen({
   items,
   selected,
   onPick,
+  compact = false,
+  singleSelect = false,
 }: {
   title: string;
   subtitle: string;
   items: string[];
   selected: string[];
   onPick: (value: string) => void;
+  compact?: boolean;
+  singleSelect?: boolean;
 }) {
   return (
     <div>
-      <h3 className={`text-base font-semibold leading-snug sm:text-[1.65rem] sm:leading-tight md:text-4xl ${brand.text}`}>{title}</h3>
-      <p className={`mt-1 text-sm leading-snug sm:mt-2 sm:text-base ${brand.muted}`}>{subtitle}</p>
-      <div className="mt-3 grid gap-1.5 sm:mt-5 sm:gap-2.5">
+      <h3 className={`font-bold leading-snug ${compact ? "text-base" : "text-lg sm:text-xl md:text-2xl"} ${brand.text}`}>
+        {title}
+      </h3>
+      <p className={`leading-snug ${compact ? "mt-0.5 text-[11px]" : "mt-1.5 text-sm"} ${brand.muted}`}>{subtitle}</p>
+      <div className={`grid ${compact ? "mt-2 grid-cols-2 gap-1" : "mt-4 gap-2 sm:gap-2.5"}`}>
         {items.map((item) => (
-          <ChoicePill key={item} label={item} active={selected.includes(item)} onClick={() => onPick(item)} />
+          <ChoicePill
+            compact={compact}
+            key={item}
+            label={item}
+            active={selected.includes(item)}
+            onClick={() => onPick(item)}
+            singleSelect={singleSelect}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function ChoicePill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function ChoicePill({
+  label,
+  active,
+  onClick,
+  compact = false,
+  singleSelect = false,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  compact?: boolean;
+  singleSelect?: boolean;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition active:scale-[0.99] sm:gap-3 sm:rounded-2xl sm:px-4 sm:py-3.5 sm:text-base ${
+      className={`flex w-full items-center border text-left font-medium transition active:scale-[0.99] ${
+        compact
+          ? `gap-1.5 rounded-lg px-2 py-1.5 text-[10px] leading-tight ${singleSelect ? "col-span-1" : ""}`
+          : "gap-3 rounded-2xl px-3.5 py-3 text-sm sm:px-4 sm:py-3.5 sm:text-[15px]"
+      } ${
         active
-          ? "border-[#6d5a7d] bg-[#6d5a7d]/8 text-[#2c2622] shadow-[0_8px_24px_-16px_rgba(109,90,125,0.35)]"
-          : "border-[#e8e2eb] bg-white/85 text-[#2c2622] hover:border-[#d4cdd8]"
+          ? "border-brand-600 bg-gradient-to-r from-brand-600/10 to-brand-50 text-ink shadow-[0_8px_24px_-14px_rgba(109,90,125,0.4)] ring-2 ring-brand-600/20"
+          : "border-brand-200/90 bg-white text-ink hover:border-brand-300 hover:bg-brand-50/50"
       }`}
     >
       <span
-        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 text-[10px] ${
-          active ? "border-[#6d5a7d] bg-[#6d5a7d] text-white" : "border-[#cfc8d4] bg-white"
-        }`}
+        className={`flex shrink-0 items-center justify-center rounded-full border-2 font-bold transition ${
+          compact ? "h-4 w-4 text-[8px]" : "h-6 w-6 text-[11px]"
+        } ${active ? "border-brand-600 bg-brand-600 text-white" : "border-brand-200 bg-white text-transparent"}`}
       >
-        {active ? "✓" : ""}
+        ✓
       </span>
       {label}
     </button>
@@ -1165,6 +1472,7 @@ function SliderScreen({
   min,
   max,
   onChange,
+  compact = false,
 }: {
   title: string;
   subtitle: string;
@@ -1173,22 +1481,35 @@ function SliderScreen({
   min: number;
   max: number;
   onChange: (value: number) => void;
+  compact?: boolean;
 }) {
   return (
     <div>
-      <h3 className={`text-base font-semibold leading-snug sm:text-[1.65rem] sm:leading-tight md:text-4xl ${brand.text}`}>{title}</h3>
-      <p className={`mt-1 text-sm leading-snug sm:mt-2 sm:text-base ${brand.muted}`}>{subtitle}</p>
-      <p className={`mt-4 text-center text-4xl font-semibold tabular-nums tracking-tight sm:mt-8 sm:text-6xl md:text-7xl ${brand.text}`}>{value}</p>
-      <p className={`mt-0.5 text-center text-lg sm:mt-1 sm:text-2xl ${brand.muted}`}>{unit}</p>
+      <h3 className={`font-bold leading-snug ${compact ? "text-base" : "text-lg sm:text-xl md:text-2xl"} ${brand.text}`}>
+        {title}
+      </h3>
+      <p className={`leading-snug ${compact ? "mt-0.5 text-[11px]" : "mt-1.5 text-sm"} ${brand.muted}`}>{subtitle}</p>
+      <div className={`flex flex-col items-center ${compact ? "mt-2" : "mt-5 sm:mt-6"}`}>
+        <div
+          className={`flex items-center justify-center rounded-full bg-gradient-to-br from-brand-600 to-brand-800 shadow-[0_12px_32px_-8px_rgba(109,90,125,0.45)] ring-4 ring-brand-100 ${
+            compact ? "h-20 w-20" : "h-28 w-28 sm:h-32 sm:w-32"
+          }`}
+        >
+          <p className={`font-black tabular-nums tracking-tight text-white ${compact ? "text-3xl" : "text-4xl sm:text-5xl"}`}>
+            {value}
+          </p>
+        </div>
+        <p className={`font-semibold ${compact ? "mt-1 text-sm" : "mt-2 text-base sm:text-lg"} ${brand.muted}`}>{unit}</p>
+      </div>
       <input
         type="range"
         min={min}
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="mt-4 h-2 w-full cursor-pointer appearance-none rounded-full bg-[#e5dfe8] accent-[#6d5a7d] sm:mt-8"
+        className={`h-2 w-full cursor-pointer appearance-none rounded-full bg-brand-200/80 accent-brand-600 ${compact ? "mt-2" : "mt-5 sm:mt-6"} [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand-600 [&::-webkit-slider-thumb]:shadow-md`}
       />
-      <div className={`mt-1 flex justify-between text-xs sm:mt-2 sm:text-sm ${brand.muted}`}>
+      <div className={`mt-1 flex justify-between ${compact ? "text-[10px]" : "text-xs sm:text-sm"} ${brand.muted}`}>
         <span>
           {min} {unit}
         </span>
@@ -1200,29 +1521,62 @@ function SliderScreen({
   );
 }
 
-function MessageScreen({ title, text }: { title: string; text: string }) {
-  return (
-    <div>
-      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-[#8fa89a]/15 text-lg text-[#5a6b62] sm:h-14 sm:w-14 sm:rounded-2xl sm:text-2xl" aria-hidden>
-        ❀
-      </div>
-      <h3 className={`mt-2 text-center text-base font-semibold leading-snug sm:mt-5 sm:text-[1.65rem] sm:leading-tight md:text-4xl ${brand.text}`}>{title}</h3>
-      <div className="mt-3 border-l-2 border-[#8fa89a]/50 pl-3 sm:mt-6 sm:pl-4">
-        <p className={`text-sm leading-snug sm:text-base sm:leading-relaxed ${brand.muted}`}>{text}</p>
-      </div>
-    </div>
-  );
-}
+function NumericCard({
+  label,
+  value,
+  onChange,
+  min = 35,
+  max = 150,
+  compact = false,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  min?: number;
+  max?: number;
+  compact?: boolean;
+}) {
+  const [draft, setDraft] = useState(() => String(value));
 
-function NumericCard({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+  useEffect(() => {
+    setDraft(String(value));
+  }, [value]);
+
+  function commitDraft(raw: string) {
+    const trimmed = raw.trim();
+    if (trimmed === "" || trimmed === "." || trimmed === ",") {
+      setDraft(String(value));
+      return;
+    }
+    const parsed = Number(trimmed.replace(",", "."));
+    if (!Number.isFinite(parsed)) {
+      setDraft(String(value));
+      return;
+    }
+    const clamped = Math.min(max, Math.max(min, parsed));
+    onChange(clamped);
+    setDraft(String(clamped));
+  }
+
   return (
-    <label className={`text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a8494]`}>
+    <label className={`font-semibold uppercase tracking-[0.12em] text-[#8a8494] ${compact ? "text-[10px]" : "text-[11px]"}`}>
       {label}
       <input
-        type="number"
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className={`mt-1.5 h-11 w-full rounded-xl border border-[#e0d8e4] bg-white/90 px-2 text-lg font-semibold tabular-nums outline-none focus:border-[#6d5a7d] sm:mt-2 sm:h-14 sm:rounded-2xl sm:px-3 sm:text-2xl ${brand.text}`}
+        type="text"
+        inputMode="decimal"
+        value={draft}
+        onChange={(e) => {
+          const raw = e.target.value;
+          if (!/^\d*[.,]?\d*$/.test(raw)) return;
+          setDraft(raw);
+          if (raw === "" || raw === "." || raw === ",") return;
+          const parsed = Number(raw.replace(",", "."));
+          if (Number.isFinite(parsed)) onChange(parsed);
+        }}
+        onBlur={() => commitDraft(draft)}
+        className={`mt-1 w-full rounded-lg border border-[#e0d8e4] bg-white/90 px-2 font-semibold tabular-nums outline-none focus:border-[#6d5a7d] ${
+          compact ? "h-9 text-base" : "mt-1.5 h-11 rounded-xl text-lg sm:mt-2 sm:h-14 sm:rounded-2xl sm:px-3 sm:text-2xl"
+        } ${brand.text}`}
       />
     </label>
   );

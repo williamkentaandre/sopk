@@ -19,7 +19,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 
   const [value, setValue] = useState<T>(() => readFromLocalStorage(key, initialValue));
 
-  /** Quand la clé change (ex. guest → compte Apple), relire le slot — indispensable après déconnexion / reconnexion. */
+  /** Quand la clé change (ex. guest → compte Apple), relire le slot - indispensable après déconnexion / reconnexion. */
   useLayoutEffect(() => {
     setValue(readFromLocalStorage(key, initialRef.current));
   }, [key]);

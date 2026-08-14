@@ -12,28 +12,28 @@
           "nom": "Omelette épinards + pain complet",
           "calories": 390,
           "substitution": "Yaourt grec nature + fruits rouges + graines de chia",
-          "image": "https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/omelette-epinards-pain-complet.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Salade quinoa, poulet, avocat, légumes croquants",
           "calories": 470,
           "substitution": "Tofu grillé à la place du poulet",
-          "image": "https://images.unsplash.com/photo-1546793665-c74683f339c1?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/salade-quinoa-poulet-avocat-legumes-croquants.jpg"
         },
         {
           "type": "collation",
           "nom": "Pomme + 10 amandes",
           "calories": 170,
           "substitution": "Poire + noix",
-          "image": "https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/pomme-10-amandes.jpg"
         },
         {
           "type": "diner",
           "nom": "Saumon au four + brocoli + patate douce",
           "calories": 520,
           "substitution": "Cabillaud + haricots verts + riz complet",
-          "image": "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/saumon-au-four-brocoli-patate-douce.jpg"
         }
       ],
       "conseils": [
@@ -51,28 +51,28 @@
           "nom": "Porridge flocons d’avoine, lait végétal, cannelle",
           "calories": 360,
           "substitution": "Pain complet + fromage blanc + kiwi",
-          "image": "https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/porridge-flocons-d-avoine-lait-vegetal-cannelle.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Buddha bowl lentilles, crudités, feta",
           "calories": 460,
           "substitution": "Pois chiches à la place des lentilles",
-          "image": "https://images.unsplash.com/photo-1543332164-6e82f355badc?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/buddha-bowl-lentilles-crudites-feta.jpg"
         },
         {
           "type": "collation",
           "nom": "Fromage blanc nature + graines de courge",
           "calories": 180,
           "substitution": "Skyr nature + cannelle",
-          "image": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/fromage-blanc-nature-graines-de-courge.jpg"
         },
         {
           "type": "diner",
           "nom": "Dinde sautée + courgettes + riz basmati complet",
           "calories": 530,
           "substitution": "Tempeh sauté + légumes + quinoa",
-          "image": "https://images.unsplash.com/photo-1562967916-eb82221dfb92?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/dinde-sautee-courgettes-riz-basmati-complet.jpg"
         }
       ],
       "conseils": [
@@ -90,28 +90,28 @@
           "nom": "Skyr + noix + framboises",
           "calories": 340,
           "substitution": "Omelette 2 œufs + tomates cerises",
-          "image": "https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/skyr-noix-framboises.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Wrap complet au thon, crudités, houmous",
           "calories": 450,
           "substitution": "Wrap poulet ou tofu",
-          "image": "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/wrap-complet-au-thon-crudites-houmous.jpg"
         },
         {
           "type": "collation",
           "nom": "Carottes + houmous",
           "calories": 170,
           "substitution": "Concombre + guacamole léger",
-          "image": "https://images.unsplash.com/photo-1623428454614-abaf5dca3fd2?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/carottes-houmous.jpg"
         },
         {
           "type": "diner",
           "nom": "Chili maison haricots rouges + salade verte",
           "calories": 540,
           "substitution": "Bol de lentilles épicées",
-          "image": "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/chili-maison-haricots-rouges-salade-verte.jpg"
         }
       ],
       "conseils": [
@@ -129,28 +129,28 @@
           "nom": "Toast complet, avocat, œuf poché",
           "calories": 380,
           "substitution": "Galettes de sarrasin + fromage blanc",
-          "image": "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/toast-complet-avocat-uf-poche.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Poisson blanc, quinoa, légumes rôtis",
           "calories": 480,
           "substitution": "Tofu mariné + quinoa + légumes",
-          "image": "https://images.unsplash.com/photo-1551248429-40975aa4de74?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/poisson-blanc-quinoa-legumes-rotis.jpg"
         },
         {
           "type": "collation",
           "nom": "Orange + 1 carré chocolat noir 85%",
           "calories": 160,
           "substitution": "Clémentines + noisettes",
-          "image": "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/orange-1-carre-chocolat-noir-85.jpg"
         },
         {
           "type": "diner",
           "nom": "Soupe de légumes + pois chiches + salade",
           "calories": 500,
           "substitution": "Soupe + omelette aux herbes",
-          "image": "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/soupe-de-legumes-pois-chiches-salade.jpg"
         }
       ],
       "conseils": [
@@ -168,28 +168,28 @@
           "nom": "Smoothie protéiné (sans sucre ajouté) + flocons",
           "calories": 370,
           "substitution": "Skyr + banane + graines",
-          "image": "https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/smoothie-proteine-sans-sucre-ajoute-flocons.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Salade pois chiches, concombre, tomate, feta",
           "calories": 450,
           "substitution": "Lentilles vertes à la place des pois chiches",
-          "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/salade-pois-chiches-concombre-tomate-feta.jpg"
         },
         {
           "type": "collation",
           "nom": "Yaourt nature + myrtilles",
           "calories": 170,
           "substitution": "Fromage blanc + fraises",
-          "image": "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/yaourt-nature-myrtilles.jpg"
         },
         {
           "type": "diner",
           "nom": "Poulet au curry doux + chou-fleur + riz complet",
           "calories": 540,
           "substitution": "Curry de tofu",
-          "image": "https://images.unsplash.com/photo-1604908554265-6254655488df?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/poulet-au-curry-doux-chou-fleur-riz-complet.jpg"
         }
       ],
       "conseils": [
@@ -207,28 +207,28 @@
           "nom": "Pancakes flocons d’avoine maison + skyr",
           "calories": 390,
           "substitution": "Bol de muesli sans sucre + yaourt nature",
-          "image": "https://images.unsplash.com/photo-1519676867240-f03562e64548?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/pancakes-flocons-d-avoine-maison-skyr.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Bowl saumon fumé, riz complet, avocat, concombre",
           "calories": 500,
           "substitution": "Bowl tofu fumé",
-          "image": "https://images.unsplash.com/photo-1553621042-f6e147245754?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/bowl-saumon-fume-riz-complet-avocat-concombre.jpg"
         },
         {
           "type": "collation",
           "nom": "Kiwi + noix de cajou",
           "calories": 160,
           "substitution": "Pomme + pistaches",
-          "image": "https://images.unsplash.com/photo-1619566636858-adf3ef46400b?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/kiwi-noix-de-cajou.jpg"
         },
         {
           "type": "diner",
           "nom": "Steak haché 5% + haricots verts + quinoa",
           "calories": 510,
           "substitution": "Galette végétale + légumes + quinoa",
-          "image": "https://images.unsplash.com/photo-1600891964092-4316c288032e?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/steak-hache-5-haricots-verts-quinoa.jpg"
         }
       ],
       "conseils": [
@@ -246,28 +246,28 @@
           "nom": "Œufs brouillés + champignons + pain complet",
           "calories": 380,
           "substitution": "Tofu brouillé + pain complet",
-          "image": "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/ufs-brouilles-champignons-pain-complet.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Salade niçoise revisitée (sans pommes de terre)",
           "calories": 460,
           "substitution": "Version végétarienne avec pois chiches",
-          "image": "https://images.unsplash.com/photo-1539136788836-5699e78bfc75?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/salade-nicoise-revisitee-sans-pommes-de-terre.jpg"
         },
         {
           "type": "collation",
           "nom": "Fruits rouges + fromage blanc",
           "calories": 150,
           "substitution": "Compote sans sucre + yaourt nature",
-          "image": "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/fruits-rouges-fromage-blanc.jpg"
         },
         {
           "type": "diner",
           "nom": "Gratin de légumes + filet de poisson",
           "calories": 520,
           "substitution": "Gratin de légumes + tempeh",
-          "image": "https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/gratin-de-legumes-filet-de-poisson.jpg"
         }
       ],
       "conseils": [
@@ -285,28 +285,28 @@
           "nom": "Omelette épinards + pain complet",
           "calories": 390,
           "substitution": "Yaourt grec nature + fruits rouges + graines de chia",
-          "image": "https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/omelette-epinards-pain-complet.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Salade quinoa, poulet, avocat, légumes croquants",
           "calories": 470,
           "substitution": "Tofu grillé à la place du poulet",
-          "image": "https://images.unsplash.com/photo-1546793665-c74683f339c1?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/salade-quinoa-poulet-avocat-legumes-croquants.jpg"
         },
         {
           "type": "collation",
           "nom": "Pomme + 10 amandes",
           "calories": 170,
           "substitution": "Poire + noix",
-          "image": "https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/pomme-10-amandes.jpg"
         },
         {
           "type": "diner",
           "nom": "Saumon au four + brocoli + patate douce",
           "calories": 520,
           "substitution": "Cabillaud + haricots verts + riz complet",
-          "image": "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/saumon-au-four-brocoli-patate-douce.jpg"
         }
       ],
       "conseils": [
@@ -324,28 +324,28 @@
           "nom": "Porridge flocons d’avoine, lait végétal, cannelle",
           "calories": 360,
           "substitution": "Pain complet + fromage blanc + kiwi",
-          "image": "https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/porridge-flocons-d-avoine-lait-vegetal-cannelle.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Buddha bowl lentilles, crudités, feta",
           "calories": 460,
           "substitution": "Pois chiches à la place des lentilles",
-          "image": "https://images.unsplash.com/photo-1543332164-6e82f355badc?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/buddha-bowl-lentilles-crudites-feta.jpg"
         },
         {
           "type": "collation",
           "nom": "Fromage blanc nature + graines de courge",
           "calories": 180,
           "substitution": "Skyr nature + cannelle",
-          "image": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/fromage-blanc-nature-graines-de-courge.jpg"
         },
         {
           "type": "diner",
           "nom": "Dinde sautée + courgettes + riz basmati complet",
           "calories": 530,
           "substitution": "Tempeh sauté + légumes + quinoa",
-          "image": "https://images.unsplash.com/photo-1562967916-eb82221dfb92?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/dinde-sautee-courgettes-riz-basmati-complet.jpg"
         }
       ],
       "conseils": [
@@ -363,28 +363,28 @@
           "nom": "Skyr + noix + framboises",
           "calories": 340,
           "substitution": "Omelette 2 œufs + tomates cerises",
-          "image": "https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/skyr-noix-framboises.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Wrap complet au thon, crudités, houmous",
           "calories": 450,
           "substitution": "Wrap poulet ou tofu",
-          "image": "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/wrap-complet-au-thon-crudites-houmous.jpg"
         },
         {
           "type": "collation",
           "nom": "Carottes + houmous",
           "calories": 170,
           "substitution": "Concombre + guacamole léger",
-          "image": "https://images.unsplash.com/photo-1623428454614-abaf5dca3fd2?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/carottes-houmous.jpg"
         },
         {
           "type": "diner",
           "nom": "Chili maison haricots rouges + salade verte",
           "calories": 540,
           "substitution": "Bol de lentilles épicées",
-          "image": "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/chili-maison-haricots-rouges-salade-verte.jpg"
         }
       ],
       "conseils": [
@@ -402,28 +402,28 @@
           "nom": "Toast complet, avocat, œuf poché",
           "calories": 380,
           "substitution": "Galettes de sarrasin + fromage blanc",
-          "image": "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/toast-complet-avocat-uf-poche.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Poisson blanc, quinoa, légumes rôtis",
           "calories": 480,
           "substitution": "Tofu mariné + quinoa + légumes",
-          "image": "https://images.unsplash.com/photo-1551248429-40975aa4de74?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/poisson-blanc-quinoa-legumes-rotis.jpg"
         },
         {
           "type": "collation",
           "nom": "Orange + 1 carré chocolat noir 85%",
           "calories": 160,
           "substitution": "Clémentines + noisettes",
-          "image": "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/orange-1-carre-chocolat-noir-85.jpg"
         },
         {
           "type": "diner",
           "nom": "Soupe de légumes + pois chiches + salade",
           "calories": 500,
           "substitution": "Soupe + omelette aux herbes",
-          "image": "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/soupe-de-legumes-pois-chiches-salade.jpg"
         }
       ],
       "conseils": [
@@ -441,28 +441,28 @@
           "nom": "Smoothie protéiné (sans sucre ajouté) + flocons",
           "calories": 370,
           "substitution": "Skyr + banane + graines",
-          "image": "https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/smoothie-proteine-sans-sucre-ajoute-flocons.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Salade pois chiches, concombre, tomate, feta",
           "calories": 450,
           "substitution": "Lentilles vertes à la place des pois chiches",
-          "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/salade-pois-chiches-concombre-tomate-feta.jpg"
         },
         {
           "type": "collation",
           "nom": "Yaourt nature + myrtilles",
           "calories": 170,
           "substitution": "Fromage blanc + fraises",
-          "image": "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/yaourt-nature-myrtilles.jpg"
         },
         {
           "type": "diner",
           "nom": "Poulet au curry doux + chou-fleur + riz complet",
           "calories": 540,
           "substitution": "Curry de tofu",
-          "image": "https://images.unsplash.com/photo-1604908554265-6254655488df?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/poulet-au-curry-doux-chou-fleur-riz-complet.jpg"
         }
       ],
       "conseils": [
@@ -480,28 +480,28 @@
           "nom": "Pancakes flocons d’avoine maison + skyr",
           "calories": 390,
           "substitution": "Bol de muesli sans sucre + yaourt nature",
-          "image": "https://images.unsplash.com/photo-1519676867240-f03562e64548?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/pancakes-flocons-d-avoine-maison-skyr.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Bowl saumon fumé, riz complet, avocat, concombre",
           "calories": 500,
           "substitution": "Bowl tofu fumé",
-          "image": "https://images.unsplash.com/photo-1553621042-f6e147245754?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/bowl-saumon-fume-riz-complet-avocat-concombre.jpg"
         },
         {
           "type": "collation",
           "nom": "Kiwi + noix de cajou",
           "calories": 160,
           "substitution": "Pomme + pistaches",
-          "image": "https://images.unsplash.com/photo-1619566636858-adf3ef46400b?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/kiwi-noix-de-cajou.jpg"
         },
         {
           "type": "diner",
           "nom": "Steak haché 5% + haricots verts + quinoa",
           "calories": 510,
           "substitution": "Galette végétale + légumes + quinoa",
-          "image": "https://images.unsplash.com/photo-1600891964092-4316c288032e?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/steak-hache-5-haricots-verts-quinoa.jpg"
         }
       ],
       "conseils": [
@@ -519,28 +519,28 @@
           "nom": "Œufs brouillés + champignons + pain complet",
           "calories": 380,
           "substitution": "Tofu brouillé + pain complet",
-          "image": "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/ufs-brouilles-champignons-pain-complet.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Salade niçoise revisitée (sans pommes de terre)",
           "calories": 460,
           "substitution": "Version végétarienne avec pois chiches",
-          "image": "https://images.unsplash.com/photo-1539136788836-5699e78bfc75?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/salade-nicoise-revisitee-sans-pommes-de-terre.jpg"
         },
         {
           "type": "collation",
           "nom": "Fruits rouges + fromage blanc",
           "calories": 150,
           "substitution": "Compote sans sucre + yaourt nature",
-          "image": "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/fruits-rouges-fromage-blanc.jpg"
         },
         {
           "type": "diner",
           "nom": "Gratin de légumes + filet de poisson",
           "calories": 520,
           "substitution": "Gratin de légumes + tempeh",
-          "image": "https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/gratin-de-legumes-filet-de-poisson.jpg"
         }
       ],
       "conseils": [
@@ -558,28 +558,28 @@
           "nom": "Omelette épinards + pain complet",
           "calories": 390,
           "substitution": "Yaourt grec nature + fruits rouges + graines de chia",
-          "image": "https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/omelette-epinards-pain-complet.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Salade quinoa, poulet, avocat, légumes croquants",
           "calories": 470,
           "substitution": "Tofu grillé à la place du poulet",
-          "image": "https://images.unsplash.com/photo-1546793665-c74683f339c1?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/salade-quinoa-poulet-avocat-legumes-croquants.jpg"
         },
         {
           "type": "collation",
           "nom": "Pomme + 10 amandes",
           "calories": 170,
           "substitution": "Poire + noix",
-          "image": "https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/pomme-10-amandes.jpg"
         },
         {
           "type": "diner",
           "nom": "Saumon au four + brocoli + patate douce",
           "calories": 520,
           "substitution": "Cabillaud + haricots verts + riz complet",
-          "image": "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/saumon-au-four-brocoli-patate-douce.jpg"
         }
       ],
       "conseils": [
@@ -597,28 +597,28 @@
           "nom": "Porridge flocons d’avoine, lait végétal, cannelle",
           "calories": 360,
           "substitution": "Pain complet + fromage blanc + kiwi",
-          "image": "https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/porridge-flocons-d-avoine-lait-vegetal-cannelle.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Buddha bowl lentilles, crudités, feta",
           "calories": 460,
           "substitution": "Pois chiches à la place des lentilles",
-          "image": "https://images.unsplash.com/photo-1543332164-6e82f355badc?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/buddha-bowl-lentilles-crudites-feta.jpg"
         },
         {
           "type": "collation",
           "nom": "Fromage blanc nature + graines de courge",
           "calories": 180,
           "substitution": "Skyr nature + cannelle",
-          "image": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/fromage-blanc-nature-graines-de-courge.jpg"
         },
         {
           "type": "diner",
           "nom": "Dinde sautée + courgettes + riz basmati complet",
           "calories": 530,
           "substitution": "Tempeh sauté + légumes + quinoa",
-          "image": "https://images.unsplash.com/photo-1562967916-eb82221dfb92?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/dinde-sautee-courgettes-riz-basmati-complet.jpg"
         }
       ],
       "conseils": [
@@ -636,28 +636,28 @@
           "nom": "Skyr + noix + framboises",
           "calories": 340,
           "substitution": "Omelette 2 œufs + tomates cerises",
-          "image": "https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/skyr-noix-framboises.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Wrap complet au thon, crudités, houmous",
           "calories": 450,
           "substitution": "Wrap poulet ou tofu",
-          "image": "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/wrap-complet-au-thon-crudites-houmous.jpg"
         },
         {
           "type": "collation",
           "nom": "Carottes + houmous",
           "calories": 170,
           "substitution": "Concombre + guacamole léger",
-          "image": "https://images.unsplash.com/photo-1623428454614-abaf5dca3fd2?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/carottes-houmous.jpg"
         },
         {
           "type": "diner",
           "nom": "Chili maison haricots rouges + salade verte",
           "calories": 540,
           "substitution": "Bol de lentilles épicées",
-          "image": "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/chili-maison-haricots-rouges-salade-verte.jpg"
         }
       ],
       "conseils": [
@@ -675,28 +675,28 @@
           "nom": "Toast complet, avocat, œuf poché",
           "calories": 380,
           "substitution": "Galettes de sarrasin + fromage blanc",
-          "image": "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/toast-complet-avocat-uf-poche.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Poisson blanc, quinoa, légumes rôtis",
           "calories": 480,
           "substitution": "Tofu mariné + quinoa + légumes",
-          "image": "https://images.unsplash.com/photo-1551248429-40975aa4de74?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/poisson-blanc-quinoa-legumes-rotis.jpg"
         },
         {
           "type": "collation",
           "nom": "Orange + 1 carré chocolat noir 85%",
           "calories": 160,
           "substitution": "Clémentines + noisettes",
-          "image": "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/orange-1-carre-chocolat-noir-85.jpg"
         },
         {
           "type": "diner",
           "nom": "Soupe de légumes + pois chiches + salade",
           "calories": 500,
           "substitution": "Soupe + omelette aux herbes",
-          "image": "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/soupe-de-legumes-pois-chiches-salade.jpg"
         }
       ],
       "conseils": [
@@ -714,28 +714,28 @@
           "nom": "Smoothie protéiné (sans sucre ajouté) + flocons",
           "calories": 370,
           "substitution": "Skyr + banane + graines",
-          "image": "https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/smoothie-proteine-sans-sucre-ajoute-flocons.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Salade pois chiches, concombre, tomate, feta",
           "calories": 450,
           "substitution": "Lentilles vertes à la place des pois chiches",
-          "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/salade-pois-chiches-concombre-tomate-feta.jpg"
         },
         {
           "type": "collation",
           "nom": "Yaourt nature + myrtilles",
           "calories": 170,
           "substitution": "Fromage blanc + fraises",
-          "image": "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/yaourt-nature-myrtilles.jpg"
         },
         {
           "type": "diner",
           "nom": "Poulet au curry doux + chou-fleur + riz complet",
           "calories": 540,
           "substitution": "Curry de tofu",
-          "image": "https://images.unsplash.com/photo-1604908554265-6254655488df?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/poulet-au-curry-doux-chou-fleur-riz-complet.jpg"
         }
       ],
       "conseils": [
@@ -753,28 +753,28 @@
           "nom": "Pancakes flocons d’avoine maison + skyr",
           "calories": 390,
           "substitution": "Bol de muesli sans sucre + yaourt nature",
-          "image": "https://images.unsplash.com/photo-1519676867240-f03562e64548?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/pancakes-flocons-d-avoine-maison-skyr.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Bowl saumon fumé, riz complet, avocat, concombre",
           "calories": 500,
           "substitution": "Bowl tofu fumé",
-          "image": "https://images.unsplash.com/photo-1553621042-f6e147245754?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/bowl-saumon-fume-riz-complet-avocat-concombre.jpg"
         },
         {
           "type": "collation",
           "nom": "Kiwi + noix de cajou",
           "calories": 160,
           "substitution": "Pomme + pistaches",
-          "image": "https://images.unsplash.com/photo-1619566636858-adf3ef46400b?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/kiwi-noix-de-cajou.jpg"
         },
         {
           "type": "diner",
           "nom": "Steak haché 5% + haricots verts + quinoa",
           "calories": 510,
           "substitution": "Galette végétale + légumes + quinoa",
-          "image": "https://images.unsplash.com/photo-1600891964092-4316c288032e?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/steak-hache-5-haricots-verts-quinoa.jpg"
         }
       ],
       "conseils": [
@@ -792,28 +792,28 @@
           "nom": "Œufs brouillés + champignons + pain complet",
           "calories": 380,
           "substitution": "Tofu brouillé + pain complet",
-          "image": "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/ufs-brouilles-champignons-pain-complet.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Salade niçoise revisitée (sans pommes de terre)",
           "calories": 460,
           "substitution": "Version végétarienne avec pois chiches",
-          "image": "https://images.unsplash.com/photo-1539136788836-5699e78bfc75?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/salade-nicoise-revisitee-sans-pommes-de-terre.jpg"
         },
         {
           "type": "collation",
           "nom": "Fruits rouges + fromage blanc",
           "calories": 150,
           "substitution": "Compote sans sucre + yaourt nature",
-          "image": "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/fruits-rouges-fromage-blanc.jpg"
         },
         {
           "type": "diner",
           "nom": "Gratin de légumes + filet de poisson",
           "calories": 520,
           "substitution": "Gratin de légumes + tempeh",
-          "image": "https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=1200&q=80"
+          "image": "/images/meals/gratin-de-legumes-filet-de-poisson.jpg"
         }
       ],
       "conseils": [

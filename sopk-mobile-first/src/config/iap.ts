@@ -6,7 +6,7 @@
  * iOS : productIdentifier = id d’abonnement App Store.
  */
 
-/** Identifiants App Store Connect (publics) — surchargeables via `.env.production`. */
+/** Identifiants App Store Connect (publics) - surchargeables via `.env.production`. */
 const DEFAULT_IAP_MONTHLY_ID = "com.nutrisopk.app.sub.monthly";
 const DEFAULT_IAP_YEARLY_ID = "com.nutrisopk.app.sub.yearly";
 

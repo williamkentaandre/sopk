@@ -23,12 +23,22 @@ export function normalizeParcours(raw: LegacyParcours): ParcoursPerte {
 
 export function canAccessPlan(
   profile: OnboardingData | null | undefined,
-  opts?: { hasEntitlement?: boolean },
+  opts?: {
+    hasEntitlement?: boolean;
+    hasActiveSubscription?: boolean;
+    /** Web / dev sans IAP : accès après onboarding sans paywall. */
+    skipSubscriptionGate?: boolean;
+    /** iOS : accès uniquement via abonnement Apple actif (essai 7 jours ou payant). */
+    requireAppleSubscription?: boolean;
+  },
 ): boolean {
   if (!profile) return false;
-  if (profile.onboardingCompleted === true) return true;
-  if (profile.billingPreference === "monthly" || profile.billingPreference === "yearly") return true;
+  if (opts?.hasActiveSubscription === true) return true;
+  if (opts?.requireAppleSubscription) {
+    return opts?.hasEntitlement === true;
+  }
   if (opts?.hasEntitlement === true) return true;
+  if (opts?.skipSubscriptionGate && profile.onboardingCompleted === true) return true;
   return false;
 }
 

@@ -10,7 +10,15 @@ function seededRandom(seed: number): number {
   return x - Math.floor(x);
 }
 
-export function DayCelebrationFireworks({ burstKey, title = "Bravo !" }: { burstKey: number; title?: string }) {
+export function DayCelebrationFireworks({
+  burstKey,
+  title = "Bravo !",
+  subtitle,
+}: {
+  burstKey: number;
+  title?: string;
+  subtitle?: string;
+}) {
   const particles = useMemo(() => {
     return Array.from({ length: PARTICLE_COUNT }, (_, i) => {
       const seed = burstKey * 7919 + i * 17;
@@ -31,9 +39,16 @@ export function DayCelebrationFireworks({ burstKey, title = "Bravo !" }: { burst
       aria-hidden
     >
       <div className="absolute inset-0 bg-gradient-to-b from-violet-950/35 via-slate-950/40 to-slate-950/55 backdrop-blur-[2px]" />
-      <p className="relative z-10 max-w-[90vw] animate-[celebration-title-pop_0.75s_cubic-bezier(0.34,1.56,0.64,1)_forwards] px-4 text-center text-2xl font-black tracking-tight text-white drop-shadow-[0_0_24px_rgba(167,139,250,0.95)] sm:text-3xl">
-        {title}
-      </p>
+      <div className="relative z-10 flex max-w-[min(90vw,22rem)] flex-col items-center gap-2 px-4 text-center">
+        <p className="animate-[celebration-title-pop_0.75s_cubic-bezier(0.34,1.56,0.64,1)_forwards] text-2xl font-black tracking-tight text-white drop-shadow-[0_0_24px_rgba(167,139,250,0.95)] sm:text-3xl">
+          {title}
+        </p>
+        {subtitle ? (
+          <p className="animate-[celebration-title-pop_0.75s_cubic-bezier(0.34,1.56,0.64,1)_0.2s_both] text-sm font-semibold leading-snug text-white/95 drop-shadow-[0_2px_12px_rgba(0,0,0,0.35)] sm:text-base">
+            {subtitle}
+          </p>
+        ) : null}
+      </div>
       <div className="pointer-events-none absolute left-1/2 top-[40%] h-px w-px sm:top-[38%]">
         {particles.map((b, i) => (
           <span

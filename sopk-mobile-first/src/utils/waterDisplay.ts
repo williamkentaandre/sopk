@@ -1,4 +1,4 @@
-/** Pas du curseur hydratation (ml) — 100 ml = 10 cl (centilitres). */
+/** Pas du curseur hydratation (ml) - 100 ml = 10 cl (centilitres). */
 export const WATER_STEP_ML = 100;
 
 /** Une bouteille d’eau standard 1,5 L (repère texte / objectif « cocher » côté pas). */

@@ -28,15 +28,15 @@ export function getProgramDayCount(parcoursPerte: OnboardingData["parcoursPerte"
 export function parcoursHorizonLabel(parcours: OnboardingData["parcoursPerte"]): string {
   switch (parcours) {
     case "j30":
-      return "Intense — 30 jours";
+      return "Intense - 30 jours";
     case "j90":
-      return "Équilibré — 90 jours";
+      return "Équilibré - 90 jours";
     case "j180":
-      return "Progressive — 180 jours";
+      return "Progressive - 180 jours";
     case "j365":
-      return "Ancrée — 365 jours";
+      return "Ancrée - 365 jours";
     default:
-      return "Équilibré — 90 jours";
+      return "Équilibré - 90 jours";
   }
 }
 
@@ -80,7 +80,7 @@ function addCalendarDaysIso(iso: string, deltaDays: number): string {
   return formatIsoLocal(d);
 }
 
-/** Ancien calcul (jour de l’année % durée) — conservé pour migration seulement. */
+/** Ancien calcul (jour de l’année % durée) - conservé pour migration seulement. */
 function programDayFromDayOfYearModulo(dayCount: number): number {
   const len = Math.max(1, dayCount);
   const d = new Date();
@@ -100,7 +100,7 @@ export function shiftProgramStartEarlierByOneDay(programStartDateIso: string): s
 /**
  * Jour du programme (1 … dayCount) pour aujourd’hui (date locale).
  * Avec `programStartDateIso` : nombre de jours civils depuis le 1er jour (jour 1 = date de début).
- * Sans date : ancien repli (jour de l’année modulo la durée) — déconseillé.
+ * Sans date : ancien repli (jour de l’année modulo la durée) - déconseillé.
  */
 export function getTodayJourInProgram(dayCount: number, programStartDateIso?: string | null): number {
   const len = Math.max(1, dayCount);
@@ -129,9 +129,37 @@ function buildProgramDays(dayCount: number): DayPlan[] {
   });
 }
 
+function declaredActivityMultiplier(niveauActivite: string | undefined): number | null {
+  const n = (niveauActivite ?? "").toLowerCase();
+  if (n.includes("très active") || n.includes("tres active")) return 1.725;
+  if (n.includes("modér") || n.includes("moder")) return 1.55;
+  if (n.includes("légère") || n.includes("legere")) return 1.375;
+  if (n.includes("sédent") || n.includes("sedent")) return 1.2;
+  return null;
+}
+
+function activityStepsBonusFromProfile(profile: OnboardingData): number {
+  const n = (profile.niveauActivite ?? "").toLowerCase();
+  if (n.includes("très active") || n.includes("tres active")) return 1200;
+  if (n.includes("modér") || n.includes("moder")) return 600;
+  if (n.includes("légère") || n.includes("legere")) return 300;
+  if (n.includes("sédent") || n.includes("sedent")) return -400;
+  return 0;
+}
+
 function inferredActivityMultiplier(profile: OnboardingData): number {
+  const declared = declaredActivityMultiplier(profile.niveauActivite);
   const bmi = profile.poidsKg / ((profile.tailleCm / 100) * (profile.tailleCm / 100));
   const t = parcoursIntensiteT(profile.parcoursPerte);
+
+  if (declared != null) {
+    let multiplier = declared + lerp(0.03, 0, t);
+    if (profile.age >= 45) multiplier -= 0.02;
+    if (bmi >= 30) multiplier -= 0.02;
+    if (bmi < 22) multiplier += 0.02;
+    return Math.max(1.2, Math.min(1.75, multiplier));
+  }
+
   let multiplier = 1.4;
 
   multiplier += lerp(0.06, 0.02, t);
@@ -240,6 +268,7 @@ export function getDailyWalkingRecommendation(profile: OnboardingData): {
   let targetSteps = 6500;
 
   targetSteps += parcoursStepsBonus(profile.parcoursPerte);
+  targetSteps += activityStepsBonusFromProfile(profile);
 
   if (profile.age >= 40) targetSteps -= 500;
   if (profile.age >= 50) targetSteps -= 500;
@@ -264,12 +293,15 @@ export function getEstimatedDailyLossGrams(
   profile: OnboardingData,
   completionRatio: number,
   waterProgressRatio: number,
-  walkingProgressRatio: number
+  walkingProgressRatio: number,
+  indulgenceKcal = 0,
 ): number {
   const baseDeficitKcal = Math.abs(objectiveAdjustmentByParcours(profile.parcoursPerte));
   const safeRatio = Math.max(0, Math.min(1, completionRatio));
   const safeWaterRatio = Math.max(0, Math.min(1, waterProgressRatio));
   const safeWalkingRatio = Math.max(0, Math.min(1, walkingProgressRatio));
+
+  const indulgencePenalty = Math.max(0, indulgenceKcal) / 7.7;
 
   if (safeRatio <= 0 && safeWaterRatio <= 0 && safeWalkingRatio <= 0) {
     return 0;
@@ -288,5 +320,5 @@ export function getEstimatedDailyLossGrams(
   const gramsPerDay = effectiveDeficit / 7.7;
   const cap = maxDailyLossByParcours(profile.parcoursPerte);
 
-  return Math.round(Math.max(0, Math.min(cap, gramsPerDay)));
+  return Math.max(0, Math.round(Math.min(cap, gramsPerDay) - indulgencePenalty));
 }

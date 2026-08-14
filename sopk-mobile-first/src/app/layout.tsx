@@ -18,6 +18,13 @@ caches.keys().then(function(ks){ks.forEach(function(k){caches.delete(k);});});
 }
 })();`;
 
+const DISABLE_PINCH_ZOOM = `(function(){
+if(typeof document==='undefined')return;
+document.addEventListener('gesturestart',function(e){e.preventDefault();},{passive:false});
+document.addEventListener('gesturechange',function(e){e.preventDefault();},{passive:false});
+document.addEventListener('gestureend',function(e){e.preventDefault();},{passive:false});
+})();`;
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -31,6 +38,8 @@ const geistMono = Geist_Mono({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
 };
 
@@ -64,8 +73,9 @@ export default function RootLayout({
       lang="fr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col" style={{ backgroundColor: "#faf7f4" }}>
+      <body className="app-shell-bg min-h-full flex flex-col">
         <script dangerouslySetInnerHTML={{ __html: CAPACITOR_SW_KILL }} />
+        <script dangerouslySetInnerHTML={{ __html: DISABLE_PINCH_ZOOM }} />
         <ServiceWorkerBootstrap />
         {children}
       </body>

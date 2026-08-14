@@ -96,5 +96,20 @@ export async function hasActiveSubscriptionFromStore(): Promise<boolean> {
   });
   const mid = iapMonthlyProductId();
   const yid = iapYearlyProductId();
-  return purchases.some((p) => p.productIdentifier === mid || p.productIdentifier === yid);
+  const now = Date.now();
+  return purchases.some((p) => {
+    if (p.productIdentifier !== mid && p.productIdentifier !== yid) return false;
+    if (p.isActive === false) return false;
+    if (p.revocationDate) return false;
+    if (p.expirationDate) {
+      return new Date(p.expirationDate).getTime() > now;
+    }
+    return (
+      p.isActive === true ||
+      p.isTrialPeriod === true ||
+      p.isInIntroPricePeriod === true ||
+      p.subscriptionState === "subscribed" ||
+      p.subscriptionState === "inGracePeriod"
+    );
+  });
 }
