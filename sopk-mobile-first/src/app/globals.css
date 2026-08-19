@@ -310,6 +310,21 @@ input[type="range"].task-range:disabled::-webkit-slider-thumb {
   cursor: not-allowed;
 }
 
+input[type="range"].task-range-water {
+  height: 2rem;
+}
+
+input[type="range"].task-range-water::-webkit-slider-runnable-track {
+  height: 10px;
+  background: transparent;
+}
+
+input[type="range"].task-range-water::-webkit-slider-thumb {
+  width: 24px;
+  height: 24px;
+  margin-top: -7px;
+}
+
 input[type="range"].game-range::-webkit-slider-runnable-track {
   height: 5px;
   border-radius: 9999px;

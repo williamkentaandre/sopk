@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import { MEAL_WHY_CATALOG, lookupMealWhyCatalog, normalizeMealKey } from "@/data/mealWhyCatalog";
 import { getMealCatalog } from "@/utils/mealPersonalization";
 import { getMealPortionDetails } from "@/utils/meal-portions";
-import { buildMealPortionTeaching, teachFromDisplayedPortions } from "@/utils/taskWhyToday";
+import { buildMealPortionTeaching, buildStepsWhyToday, buildWaterWhyToday, teachFromDisplayedPortions } from "@/utils/taskWhyToday";
 import type { DayPlan, MealEntry, OnboardingData } from "@/utils/types";
 
 const profile: OnboardingData = {
@@ -120,5 +120,44 @@ describe("I15 · pédagogie dans les portions, pas une vignette générique", ()
     assert.ok(withFav.includes("Poulet") || withFav.includes("poulet"));
     assert.ok(withFav.length >= plain.length);
     assert.equal(plain.includes("Vous aviez indiqué aimer"), false);
+  });
+});
+
+describe("I16 · pédagogie eau et pas sous la dose, pas en vignette", () => {
+  const withActivity = (niveauActivite: string, poidsKg = 70): OnboardingData => ({
+    ...profile,
+    profilNutrition: "sopk",
+    niveauActivite,
+    poidsKg,
+  });
+
+  it("l’eau cite le poids et change si la morphologie change", () => {
+    const light = buildWaterWhyToday(withActivity("Sédentaire", 55), 2000);
+    const heavy = buildWaterWhyToday(withActivity("Sédentaire", 90), 2800);
+    assert.ok(light.includes("55 kg"), light);
+    assert.ok(heavy.includes("90 kg"), heavy);
+    assert.notEqual(light, heavy);
+    assert.equal(normalize(light).includes("objectif "), false);
+    assert.equal(normalize(light).includes("profil alimentaire"), false);
+    assert.equal(normalize(light).includes("soutient le metabolisme"), false);
+  });
+
+  it("l’eau distingue sédentaire et très active", () => {
+    const sedentary = buildWaterWhyToday(withActivity("Sédentaire"), 2200);
+    const very = buildWaterWhyToday(withActivity("Très active"), 2600);
+    assert.notEqual(sedentary, very);
+    assert.ok(sedentary.toLowerCase().includes("sédentaire") || sedentary.toLowerCase().includes("sedentaire"));
+    assert.ok(very.toLowerCase().includes("très active") || very.toLowerCase().includes("tres active"));
+  });
+
+  it("les pas expliquent la cible sans relire le total en tête", () => {
+    const sedentary = buildStepsWhyToday(withActivity("Sédentaire"), 6500);
+    const very = buildStepsWhyToday(withActivity("Très active"), 10000);
+    assert.notEqual(sedentary, very);
+    assert.equal(/^\s*\d/.test(sedentary), false);
+    assert.equal(normalize(sedentary).includes("sans surcharge"), false);
+    assert.ok(normalize(sedentary).includes("insuline") || normalize(sedentary).includes("marche"));
+    assert.ok(normalize(sedentary).includes("sedentaire") || sedentary.includes("progressive"));
+    assert.ok(very.toLowerCase().includes("plus haute") || very.toLowerCase().includes("très active"));
   });
 });

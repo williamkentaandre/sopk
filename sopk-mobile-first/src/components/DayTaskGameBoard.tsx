@@ -1,13 +1,12 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 
 import { brand } from "@/styles/brand";
 import type { MealEntry } from "@/utils/types";
-import { formatLitersFrFromMl, WATER_STEP_ML } from "@/utils/waterDisplay";
+import { formatLitersFrFromMl, formatWaterSliderAria, WATER_STEP_ML, waterGlassFillFractions } from "@/utils/waterDisplay";
 
 import { MealImage } from "./PlanViewMealImage";
-import { TaskWhyTodaySheet, type TaskWhyTodayImage, type TaskWhyTodaySheetState, TaskWhyTodayTrigger } from "./TaskWhyTodaySheet";
 import { TrackingTaskImage } from "./TrackingTaskImage";
 
 export function taskBrickClasses(done: boolean, awaitPulse = false): string {
@@ -106,6 +105,82 @@ function TaskSeal({ checked, onHonoredCard }: { checked: boolean; onHonoredCard:
   );
 }
 
+function WaterGlassIcon({ fill, honored, index }: { fill: number; honored: boolean; index: number }) {
+  const clippedHeight = 26 * fill;
+  const clipY = 8 + (26 - clippedHeight);
+  const stroke = honored ? "rgba(255,255,255,0.85)" : "#6d5a7d";
+  const water = honored ? "rgba(255,255,255,0.88)" : "#0d9488";
+  const clipId = `water-glass-${index}`;
+
+  return (
+    <svg viewBox="0 0 32 40" className="h-8 w-6 shrink-0" aria-hidden>
+      <defs>
+        <clipPath id={clipId}>
+          <rect x="6" y={clipY} width="20" height={clippedHeight} />
+        </clipPath>
+      </defs>
+      <path
+        d="M8 6h16l-2.2 26.2c-.35 3.4-11.25 3.4-11.6 0L8 6Z"
+        fill={water}
+        opacity={fill > 0.02 ? 1 : 0}
+        clipPath={`url(#${clipId})`}
+      />
+      <path
+        d="M8 6h16l-2.2 26.2c-.35 3.4-11.25 3.4-11.6 0L8 6Z"
+        fill="none"
+        stroke={stroke}
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+      />
+      <path d="M11 34.5h10" stroke={stroke} strokeWidth="1.75" strokeLinecap="round" opacity="0.45" />
+    </svg>
+  );
+}
+
+function WaterGlassesRow({
+  filledMl,
+  targetMl,
+  honored,
+}: {
+  filledMl: number;
+  targetMl: number;
+  honored: boolean;
+}) {
+  const fractions = waterGlassFillFractions(filledMl, targetMl);
+  return (
+    <div className="relative mt-2.5 flex flex-wrap justify-center gap-1.5" aria-hidden>
+      {fractions.map((fill, index) => (
+        <WaterGlassIcon key={index} index={index} fill={fill} honored={honored} />
+      ))}
+    </div>
+  );
+}
+
+function DoseTeachingBlock({ done, text }: { done: boolean; text: string }) {
+  if (!text.trim()) return null;
+  return (
+    <div className={`relative mt-2 border-t pt-2 ${done ? "border-white/20" : "border-brand-100"}`}>
+      <p
+        className={`text-[11px] font-black uppercase tracking-wide ${
+          done ? "text-white/85" : "text-brand-800"
+        }`}
+      >
+        Pourquoi cette cible
+      </p>
+      <div className="mt-1.5 space-y-1.5">
+        {text.split("\n\n").map((paragraph) => (
+          <p
+            key={paragraph.slice(0, 48)}
+            className={`text-[13px] leading-relaxed ${done ? "text-white/90" : "text-ink"}`}
+          >
+            {paragraph}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MealDoneToggleBar({ checked }: { checked: boolean }) {
   return (
     <div
@@ -185,12 +260,7 @@ export function DayTaskGameBoard({
 }: DayTaskGameBoardProps) {
   const taskProgressPercent = totalTasks > 0 ? Math.round((checkedToday / totalTasks) * 100) : 0;
   const expandedPanelRef = useRef<HTMLDivElement | null>(null);
-  const [whySheet, setWhySheet] = useState<TaskWhyTodaySheetState | null>(null);
   const canPulse = canEdit && !isFutureDay;
-
-  const openWhy = (subtitle: string, explanation: string, image?: TaskWhyTodayImage) => {
-    setWhySheet({ subtitle, explanation, image });
-  };
 
   useLayoutEffect(() => {
     if (!expandedMealKey) return;
@@ -389,48 +459,74 @@ export function DayTaskGameBoard({
             </div>
             );
           })}
+        </div>
 
-          <div
-            className={`relative flex flex-col overflow-hidden rounded-2xl border-2 transition-all duration-300 ${taskBrickClasses(
-              waterChecked,
-              canPulse && !waterChecked,
-            )}`}
-          >
-            <TrackingTaskImage kind="water" />
-            <TaskWhyTodayTrigger
-              onOpen={() =>
-                openWhy(`Eau · ${formatLitersFrFromMl(waterTargetMl)} visés`, waterWhyToday, {
-                  type: "tracking",
-                  kind: "water",
-                })
-              }
-              className="left-1.5 top-1.5"
-            />
-            <div className="relative flex min-h-[4.5rem] flex-1 flex-col justify-between p-2.5">
-              <GameBrickShine done={waterChecked} />
-              <div className="relative flex items-baseline justify-between gap-1">
-                <span
-                  className={`text-[8px] font-black uppercase tracking-[0.14em] ${
-                    waterChecked ? "text-white/75" : "text-brand-600"
-                  }`}
-                >
-                  Eau
-                </span>
-                <span
-                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
-                    waterChecked ? "bg-black/20 text-white/90" : "bg-brand-100 text-brand-800"
-                  }`}
-                >
-                  {waterPercent}%
-                </span>
-              </div>
-              <p
-                className={`relative text-[18px] font-black tabular-nums leading-none ${
-                  waterChecked ? "text-white drop-shadow-sm" : "text-ink"
+        <div
+          className={`relative overflow-hidden rounded-2xl border-2 transition-all duration-300 ${taskBrickClasses(
+            waterChecked,
+            canPulse && !waterChecked,
+          )}`}
+        >
+          <TrackingTaskImage kind="water" />
+          <div className="relative p-3">
+            <GameBrickShine done={waterChecked} />
+            <div className="relative flex items-baseline justify-between gap-1">
+              <span
+                className={`text-[8px] font-black uppercase tracking-[0.14em] ${
+                  waterChecked ? "text-white/75" : "text-brand-600"
                 }`}
               >
-                {formatLitersFrFromMl(waterRawMl)}
-              </p>
+                Eau
+              </span>
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                  waterChecked ? "bg-black/20 text-white/90" : "bg-brand-100 text-brand-800"
+                }`}
+              >
+                {waterPercent}%
+              </span>
+            </div>
+            <p
+              className={`relative mt-1 text-[22px] font-black tabular-nums leading-none ${
+                waterChecked ? "text-white drop-shadow-sm" : "text-ink"
+              }`}
+            >
+              {formatLitersFrFromMl(waterRawMl)}
+              <span className={`text-[12px] font-semibold ${waterChecked ? "text-white/75" : "text-brand-500"}`}>
+                {" "}
+                / {formatLitersFrFromMl(waterTargetMl)}
+              </span>
+            </p>
+            <p
+              className={`relative mt-2.5 flex items-center gap-1.5 text-[13px] font-semibold leading-snug ${
+                waterChecked ? "text-white/90" : "text-brand-800"
+              }`}
+            >
+              {!canEdit || isFutureDay
+                ? "Aperçu seulement."
+                : waterChecked
+                  ? "Cible atteinte — vous pouvez encore ajuster."
+                  : "Glissez le curseur vers la droite pour indiquer ce que vous avez bu aujourd’hui."}
+              {canEdit && !isFutureDay && !waterChecked ? (
+                <span className="inline-flex shrink-0 text-[16px] leading-none" aria-hidden>
+                  →
+                </span>
+              ) : null}
+            </p>
+            <div className="relative mt-2 h-8">
+              <div
+                className={`absolute left-0 right-0 top-1/2 h-2.5 -translate-y-1/2 overflow-hidden rounded-full ${
+                  waterChecked ? "bg-black/25" : "bg-brand-200"
+                }`}
+                aria-hidden
+              >
+                <div
+                  className={`h-full rounded-full ${
+                    waterChecked ? "bg-white/90" : "bg-gradient-to-r from-brand-600 to-accent"
+                  }`}
+                  style={{ width: `${waterPercent}%` }}
+                />
+              </div>
               <input
                 type="range"
                 min={0}
@@ -438,101 +534,94 @@ export function DayTaskGameBoard({
                 step={WATER_STEP_ML}
                 value={waterSliderMl}
                 disabled={!canEdit || isFutureDay}
+                aria-label="Eau bue aujourd’hui"
+                aria-valuetext={formatWaterSliderAria(waterSliderMl, waterTargetMl)}
                 onChange={(e) => {
                   const next = Math.min(waterTargetMl, Math.max(0, Number(e.target.value)));
                   onWaterChange(next);
                 }}
-                className={`task-range relative h-1 w-full cursor-pointer disabled:opacity-40 ${
+                className={`task-range task-range-water relative h-8 w-full cursor-pointer disabled:opacity-40 ${
                   waterChecked ? "task-range-honored accent-white" : "task-range-open accent-brand-600"
                 }`}
               />
             </div>
+            <WaterGlassesRow filledMl={waterSliderMl} targetMl={waterTargetMl} honored={waterChecked} />
+            <DoseTeachingBlock done={waterChecked} text={waterWhyToday} />
           </div>
+        </div>
 
-          <div
-            className={`relative flex flex-col overflow-hidden rounded-2xl border-2 transition-all duration-300 ${taskBrickClasses(
-              stepsChecked,
-              canPulse && !stepsChecked,
-            )}`}
-          >
-            <TrackingTaskImage kind="steps" />
-            <TaskWhyTodayTrigger
-              onOpen={() =>
-                openWhy(
-                  `Pas · ${stepsTarget.toLocaleString("fr-FR")} recommandés`,
-                  stepsWhyToday,
-                  { type: "tracking", kind: "steps" },
-                )
-              }
-              className="left-1.5 top-1.5"
-            />
-            <div className="relative flex min-h-[4.5rem] flex-1 flex-col justify-between p-2.5">
-              <GameBrickShine done={stepsChecked} />
-              <div className="relative flex items-baseline justify-between gap-1">
-                <span
-                  className={`text-[8px] font-black uppercase tracking-[0.14em] ${
-                    stepsChecked ? "text-white/75" : "text-brand-600"
-                  }`}
-                >
-                  Pas
-                </span>
-                <span
-                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
-                    stepsChecked ? "bg-black/20 text-white/90" : "bg-brand-100 text-brand-800"
-                  }`}
-                >
-                  {stepsPercent}%
-                </span>
-              </div>
-              <p
-                className={`relative text-[18px] font-black tabular-nums leading-none ${
-                  stepsChecked ? "text-white drop-shadow-sm" : "text-ink"
+        <div
+          className={`relative overflow-hidden rounded-2xl border-2 transition-all duration-300 ${taskBrickClasses(
+            stepsChecked,
+            canPulse && !stepsChecked,
+          )}`}
+        >
+          <TrackingTaskImage kind="steps" />
+          <div className="relative p-3">
+            <GameBrickShine done={stepsChecked} />
+            <div className="relative flex items-baseline justify-between gap-1">
+              <span
+                className={`text-[8px] font-black uppercase tracking-[0.14em] ${
+                  stepsChecked ? "text-white/75" : "text-brand-600"
                 }`}
               >
-                {stepsCurrent.toLocaleString("fr-FR")}
-                <span
-                  className={`text-[10px] font-semibold ${stepsChecked ? "text-white/75" : "text-brand-500"}`}
-                >
-                  {" "}
-                  / {stepsTarget.toLocaleString("fr-FR")}
-                </span>
-              </p>
-              <div
-                className={`relative h-1 w-full overflow-hidden rounded-full ${
-                  stepsChecked ? "bg-black/25" : "bg-brand-200"
+                Pas
+              </span>
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                  stepsChecked ? "bg-black/20 text-white/90" : "bg-brand-100 text-brand-800"
                 }`}
-                role="progressbar"
-                aria-valuenow={stepsCurrent}
-                aria-valuemin={0}
-                aria-valuemax={stepsTarget}
-                aria-label="Progression des pas"
               >
-                <div
-                  className={`h-full rounded-full transition-[width] duration-300 ${
-                    stepsChecked ? "bg-white/90" : "bg-gradient-to-r from-brand-600 to-accent"
-                  }`}
-                  style={{ width: `${Math.min(100, stepsPercent)}%` }}
-                />
-              </div>
-              {stepsStatusLabel ? (
-                <p
-                  className={`relative text-[8px] font-bold uppercase tracking-wide ${
-                    stepsChecked ? "text-white/75" : "text-brand-600"
-                  }`}
-                >
-                  {stepsStatusLabel}
-                </p>
-              ) : null}
-              {stepsHint ? (
-                <p
-                  className={`relative text-[8px] font-medium leading-snug ${
-                    stepsChecked ? "text-white/80" : "text-ink-muted"
-                  }`}
-                >
-                  {stepsHint}
-                </p>
-              ) : null}
+                {stepsPercent}%
+              </span>
             </div>
+            <p
+              className={`relative mt-1 text-[22px] font-black tabular-nums leading-none ${
+                stepsChecked ? "text-white drop-shadow-sm" : "text-ink"
+              }`}
+            >
+              {stepsCurrent.toLocaleString("fr-FR")}
+              <span className={`text-[12px] font-semibold ${stepsChecked ? "text-white/75" : "text-brand-500"}`}>
+                {" "}
+                / {stepsTarget.toLocaleString("fr-FR")}
+              </span>
+            </p>
+            <DoseTeachingBlock done={stepsChecked} text={stepsWhyToday} />
+            <div
+              className={`relative mt-3 h-1 w-full overflow-hidden rounded-full ${
+                stepsChecked ? "bg-black/25" : "bg-brand-200"
+              }`}
+              role="progressbar"
+              aria-valuenow={stepsCurrent}
+              aria-valuemin={0}
+              aria-valuemax={stepsTarget}
+              aria-label="Progression des pas"
+            >
+              <div
+                className={`h-full rounded-full transition-[width] duration-300 ${
+                  stepsChecked ? "bg-white/90" : "bg-gradient-to-r from-brand-600 to-accent"
+                }`}
+                style={{ width: `${Math.min(100, stepsPercent)}%` }}
+              />
+            </div>
+            {stepsStatusLabel ? (
+              <p
+                className={`relative mt-1.5 text-[10px] font-bold uppercase tracking-wide ${
+                  stepsChecked ? "text-white/75" : "text-brand-600"
+                }`}
+              >
+                {stepsStatusLabel}
+              </p>
+            ) : null}
+            {stepsHint ? (
+              <p
+                className={`relative mt-0.5 text-[11px] font-medium leading-snug ${
+                  stepsChecked ? "text-white/80" : "text-ink-muted"
+                }`}
+              >
+                {stepsHint}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -555,7 +644,6 @@ export function DayTaskGameBoard({
           </p>
         )}
       </div>
-      <TaskWhyTodaySheet open={whySheet} onClose={() => setWhySheet(null)} />
     </div>
   );
 }

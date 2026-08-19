@@ -4,13 +4,12 @@ import {
   type MealIngredientPortion,
 } from "@/utils/meal-portions";
 import { lookupMealWhyCatalog } from "@/data/mealWhyCatalog";
-import { defaultFoodFiltersLabel, isSopkNutritionProfile } from "@/utils/profilePath";
+import { isSopkNutritionProfile } from "@/utils/profilePath";
 import {
   getDailyWalkingRecommendation,
   getMealCaloriesForTarget,
   parcoursHorizonLabel,
 } from "@/utils/mealPlan";
-import { profileFoodFiltersLabel } from "@/utils/profileAdvice";
 import type { DayPlan, MealEntry, MealType, OnboardingData } from "@/utils/types";
 
 function normalizeText(text: string): string {
@@ -260,56 +259,78 @@ export function buildMealWhyToday(
   return buildMealPortionTeaching(profile, meal, day, dailyTarget);
 }
 
+function activityBand(profile: OnboardingData): "sedentary" | "light" | "moderate" | "very" | "unknown" {
+  const niveau = (profile.niveauActivite ?? "").toLowerCase();
+  if (niveau.includes("sédent") || niveau.includes("sedent")) return "sedentary";
+  if (niveau.includes("légère") || niveau.includes("legere")) return "light";
+  if (niveau.includes("très active") || niveau.includes("tres active")) return "very";
+  if (niveau.includes("modér") || niveau.includes("moder")) return "moderate";
+  return "unknown";
+}
+
 function symptomHydrationHint(profile: OnboardingData): string | null {
   const symptoms = profile.symptomes ?? [];
   if (symptoms.some((symptom) => symptom.includes("rétention") || symptom.includes("Jambes lourdes"))) {
-    return "L’hydratation régulière peut aussi soulager la sensation de jambes lourdes ou de rétention.";
+    return "Si vous avez des jambes lourdes ou de la rétention, tenez la cible en verres réguliers : forcer au-delà n’aide pas.";
   }
   if (symptoms.some((symptom) => symptom.includes("Fringales"))) {
-    return "Avant de grignoter, vérifiez si vous n’avez pas soif  - la faim et la soif se confondent souvent.";
+    return "Avant de grignoter, un verre : la soif se confond souvent avec une fringale.";
   }
   if (symptoms.some((symptom) => symptom.includes("fatigue"))) {
-    return "Une déshydratation légère accentue parfois la fatigue  - un verre régulier aide.";
+    return "Une déshydratation légère accentue la fatigue : un verre à intervalle régulier suffit, pas un litre d’un coup.";
   }
   return null;
 }
 
-function activityStepsHint(profile: OnboardingData, stepsTarget: number): string | null {
-  const niveau = (profile.niveauActivite ?? "").toLowerCase();
-  if (niveau.includes("sédent") || niveau.includes("sedent")) {
-    return `À ${stepsTarget.toLocaleString("fr-FR")} pas, l’objectif reste progressif pour un rythme sédentaire : chaque marche compte.`;
+function waterActivityNote(profile: OnboardingData): string {
+  const band = activityBand(profile);
+  if (band === "sedentary") {
+    return "Votre rythme est sédentaire : le calcul n’ajoute qu’un petit supplément, pas un litre « sportif ».";
   }
-  if (niveau.includes("très active") || niveau.includes("tres active")) {
-    return "Votre niveau d’activité habituel permet de viser un peu plus haut sans vous épuiser.";
+  if (band === "very") {
+    return "Un supplément est ajouté parce que vous êtes très active : transpiration et métabolisme demandent plus de fluide.";
+  }
+  if (band === "moderate") {
+    return "Un bonus modéré tient compte de votre activité, sans viser une hyperhydratation.";
+  }
+  return "Le volume intègre votre niveau d’activité, sans excès.";
+}
+
+function activityStepsHint(profile: OnboardingData, minutes: number): string | null {
+  const band = activityBand(profile);
+  if (band === "sedentary") {
+    return `Pour un rythme sédentaire, la cible reste progressive (environ ${minutes} min de marche), pas un défi du jour.`;
+  }
+  if (band === "very") {
+    return `Votre niveau d’activité permet une cible plus haute (environ ${minutes} min), sans viser un ultra.`;
   }
   if ((profile.symptomes ?? []).some((symptom) => symptom.includes("Graisse") || symptom.includes("ventre"))) {
-    return "La marche quotidienne améliore la sensibilité à l’insuline  - un levier clé pour la régulation métabolique.";
+    return "Cette dose de marche est un levier d’insuline, utile si vous travaillez la régulation métabolique.";
   }
   return null;
 }
 
-export function buildWaterWhyToday(profile: OnboardingData, waterTargetMl: number): string {
-  const targetL = (waterTargetMl / 1000).toLocaleString("fr-FR", { maximumFractionDigits: 1 });
-  const filters = profileFoodFiltersLabel(profile);
+export function buildWaterWhyToday(profile: OnboardingData, _waterTargetMl?: number): string {
+  const sopkDose = isSopkNutritionProfile(profile)
+    ? "Avec le SOPK, tenir ce volume en verres réguliers limite les fausses fringales (soif vs faim) — sans dépasser la cible."
+    : "Répartissez en verres réguliers : le corps n’utilise pas un litre avalé d’un coup.";
 
   return joinParagraphs([
-    `Objectif ${targetL} L aujourd’hui, calculé à partir de vos ${profile.poidsKg} kg, ${profile.tailleCm} cm et votre niveau d’activité.`,
-    isSopkNutritionProfile(profile)
-      ? "Avec le SOPK, boire régulièrement soutient le métabolisme, la digestion et limite les fausses fringales."
-      : "Boire régulièrement soutient le métabolisme, la digestion et limite les fausses fringales.",
-    symptomHydrationHint(profile),
-    filters !== defaultFoodFiltersLabel(profile) ? `Profil alimentaire : ${filters}.` : null,
+    `Cette cible suit surtout votre poids (${profile.poidsKg} kg) : plus de masse, plus d’eau à renouveler.`,
+    waterActivityNote(profile),
+    symptomHydrationHint(profile) ?? sopkDose,
   ]);
 }
 
-export function buildStepsWhyToday(profile: OnboardingData, stepsTarget: number): string {
+export function buildStepsWhyToday(profile: OnboardingData, _stepsTarget?: number): string {
   const walking = getDailyWalkingRecommendation(profile);
-  const stepsLabel = stepsTarget.toLocaleString("fr-FR");
   const horizon = parcoursHorizonLabel(profile.parcoursPerte);
 
   return joinParagraphs([
-    `${stepsLabel} pas pour améliorer la sensibilité à l’insuline, sans surcharge  - parcours ${horizon}.`,
-    walking.note,
-    activityStepsHint(profile, stepsTarget),
+    isSopkNutritionProfile(profile)
+      ? "Cette dose de marche améliore la sensibilité à l’insuline, levier central avec le SOPK, sans séance de sport."
+      : "Cette dose de marche améliore la sensibilité à l’insuline, sans séance de sport à part.",
+    `Parcours ${horizon} : ${walking.note}`,
+    activityStepsHint(profile, walking.minutes),
   ]);
 }

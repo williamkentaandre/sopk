@@ -19,6 +19,28 @@ export function waterTargetVerres(targetMl: number): number {
   return Math.max(1, Math.round(targetMl / WATER_GLASS_ML));
 }
 
+/** Remplissage 0–1 de chaque verre (gauche → droite) pour `filledMl` sur la cible. */
+export function waterGlassFillFractions(filledMl: number, targetMl: number): number[] {
+  const count = waterTargetVerres(targetMl);
+  let remaining = Math.max(0, filledMl);
+  const fractions: number[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const portion = Math.min(WATER_GLASS_ML, remaining);
+    fractions.push(Math.max(0, Math.min(1, portion / WATER_GLASS_ML)));
+    remaining -= WATER_GLASS_ML;
+  }
+  return fractions;
+}
+
+export function formatWaterSliderAria(filledMl: number, targetMl: number): string {
+  const filledGlasses = filledMl / WATER_GLASS_ML;
+  const glassesLabel = filledGlasses.toLocaleString("fr-FR", {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 0,
+  });
+  return `${formatLitersFrFromMl(filledMl)} sur ${formatLitersFrFromMl(targetMl)}, soit ${glassesLabel} verre${filledGlasses >= 1.05 ? "s" : ""}`;
+}
+
 /** Nombre entier de bouteilles de 1,5 L suffisant pour couvrir ou dépasser l’objectif (ex. 2,9 L → 2). */
 export function bottlesToCoverTarget(targetMl: number): number {
   return Math.max(1, Math.ceil(targetMl / WATER_BOTTLE_ML));
