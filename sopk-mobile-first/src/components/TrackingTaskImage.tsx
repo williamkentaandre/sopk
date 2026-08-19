@@ -28,10 +28,17 @@ export function TrackingTaskImage({ kind, size = "banner" }: TrackingTaskImagePr
   }
 
   return (
-    <div className="relative h-[3.25rem] w-full overflow-hidden bg-sky-100">
-      <Image src={src} alt={alt} fill unoptimized sizes="(max-width: 640px) 45vw, 180px" className="object-cover" />
+    <div className="relative h-40 w-full overflow-hidden bg-brand-50 sm:h-44">
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        unoptimized
+        sizes="(max-width: 640px) 100vw, 420px"
+        className={`object-cover ${kind === "steps" ? "object-[center_70%]" : "object-center"}`}
+      />
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"
         aria-hidden
       />
     </div>

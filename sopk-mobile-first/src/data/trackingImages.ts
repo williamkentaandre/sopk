@@ -11,7 +11,7 @@ export const TRACKING_TASK_IMAGES: Record<TrackingTaskKind, { path: string; alt:
   },
   steps: {
     path: "/images/tracking/pas-marche.jpg",
-    alt: "Personne qui marche",
+    alt: "Pied en marche",
   },
 };
 

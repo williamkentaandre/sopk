@@ -53,14 +53,14 @@ const ASSETS = [
   {
     label: "Hydratation (verre d'eau)",
     dest: "public/images/tracking/eau.jpg",
-    unsplashId: "photo-1610378833220-9e374e37856b",
-    crop: "w=600&h=400",
+    unsplashId: "photo-1624948465027-6f9b51067557",
+    crop: "w=900&h=560",
   },
   {
-    label: "Pas (marche en ville)",
+    label: "Pas (pied en marche)",
     dest: "public/images/tracking/pas-marche.jpg",
-    unsplashId: "photo-1745770998338-eb50b0c89b16",
-    crop: "w=600&h=400",
+    unsplashId: "photo-1476480862126-209bfaa8edc8",
+    crop: "w=900&h=560",
   },
 ];
 
