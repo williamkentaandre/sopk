@@ -201,7 +201,7 @@ const SCENARIOS = [
     id: "03-plan-jour-2",
     seed: "plan-jour-2",
     prepare: async (page) => {
-      await page.waitForSelector("text=Mission du jour", { timeout: 20_000 });
+      await page.waitForSelector("text=Journée en cours", { timeout: 20_000 });
       await page.waitForTimeout(400);
     },
   },
@@ -209,7 +209,7 @@ const SCENARIOS = [
     id: "04-repas-portions",
     seed: "repas-portions",
     prepare: async (page) => {
-      await page.waitForSelector("text=Mission du jour", { timeout: 20_000 });
+      await page.waitForSelector("text=Journée en cours", { timeout: 20_000 });
       const portions = page.getByRole("button", { name: /Voir les portions/i }).first();
       await portions.click();
       await page.waitForSelector("text=Portions par aliment", { timeout: 10_000 });
@@ -255,7 +255,7 @@ async function frameMealPortionsForScreenshot(page) {
     );
     const expandPanel = portionsHeading?.closest("[class*='rounded-2xl']");
     const missionLabel = [...document.querySelectorAll("p")].find(
-      (p) => p.textContent?.trim() === "Mission du jour",
+      (p) => p.textContent?.trim() === "Journée en cours",
     );
     const gameBoard = missionLabel?.closest("[class*='rounded-[1.4rem]']");
     const planRoot = gameBoard?.parentElement?.parentElement;
@@ -267,12 +267,23 @@ async function frameMealPortionsForScreenshot(page) {
       }
     }
 
-    if (expandPanel) {
+    const mealGrid = gameBoard.querySelector(".grid");
+    if (mealGrid instanceof HTMLElement) mealGrid.style.display = "none";
+
+    for (const label of ["Eau", "Pas"]) {
+      const node = [...gameBoard.querySelectorAll("span, p")].find(
+        (el) => el.textContent?.trim() === label,
+      );
+      const card = node?.closest("[class*='rounded-2xl']");
+      if (card instanceof HTMLElement) card.style.display = "none";
+    }
+
+    if (expandPanel instanceof HTMLElement) {
       expandPanel.scrollIntoView({ block: "start" });
     }
 
     const main = document.querySelector("main");
-    if (main) {
+    if (main instanceof HTMLElement) {
       main.style.paddingBottom = "12px";
     }
   });
@@ -281,7 +292,7 @@ async function frameMealPortionsForScreenshot(page) {
 async function frameEcartsForScreenshot(page) {
   await page.evaluate(() => {
     const missionLabel = [...document.querySelectorAll("p")].find(
-      (p) => p.textContent?.trim() === "Mission du jour",
+      (p) => p.textContent?.trim() === "Journée en cours",
     );
     const missionWrapper = missionLabel?.closest("[class*='rounded-[1.4rem]']")?.parentElement;
     if (missionWrapper) {
@@ -405,6 +416,7 @@ async function captureScenario(page, scenario) {
   }, seeds);
   await page.reload({ waitUntil: "networkidle" });
   if (scenario.prepare) await scenario.prepare(page);
+  await page.waitForTimeout(800);
 
   await prepareViewportForDeviceScreenshot(page, scenario.id);
   await page.screenshot({ path: file, type: "png", fullPage: false });

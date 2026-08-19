@@ -44,7 +44,7 @@ const PHOTO = {
   carrot: UNSPLASH("photo-1598170845058-32b9d6a5da37"),
   hummus: UNSPLASH("photo-1637949907734-d5583aa35b41"),
   chickpeaSalad: UNSPLASH("photo-1512621776951-a57141f2eefd"),
-  quinoaBowl: UNSPLASH("photo-1543332164-6e82f355badc"),
+  quinoaBowl: UNSPLASH("photo-1512621776951-a57141f2eefd"),
   mixedSalad: UNSPLASH("photo-1540189549336-e6e99c3679fe"),
   soup: UNSPLASH("photo-1547592166-23ac45744acd"),
   eggs: UNSPLASH("photo-1510693206972-df098062cb71"),
