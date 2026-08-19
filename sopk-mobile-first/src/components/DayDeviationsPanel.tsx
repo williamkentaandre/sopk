@@ -126,8 +126,8 @@ const DeviationImpactSummary = memo(function DeviationImpactSummary({
       {startedAboveStartWeight ? (
         <p className="mt-1 text-[12px] font-semibold leading-snug text-amber-950">
           Au-dessus du poids de départ :{" "}
-          <span className="tabular-nums text-amber-800">{formatGainGramsLabel(surplusGrams)}</span> estimés
-          aujourd&apos;hui
+          <span className="tabular-nums text-amber-800">{formatGainGramsLabel(surplusGrams)}</span>
+          {" "}estimés aujourd’hui
           {selectedDayLossGrams > 0 ? (
             <>
               {" "}
@@ -138,7 +138,7 @@ const DeviationImpactSummary = memo(function DeviationImpactSummary({
         </p>
       ) : (
         <p className="mt-1 text-[12px] font-semibold leading-snug text-amber-950">
-          Perte estimée réduite de <span className="tabular-nums">{penaltyGrams} g</span>
+          Perte estimée réduite de <span className="tabular-nums">{penaltyGrams}{"\u00a0"}g</span>
           {selectedDayLossGrams > 0 ? (
             <>
               {" "}

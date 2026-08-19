@@ -56,11 +56,17 @@ export function formatWeightKgLive(value: number): string {
   return value.toFixed(2);
 }
 
-export function formatLossGramsLabel(grams: number): string {
+const NBSP = "\u00a0";
+
+function formatSignedGrams(grams: number, sign: "-" | "+"): string {
   const g = Math.round(Math.max(0, grams));
-  if (g >= 1000) return `-${(g / 1000).toFixed(2)} kg`;
-  if (g > 0) return `-${g} g`;
-  return "0 g";
+  if (g >= 1000) return `${sign}${(g / 1000).toFixed(2)}${NBSP}kg`;
+  if (g > 0) return `${sign}${g}${NBSP}g`;
+  return `0${NBSP}g`;
+}
+
+export function formatLossGramsLabel(grams: number): string {
+  return formatSignedGrams(grams, "-");
 }
 
 /** Variation estimée vs poids de départ (négatif = au-dessus du départ). */
@@ -69,8 +75,8 @@ export function formatWeightDeltaFromStartLabel(startKg: number, currentKg: numb
   if (deltaGrams > 0) return formatLossGramsLabel(deltaGrams);
   if (deltaGrams < 0) {
     const gain = Math.abs(deltaGrams);
-    if (gain >= 1000) return `+${(gain / 1000).toFixed(2)} kg vs départ`;
-    return `+${gain} g vs départ`;
+    if (gain >= 1000) return `+${(gain / 1000).toFixed(2)}${NBSP}kg vs départ`;
+    return `+${gain}${NBSP}g vs départ`;
   }
   return "Au poids de départ";
 }
@@ -162,10 +168,7 @@ interface DayWeightDelta {
 }
 
 export function formatGainGramsLabel(grams: number): string {
-  const g = Math.round(Math.max(0, grams));
-  if (g >= 1000) return `+${(g / 1000).toFixed(2)} kg`;
-  if (g > 0) return `+${g} g`;
-  return "0 g";
+  return formatSignedGrams(grams, "+");
 }
 
 function applyDayWeightDelta(

@@ -908,7 +908,7 @@ export function PlanView({
                 <p className="mt-0.5 text-[10px] font-semibold tabular-nums text-amber-100">
                   {selectedDayStartedAboveStart
                     ? `${formatGainGramsLabel(selectedDaySurplusGrams)} (écarts)`
-                    : `−${dayIndulgencePenaltyGrams} g (écarts)`}
+                    : `−${dayIndulgencePenaltyGrams}\u00a0g (écarts)`}
                 </p>
               ) : null}
             </div>
@@ -972,7 +972,7 @@ export function PlanView({
                   <p className="mt-0.5 text-[10px] font-semibold tabular-nums text-amber-800">
                     {selectedDayStartedAboveStart
                       ? `Écarts : ${formatGainGramsLabel(selectedDaySurplusGrams)} au bilan`
-                      : `Écarts : −${dayIndulgencePenaltyGrams} g sur la perte`}
+                      : `Écarts : −${dayIndulgencePenaltyGrams}\u00a0g sur la perte`}
                   </p>
                 ) : null}
               </div>
@@ -997,8 +997,9 @@ export function PlanView({
                 <span className="font-semibold tabular-nums text-slate-800">{formatWeightKgLive(potentialWeightKg)} kg</span>
                 {selectedDayLossGrams > 0 ? (
                   <>
-                    {" "}(perte nette estimée {formatLossGramsLabel(selectedDayLossGrams)} aujourd&apos;hui
-                    {dayDeviationKcal > 0 ? ", écarts inclus" : ""}).
+                    {` (perte nette estimée ${formatLossGramsLabel(selectedDayLossGrams)} aujourd’hui${
+                      dayDeviationKcal > 0 ? ", écarts inclus" : ""
+                    }).`}
                   </>
                 ) : dayDeviationKcal > 0 ? (
                   <>
@@ -1006,7 +1007,7 @@ export function PlanView({
                     (écarts déjà pris en compte :{" "}
                     {selectedDayStartedAboveStart
                       ? `${formatGainGramsLabel(selectedDaySurplusGrams)} au bilan`
-                      : `−${dayIndulgencePenaltyGrams} g de perte possible`}
+                      : `−${dayIndulgencePenaltyGrams}\u00a0g de perte possible`}
                     ).
                   </>
                 ) : null}
@@ -1042,18 +1043,18 @@ export function PlanView({
             ) : isDayValidated ? (
               <div className={`mt-2.5 rounded-xl border px-3 py-2 ${dayShowsPositiveOutcome ? "border-emerald-200/70 bg-emerald-50/80" : "border-amber-200/70 bg-amber-50/80"}`}>
                 <p className={`text-[12px] font-semibold ${dayShowsPositiveOutcome ? "text-emerald-900" : "text-amber-950"}`}>
-                  Estimation perte du jour: <span className="tabular-nums">{estimatedLossLabel}</span>
+                  Estimation perte du jour : <span className="tabular-nums">{estimatedLossLabel}</span>
                 </p>
                 <p className={`mt-0.5 text-[11px] ${dayShowsPositiveOutcome ? "text-emerald-700" : "text-amber-800"}`}>
-                  Objectif avec écarts: <span className="tabular-nums">{formatLossEstimate(weightSnap.projectedLossGrams)}</span>
+                  Objectif avec écarts : <span className="tabular-nums">{formatLossEstimate(weightSnap.projectedLossGrams)}</span>
                   {dayDeviationKcal > 0 ? (
                     <>
-                      {" "}· pénalité écarts: <span className="tabular-nums">−{dayIndulgencePenaltyGrams} g</span>
+                      {" "}· pénalité écarts : <span className="tabular-nums">−{dayIndulgencePenaltyGrams}{"\u00a0"}g</span>
                     </>
                   ) : null}
                   {missedLossGrams > 0 && dayDeviationKcal === 0 ? (
                     <>
-                      {" "}· écart estimé: <span className="tabular-nums">{missedLossLabel}</span>
+                      {" "}· écart estimé : <span className="tabular-nums">{missedLossLabel}</span>
                     </>
                   ) : null}
                 </p>

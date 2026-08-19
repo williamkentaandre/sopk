@@ -3,9 +3,11 @@ import { describe, it } from "node:test";
 
 import { getMealCatalog } from "@/utils/mealPersonalization";
 import {
+  APPLE_PHOTO_ID,
   FOOD_BY_MEAL_TYPE,
   getMealImageUrl,
   isMealTypeSvgFallback,
+  MEAL_IMAGE_BY_NAME,
   MEAL_TYPE_FALLBACK,
 } from "@/utils/mealImages";
 
@@ -62,5 +64,40 @@ describe("I14 · Bol avocat affiche un aliment, pas le SVG dîner", () => {
       url.includes("photo-1523049673857-eb18f1d7b578"),
       `attendu photo d'avocat, obtenu ${url}`,
     );
+  });
+});
+
+describe("I17 · le sujet de la photo = l’aliment du libellé", () => {
+  it("Poire + noix n’affiche plus une pomme", () => {
+    const url = getMealImageUrl({ nom: "Poire + noix", type: "collation", image: "", calories: 180 });
+    assert.equal(url.includes(APPLE_PHOTO_ID), false, url);
+    assert.ok(url.includes("photo-1633932701157-d1e26452a327"), url);
+  });
+
+  it("Pomme + 10 amandes garde la pomme", () => {
+    const url = getMealImageUrl({ nom: "Pomme + 10 amandes", type: "collation", image: "", calories: 180 });
+    assert.ok(url.includes(APPLE_PHOTO_ID), url);
+  });
+
+  it("Carottes + houmous n’est plus la salade quinoa", () => {
+    const url = getMealImageUrl({ nom: "Carottes + houmous", type: "collation", image: "", calories: 160 });
+    assert.equal(url.includes("photo-1540189549336-e6e99c3679fe"), false, url);
+    assert.ok(url.includes("photo-1637949907734-d5583aa35b41"), url);
+  });
+
+  it("Kiwi et myrtilles ne réutilisent pas la pomme", () => {
+    const kiwi = getMealImageUrl({ nom: "Kiwi + noix de cajou", type: "collation", image: "", calories: 160 });
+    const berries = getMealImageUrl({ nom: "Yaourt nature + myrtilles", type: "collation", image: "", calories: 160 });
+    assert.equal(kiwi.includes(APPLE_PHOTO_ID), false, kiwi);
+    assert.equal(berries.includes(APPLE_PHOTO_ID), false, berries);
+    assert.ok(kiwi.includes("photo-1585059895524-72359e06133a"), kiwi);
+    assert.ok(berries.includes("photo-1626433281588-ae724357378d"), berries);
+  });
+
+  it("chaque plat du catalogue a une photo dédiée (pas le seau pomme générique)", () => {
+    const missing = getMealCatalog()
+      .map((meal) => meal.nom)
+      .filter((nom) => !(nom in MEAL_IMAGE_BY_NAME));
+    assert.deepEqual(missing, [], `sans photo dédiée : ${missing.join(" | ")}`);
   });
 });
