@@ -1,4 +1,4 @@
-/** Explication éducative unique par repas / alternative du plan (clé = nom normalisé). */
+/** Pédagogie « pourquoi ces aliments, à ce dosage » (clé = nom normalisé). */
 
 export function normalizeMealKey(text: string): string {
   return text
@@ -10,141 +10,165 @@ export function normalizeMealKey(text: string): string {
     .trim();
 }
 
-/** Une phrase par plat : aliments cités + bénéfice SOPK concret. */
+/**
+ * Texte spécifique au plat : aliments nommés + au moins une idée de dose
+ * (plafond, volume, unité comptée). Jamais un slogan interchangeable.
+ */
 export const MEAL_WHY_CATALOG: Record<string, string> = {
   "omelette epinards + pain complet":
-    "Les œufs et les épinards apportent des protéines et du fer végétal ; le pain complet, en portion modérée, donne des fibres pour un petit-déjeuner qui limite la faim du matin avec le SOPK.",
+    "Les œufs portent la satiété du matin ; les épinards ajoutent du volume et du fer sans sucre. Le pain complet reste volontairement modéré : assez de glucides pour tenir, pas le centre de l’assiette.",
   "yaourt grec nature + fruits rouges + graines de chia":
-    "Yaourt grec, fruits rouges et chia : protéines, antioxydants et fibres solubles pour une collation sucrée à index glycémique plus doux.",
+    "Le yaourt grec dose les protéines ; les fruits rouges sucrent sans dessert. Une petite cuillère de chia suffit : fibres solubles qui ralentissent le fruit, sans alourdir.",
   "salade quinoa, poulet, avocat, legumes croquants":
-    "Quinoa, poulet, avocat et légumes croquants : glucides complets, protéines maigres et bonnes graisses pour un déjeuner rassasiant sans pic glycémique brutal.",
+    "Le poulet ancre le déjeuner ; les légumes occupent le volume. Le quinoa et l’avocat sont mesurés : énergie et gras utiles, pas une assiette de féculents ni d’avocat entier.",
   "salade quinoa, tofu grille, avocat, legumes croquants":
-    "Tofu grillé, quinoa, avocat et légumes : protéines végétales, peu de saturés, repas complet sans viande.",
+    "Le tofu grillé remplace la viande à protéines égales ; les légumes remplissent l’assiette. Quinoa et avocat restent plafonnés pour garder une charge glycémique et calorique maîtrisées.",
   "pomme + 10 amandes":
-    "Pomme et amandes : fibres, eau et gras insaturés qui ralentissent l’absorption du sucre  - utile entre deux repas avec le SOPK.",
+    "La pomme hydrate et fibre entre deux repas. Les 10 amandes sont un plafond : assez de gras pour calmer la courbe de sucre, trop en ferait un en-cas calorique.",
   "poire + noix":
-    "Poire juteuse et noix : le fruit hydrate et les noix stabilisent l’énergie grâce aux fibres et aux lipides de qualité.",
+    "La poire apporte l’eau et les fibres ; les noix (petite poignée) tamponnent le fructose. Au-delà, le gras l’emporte sur l’intérêt de la collation.",
   "saumon au four + brocoli + patate douce":
-    "Saumon, brocoli et patate douce : oméga-3 anti-inflammatoires, légumes crucifères et glucide à libération lente pour le dîner.",
+    "Le saumon apporte les oméga-3 du dîner ; le brocoli occupe le volume. La patate douce est la part féculente, volontairement limitée pour un soir sans pic d’amidon.",
   "cabillaud + haricots verts + riz complet":
-    "Cabillaud maigre, haricots verts et riz complet : repas léger en calories, riche en protéines et en fibres pour la satiété.",
+    "Le cabillaud est maigre : beaucoup de protéines pour peu de calories. Les haricots verts font le volume ; le riz complet reste la part mesurée d’énergie, pas une assiette de riz.",
   "porridge flocons d'avoine, lait vegetal, cannelle":
-    "Flocons d’avoine, lait végétal et cannelle : bêta-glucanes et fibres pour un petit-déjeuner chaud qui tient jusqu’à midi.",
+    "Les flocons sont dosés (une petite tasse sèche) : bêta-glucanes sans porridge débordant. Le lait végétal allonge le volume ; la cannelle relève sans sucre ajouté.",
   "pain complet + fromage blanc + kiwi":
-    "Pain complet, fromage blanc et kiwi : protéines du matin, vitamine C et fibres pour démarrer sans excès de sucre rapide.",
+    "Le fromage blanc porte les protéines du matin ; le kiwi ajoute fibres et vitamine C. Le pain complet reste une tranche raisonnable, pas un petit-déjeuner pain-confiture.",
   "buddha bowl lentilles, crudites, feta":
-    "Lentilles, crudités et feta : légumineuses riches en fibres et protéines végétales, légumes volumeux et un peu de feta pour le goût.",
+    "Les lentilles et les crudités font satiété et volume. La feta est un condiment (quelques cubes) : le goût salé sans transformer le bowl en plat fromager.",
   "buddha bowl pois chiches, crudites, feta":
-    "Pois chiches, crudités et feta : même logique de légumineuse (fibres + protéines), texture plus ferme que les lentilles.",
+    "Les pois chiches tiennent plus longtemps que des crudités seules ; le volume vient des légumes. La feta reste plafonnée : assaisonnement, pas source principale de calories.",
   "fromage blanc nature + graines de courge":
-    "Fromage blanc et graines de courge : caséine lente, zinc et magnésium  - collation protéinée qui calme la faim de l’après-midi.",
+    "Le fromage blanc (bol, pas pot sucré) cale grâce à la caséine. Une poignée de graines de courge suffit pour le zinc et le gras : au-delà, la collation n’est plus légère.",
   "skyr nature + cannelle":
-    "Skyr nature et cannelle : très riche en protéines, quasi sans sucre ajouté ; la cannelle peut aider à modérer la réponse glycémique.",
+    "Le skyr est presque que des protéines, d’où un pot entier sans extra sucré. La cannelle (une pincée) relève le goût : elle ne remplace pas une portion, elle évite le miel.",
   "dinde sautee + courgettes + riz basmati complet":
-    "Dinde, courgettes et riz basmati complet : protéines maigres, légumes peu caloriques et riz complet pour un dîner équilibré.",
+    "La dinde porte les protéines du soir ; les courgettes gonflent l’assiette à peu de calories. Le riz basmati complet est la part d’énergie, volontairement plus petite que la viande et les légumes.",
   "tempeh saute + legumes + quinoa":
-    "Tempeh fermenté, légumes et quinoa : protéines végétales complètes, probiotiques naturels du tempeh et fibres pour la sensibilité à l’insuline.",
+    "Le tempeh (fermenté) concentre les protéines végétales du dîner. Les légumes font le volume ; le quinoa reste mesuré pour ne pas empiler deux féculents.",
   "skyr + noix + framboises":
-    "Skyr, noix et framboises : trio protéines-gras-fibres/antioxydants pour un petit-déjeuner froid qui limite les fringales.",
+    "Le skyr cale dès le matin ; les framboises sucrent avec beaucoup de fibres. Les noix sont une petite poignée : assez pour ralentir le fruit, pas un mélange trail calorique.",
   "omelette 2 oeufs + tomates cerises":
-    "Deux œufs et tomates cerises : protéines matinales et lycopène ; repas simple, peu de glucides rapides.",
+    "Deux œufs, pas plus : protéines du matin sans pain. Les tomates cerises ajoutent du volume et de l’eau, pas des glucides rapides.",
   "wrap complet au thon, crudites, houmous":
-    "Wrap complet, thon, crudités et houmous : poisson gras en omega-3, légumes croquants et pois chiches mixés pour la satiété.",
+    "Le thon et le houmous portent protéines et pois chiches ; les crudités remplissent le wrap. La galette complète reste une seule unité : c’est le plafond de glucides du midi.",
   "wrap complet au poulet, crudites, houmous":
-    "Wrap complet, poulet, crudités et houmous : protéines maigres, légumes croquants et pois chiches mixés pour la satiété.",
+    "Le poulet cale le midi ; le houmous et les crudités ajoutent fibres et volume. Une seule galette : au-delà, le wrap redevient un sandwich trop amidonné.",
   "carottes + houmous":
-    "Carottes et houmous : bêta-carotène, fibres et protéines végétales  - collation croquante qui évite le grignotage sucré.",
+    "Les carottes se mangent en volume (bâtonnets) : croquant peu calorique. Le houmous est la cuillère dosée : protéines et gras du pois chiche, pas un bol à tremper sans limite.",
   "concombre + guacamole leger":
-    "Concombre et guacamole léger : hydratation, potassium et gras du avocat en petite quantité pour une collation fraîche.",
+    "Le concombre est presque de l’eau : on en met beaucoup. Le guacamole reste une petite ramequin : l’avocat rassasie vite ; trop, et la collation vaut un repas.",
   "chili maison haricots rouges + salade verte":
-    "Haricots rouges, sauce tomate maison et salade : fibres solubles, fer végétal et volume sans excès calorique.",
+    "Les haricots rouges (bol, pas casserole) apportent fibres solubles et protéines. La salade verte double le volume de l’assiette sans rajouter d’amidon.",
   "bol de lentilles epicees + salade verte":
-    "Lentilles épicées et salade verte : légumineuse riche en fibres et protéines, épices pour le goût sans sel excessif.",
+    "Les lentilles sont le dîner, pas un accompagnement. La salade ajoute du volume cru ; les épices remplacent le sel et le fromage trop généreux.",
   "toast complet, avocat, oeuf poche":
-    "Pain complet, avocat et œuf poché : protéines, bonnes graisses et fibres  - classique SOPK-friendly au petit-déjeuner.",
+    "L’œuf poché ancre le matin ; l’avocat (quelques tranches, pas l’avocat entier) ralentit le toast. Une tranche de pain complet : le glucide est plafonné.",
   "galettes de sarrasin + fromage blanc":
-    "Galettes de sarrasin sans gluten et fromage blanc : protéines et glucide alternatif pour varier les matins.",
+    "Le fromage blanc apporte les protéines que la galette seule n’a pas. Les galettes de sarrasin restent en petit nombre : amidon sans gluten, pas une pile de crêpes.",
   "poisson blanc, quinoa, legumes rotis":
-    "Poisson blanc, quinoa et légumes rôtis : repas léger, digeste le soir, avec protéines maigres et fibres.",
+    "Le poisson blanc est maigre, donc généreux en protéines. Les légumes rôtis occupent l’assiette ; le quinoa cuit reste la part mesurée, plus petite que les légumes.",
   "tofu marine + quinoa + legumes":
-    "Tofu mariné, quinoa et légumes : protéines végétales, quinoa complet et légumes rôtis pour un dîner végétarien complet.",
+    "Le tofu mariné tient lieu de viande. Les légumes dominent en grammes ; le quinoa est dosé pour un dîner végétal sans double ration de céréales.",
   "orange + 1 carre chocolat noir 85%":
-    "Orange et carré de chocolat noir 85 % : plaisir contrôlé, vitamine C et antioxydants  - mieux qu’un dessert industriel sucré.",
+    "L’orange est le fruit entier, pas un jus. Un seul carré de 85 % : le plaisir est prévu, la tablette ne l’est pas.",
   "clementines + noisettes":
-    "Clémentines et noisettes : vitamine C, fibres du fruit et gras des noisettes pour une collation équilibrée.",
+    "Les clémentines hydratent ; une petite poignée de noisettes ralentit leur sucre. Compter les noisettes évite de grignoter le sachet.",
   "soupe de legumes + pois chiches + salade":
-    "Soupe de légumes, pois chiches et salade : volume, fibres et protéines végétales pour un dîner rassasiant en calories modérées.",
+    "Le bol de soupe fait le volume chaud à peu de calories. Les pois chiches (une louche, pas tout le bocal) ajoutent les protéines ; la salade allonge encore l’assiette.",
   "soupe de legumes + omelette aux herbes":
-    "Soupe de légumes et omelette aux herbes : chaud, léger et protéiné  - idéal le soir si vous avez faim sans alourdir.",
+    "La soupe remplit l’estomac sans amidon. L’omelette (deux œufs) apporte les protéines du soir : assez pour tenir la nuit, pas un gratin en plus.",
   "smoothie proteine (sans sucre ajoute) + flocons":
-    "Smoothie protéiné sans sucre ajouté et flocons : protéines liquides le matin pour étaler l’appétit sur plusieurs heures.",
+    "La poudre (une dose) et le lait végétal calent sans jus sucré. Les flocons restent une poignée : ils épaississent, ils ne transforment pas le verre en petit-déjeuner céréales.",
   "skyr + banane + graines de lin":
-    "Skyr, banane et graines de lin : protéines du skyr encadrent le sucre naturel de la banane ; les graines ajoutent fibres et oméga-3.",
+    "Le skyr encadre le sucre de la banane (un fruit, pas deux). Une cuillère de lin suffit pour les fibres et les oméga-3 végétaux.",
   "salade pois chiches, concombre, tomate, feta":
-    "Pois chiches, concombre, tomate et feta : salade méditerranéenne riche en fibres, eau et protéines végétales.",
+    "Les pois chiches sont la base protéinée ; concombre et tomate font l’eau et le volume. La feta reste quelques cubes : salé et rassasiant, pas une salade de fromage.",
   "salade lentilles vertes, concombre, tomate, feta":
-    "Lentilles vertes, concombre, tomate et feta : même apport en fibres et protéines, texture plus ferme que les pois chiches.",
+    "Les lentilles vertes, plus fermes, se dosent comme un féculent-protéine. Concombre et tomate gonflent l’assiette ; la feta reste un condiment.",
   "yaourt nature + myrtilles":
-    "Yaourt nature et myrtilles : protéines lactées (ou à adapter si intolérance) et baies antioxydantes à charge glycémique modérée.",
+    "Le yaourt nature (non sucré) porte les protéines. Les myrtilles restent une poignée : fibres et goût, pas un coulis.",
   "fromage blanc + fraises":
-    "Fromage blanc et fraises : collation protéinée avec fruits rouges  - fibres et caséine pour tenir jusqu’au dîner.",
+    "Le fromage blanc cale jusqu’au dîner (un bol, pas un dessert sucré). Les fraises restent une poignée : on n’ajoute pas de miel.",
   "poulet au curry doux + chou-fleur + riz complet":
-    "Poulet, chou-fleur et riz complet : épices douces, légume peu calorique et glucides complets pour un déjeuner complet.",
+    "Le poulet structure le midi ; le chou-fleur remplace une partie du riz. Le riz complet cuit reste mesuré : le curry ne doit pas devenir un bol de riz épicé.",
   "curry de tofu + chou-fleur + riz complet":
-    "Curry de tofu, chou-fleur et riz complet : protéines végétales et épices anti-inflammatoires, sans viande.",
+    "Le tofu tient les protéines végétales ; le chou-fleur fait le volume du curry. Le riz complet est la part d’énergie, plus petite que les légumes.",
   "pancakes flocons d'avoine maison + skyr":
-    "Pancakes maison aux flocons d’avoine et skyr : version plus protéinée qu’un pancake classique, fibres de l’avoine au petit-déjeuner.",
+    "Les flocons remplacent la farine blanche, en quantité de galette petite. Le skyr à côté (pas de sirop) apporte les protéines qu’un pancake classique n’a pas.",
   "bol de muesli sans sucre + yaourt nature":
-    "Muesli sans sucre ajouté et yaourt nature : fibres des céréales complètes et protéines du yaourt pour un matin sans pic sucré.",
+    "Le muesli sans sucre ajouté se pèse (petite coupelle) : trop, et ce n’est plus un petit-déjeuner adapté. Le yaourt nature mouille et protéine, à la place du lait sucré.",
   "bowl saumon fume, riz complet, avocat, concombre":
-    "Saumon fumé, riz complet, avocat et concombre : oméga-3, glucides complets et bonnes graisses pour l’énergie de l’après-midi.",
+    "Le saumon fumé est salé et gras : la portion reste courte. Riz complet mesuré, avocat en quelques tranches, concombre en volume pour hydrater sans calories.",
   "bowl tofu fume, riz complet, avocat, concombre":
-    "Tofu fumé, riz complet, avocat et concombre : protéines végétales, même logique d’assiette que le bowl au saumon.",
+    "Le tofu fumé dose les protéines sans poisson. Même logique d’assiette : riz plafonné, avocat limité, concombre généreux.",
   "kiwi + noix de cajou":
-    "Kiwi et noix de cajou : vitamine C, fibres et gras végétaux pour une collation qui rassasie sans sucres ajoutés.",
+    "Le kiwi (un à deux fruits) apporte fibres et vitamine C. Les noix de cajou se comptent : gras utile en petite poignée, dense si on picore.",
   "pomme + pistaches":
-    "Pomme et pistaches : fibres du fruit et lipides des pistaches  - duo classique pour calmer une fringale.",
+    "La pomme entière, pas un jus. Les pistaches (petite poignée décortiquée) ralentissent le fructose : le sachet n’est pas la portion.",
   "steak hache 5% + haricots verts + quinoa":
-    "Steak haché 5 % MG, haricots verts et quinoa : fer, protéines maigres et fibres  - repas complet pour préserver la masse musculaire.",
+    "Le steak 5 % MG apporte fer et protéines maigres, d’où une pièce correcte. Les haricots verts dominent en volume ; le quinoa cuit reste l’accompagnement, pas l’inverse.",
   "galette vegetale + legumes + quinoa":
-    "Galette végétale, légumes et quinoa : protéines végétales et fibres sans viande, adapté si vous réduisez les produits animaux.",
+    "La galette végétale remplace la viande, une unité. Les légumes font le volume du dîner ; le quinoa reste mesuré pour ne pas doubler les féculents.",
   "oeufs brouilles + champignons + pain complet":
-    "Œufs brouillés, champignons et pain complet : protéines, vitamine D des champignons (si exposés UV) et fibres en portion modérée.",
+    "Les œufs brouillés calent le matin ; les champignons gonflent l’assiette. Une tranche de pain complet : le glucide s’arrête là.",
   "tofu brouille + pain complet":
-    "Tofu brouillé et pain complet : alternative végétale aux œufs, protéines du soja et glucides complets le matin.",
+    "Le tofu brouillé joue le rôle des œufs, donc en quantité généreuse. Le pain complet reste une tranche : sans ça, le matin redevient pain seul.",
   "salade nicoise revisitee (sans pommes de terre)":
-    "Thon, haricots verts, tomates et œuf : version allégée de la salade niçoise sans pommes de terre pour limiter l’amidon du midi.",
+    "Thon et œuf portent les protéines ; haricots verts et tomates le volume. Sans pommes de terre : l’amidon du midi est retiré exprès, on ne le remplace pas par du pain.",
   "salade nicoise vegetarienne aux pois chiches":
-    "Pois chiches, haricots verts, tomates et œuf : niçoise sans poisson, protéines et fibres végétales.",
+    "Les pois chiches remplacent le thon. L’œuf reste un, pas une omelette ; haricots et tomates font le volume, toujours sans pommes de terre.",
   "fruits rouges + fromage blanc":
-    "Fruits rouges et fromage blanc : antioxydants des baies et protéines laitières pour une collation douce mais structurée.",
+    "Le fromage blanc est la base (bol). Les fruits rouges, une poignée, colorent sans coulis sucré : l’ordre protéines puis fruit évite de grignoter sucré.",
   "compote sans sucre + yaourt nature":
-    "Compote sans sucre ajouté et yaourt nature : douceur du fruit cuit encadrée par les protéines du yaourt.",
+    "La compote sans sucre ajouté est un fruit cuit, en petit pot. Le yaourt nature autour empêche que la collation soit uniquement du fructose.",
   "gratin de legumes + filet de poisson":
-    "Gratin de légumes et filet de poisson : volume des légumes, protéines maigres du poisson  - dîner chaud et rassasiant.",
+    "Le gratin de légumes occupe l’assiette (volume chaud). Le filet de poisson apporte les protéines du soir, sans ajouter un féculent à côté.",
   "gratin de legumes + tempeh":
-    "Gratin de légumes et tempeh : même confort d’un gratin avec protéines végétales fermentées au lieu du poisson.",
+    "Même volume de légumes gratinés ; le tempeh (tranche généreuse, pas tout le bloc) remplace le poisson en protéines fermentées.",
   "oeufs brouilles aux tomates cerises":
-    "Œufs et tomates cerises : protéines matinales sans pain ni lait, prêt en quelques minutes.",
+    "Les œufs, en quantité d’omelette, calent sans pain. Les tomates cerises ajoutent de l’eau et de l’acidité : elles ne comptent pas comme féculent, on n’en met pas moins.",
   "banane, beurre d'amande et graines de chia":
-    "Banane, beurre d’amande et chia : petit-déjeuner sans gluten ni lait, fibres et bons lipides.",
+    "Une banane, pas un milk-shake de fruits. Une cuillère de beurre d’amande et une de chia : le gras et les fibres plafonnent le sucre de la banane.",
   "salade pois chiches, concombre, tomate et avocat":
-    "Pois chiches, concombre, tomate et avocat : déjeuner végétal froid, sans fromage, assemblé en moins de 15 minutes.",
+    "Les pois chiches sont la base du midi. Concombre et tomate en volume ; l’avocat en quelques cubes, pas un demi-fruit entier en plus du reste.",
   "houmous, crudites et quinoa":
-    "Houmous, crudités et quinoa : assiette froide, protéines végétales et fibres sans cuisson longue.",
+    "Les crudités se mangent sans compter les calories. Le houmous est la part rassasiante, dosée ; le quinoa cuit reste l’accompagnement, plus petit que les légumes.",
   "feuilles de laitue, tofu et crudites":
-    "Laitue, tofu et crudités : roulé sans pain, protéines végétales et volume de légumes.",
+    "Le tofu porte les protéines ; les crudités le volume croquant. La laitue remplace le pain : on en met assez pour envelopper, presque zéro glucide.",
   "salade de lentilles, carottes rapees et citron":
-    "Lentilles, carottes et citron : dîner froid sans œuf, assemblé à partir de lentilles déjà cuites.",
+    "Les lentilles déjà cuites sont le dîner (bol). Les carottes râpées allongent le volume ; citron et un filet d’huile : l’huile se dose, ce n’est pas une vinaigrette copieuse.",
   "bol avocat, pois chiches et tomate":
-    "Avocat, pois chiches et tomate : dîner végétal sans cuisson, rassasiant et simple.",
+    "Les pois chiches calent le soir ; la tomate hydrate. L’avocat (demi, pas entier si le bol est déjà dense) apporte le gras utile en quantité courte.",
   "thon au naturel, crudites et riz complet":
-    "Thon, crudités et riz complet : dîner sans œuf, assemblé en dix minutes.",
+    "Le thon au naturel (boîte égouttée) est la protéine, sans mayo. Les crudités dominent ; le riz complet déjà cuit reste une louche, pas un saladier.",
   "salade de quinoa, avocat et concombre":
-    "Quinoa, avocat et concombre : dîner végétal froid, sans allergène majeur.",
+    "Le quinoa cuit est mesuré : c’est le seul féculent. Le concombre se met en volume ; l’avocat en tranches limitées pour ne pas doubler les lipides.",
+  "riz complet aux fruits rouges et graines de courge":
+    "Le riz complet du matin se pèse cuit, comme un porridge. Les fruits rouges sucrent sans sirop ; une poignée de graines de courge suffit pour le gras.",
+  "compote pomme-cannelle et graines de chia":
+    "La compote sans sucre est le fruit, en bol. Les chia (cuillère) gélifient et ralentissent l’absorption ; la cannelle remplace le sucre ajouté.",
+  "quinoa tiede, banane et graines de tournesol":
+    "Le quinoa tiède remplace les flocons, en portion de bol petit. Une banane ; une poignée de tournesol pour le gras, pas une tasse de graines.",
+  "salade de quinoa, pois chiches et concombre":
+    "Pois chiches + quinoa : association céréale-légumineuse, chacun en louche, pas deux bols. Le concombre double le volume d’eau.",
+  "riz complet, haricots rouges et avocat":
+    "Riz et haricots se partagent l’assiette à parts mesurées (protéines complètes). L’avocat reste quelques tranches : le gras s’ajoute, il ne remplace pas les haricots.",
+  "pomme et graines de courge":
+    "La pomme entière. Une petite poignée de graines de courge : zinc et gras, le sachet n’est pas la portion.",
+  "myrtilles et graines de tournesol":
+    "Les myrtilles, une petite barquette. Les graines de tournesol se comptent : collation courte, pas un mélange de graines à grignoter.",
+  "dahl de lentilles corail et riz basmati":
+    "Les lentilles corail sont le plat (volume du dahl). Le riz basmati reste l’accompagnement, plus petit que les lentilles ; les carottes allongent sans amidon extra.",
+  "patate douce rotie, pois chiches et salade verte":
+    "La patate douce rôtie est le féculent du soir, en morceaux mesurés. Les pois chiches ajoutent les protéines ; la salade verte remplit le reste de l’assiette.",
 };
 
+const mealWhyByNormalizedKey = new Map(
+  Object.entries(MEAL_WHY_CATALOG).map(([key, value]) => [normalizeMealKey(key), value]),
+);
+
 export function lookupMealWhyCatalog(mealName: string): string | undefined {
-  const key = normalizeMealKey(mealName);
-  return MEAL_WHY_CATALOG[key];
+  return mealWhyByNormalizedKey.get(normalizeMealKey(mealName));
 }

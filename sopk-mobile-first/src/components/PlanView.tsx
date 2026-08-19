@@ -26,7 +26,7 @@ import { deviationStorageKey, getDeviationKcalForDay } from "@/utils/deviationLo
 import { getEffectiveMeal, getProfileAdjustedEffectiveMeal, resolveMealOverride } from "@/utils/mealPersonalization";
 import { buildProfileDayTips, profileFoodFiltersLabel } from "@/utils/profileAdvice";
 import { isSopkNutritionProfile, profileSectionTitle } from "@/utils/profilePath";
-import { buildMealWhyToday, buildStepsWhyToday, buildWaterWhyToday } from "@/utils/taskWhyToday";
+import { buildStepsWhyToday, buildWaterWhyToday } from "@/utils/taskWhyToday";
 import type {
   DeviationLogState,
   MealChecklistState,
@@ -684,8 +684,6 @@ export function PlanView({
               nom: "Aucun repas compatible avec vos filtres",
               checked: false,
               unavailable: true,
-              whyToday:
-                "Vos allergènes et exclusions écartent tous les repas de ce créneau. Retirez au moins un filtre dans Réglages → Modifier le profil pour recevoir une proposition sûre.",
               meal: {
                 nom: plannedMeal.nom,
                 type: plannedMeal.type,
@@ -700,7 +698,6 @@ export function PlanView({
             typeLabel: labelByType[meal.type],
             nom: meal.nom,
             checked: Boolean(mealChecklist[key]),
-            whyToday: buildMealWhyToday(profile, meal, selectedDay, dailyTarget),
             meal: {
               nom: meal.nom,
               type: meal.type,

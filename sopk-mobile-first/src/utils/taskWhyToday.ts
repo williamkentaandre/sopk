@@ -27,60 +27,127 @@ function joinParagraphs(parts: (string | null | undefined)[]): string {
   return parts.filter((part): part is string => Boolean(part)).join("\n\n");
 }
 
-function inferMealWhyFromLabel(mealName: string, sopkProfile: boolean): string {
-  const trimmed = mealName.trim();
-  if (!trimmed) {
-    return sopkProfile
-      ? "Repas calibré pour limiter les pics glycémiques et soutenir la satiété avec le SOPK."
-      : "Repas calibré pour limiter les pics glycémiques et soutenir la satiété.";
-  }
+type IngredientRole = "protein" | "legume" | "dairy" | "starch" | "fat" | "fruit" | "spice" | "veg";
 
-  const segments = trimmed
-    .split(/\s*\+\s*/)
-    .map((segment) => segment.trim())
-    .filter(Boolean);
-  const ingredientList = segments.slice(0, 4).join(", ");
-  const blob = normalizeText(trimmed);
-  const benefits: string[] = [];
-
-  if (/oeuf|omelette|skyr|fromage|yaourt|tofu|tempeh|poulet|dinde|saumon|thon|poisson|steak|cabillaud|galette vegetale/.test(blob)) {
-    benefits.push("les protéines calment la faim plus longtemps");
-  }
+function roleOf(aliment: string): IngredientRole {
+  const n = normalizeText(aliment);
   if (
-    /lentille|pois chiche|haricot|quinoa|avoine|flocon|riz complet|pain complet|legume|crudit|salade|brocoli|courgette|chou-fleur|carotte|concombre/.test(
-      blob,
+    /oeuf|omelette|poulet|dinde|saumon|thon|cabillaud|poisson|steak|tofu|tempeh|galette vegetale|poudre proteine/.test(
+      n,
     )
   ) {
-    benefits.push("les fibres lissent la réponse glycémique");
+    return "protein";
   }
-  if (/saumon|thon|noix|amande|avocat|houmous|graine|noisette|pistache|cajou/.test(blob)) {
-    benefits.push("les bons gras stabilisent l’énergie");
+  if (/lentille|pois chiche|haricot|houmous/.test(n)) return "legume";
+  if (/skyr|fromage|yaourt|feta/.test(n)) return "dairy";
+  if (
+    /pain|riz|quinoa|patate|wrap|galette|muesli|flocon|avoine|porridge|pate\b/.test(n)
+  ) {
+    return "starch";
   }
-  if (/framboise|myrtille|fruits rouges|baie|kiwi|orange|pomme|poire|banane|fraise|clementine|clémentine/.test(blob)) {
-    benefits.push("le fruit apporte antioxydants et fibres");
+  if (
+    /noix|amande|cajou|pistache|graine|chia|noisette|avocat|guacamole|chocolat|beurre d.amande|huile/.test(
+      n,
+    )
+  ) {
+    return "fat";
   }
-  if (/cannelle|curry|epice|épic/.test(blob)) {
-    benefits.push("les épices enrichissent le goût sans sel excessif");
+  if (
+    /pomme|poire|orange|kiwi|banane|myrtille|framboise|fraise|clementine|fruit|compote/.test(n)
+  ) {
+    return "fruit";
   }
-
-  const benefitText =
-    benefits.length > 0
-      ? benefits.slice(0, 2).join(" et ")
-      : "l’équilibre protéines-fibres limite les fringales";
-
-  return `Ce repas combine ${ingredientList} : ${benefitText}, ce qui convient bien${sopkProfile ? " au SOPK" : " à votre profil"}.`;
+  if (/cannelle|epice/.test(n)) return "spice";
+  return "veg";
 }
 
-function formatPortionHighlight(ingredients: MealIngredientPortion[]): string | null {
+function slotHint(mealType: MealType): string {
+  if (mealType === "petit_dejeuner") return "dès le matin";
+  if (mealType === "dejeuner") return "jusqu’à l’après-midi";
+  if (mealType === "collation") return "entre deux repas";
+  return "le soir";
+}
+
+/**
+ * Filet de sécurité si le plat n’a pas de texte catalogue : enseigne à partir
+ * des aliments et grammes affichés, sans slogan générique ni relecture de la liste.
+ */
+export function teachFromDisplayedPortions(
+  ingredients: MealIngredientPortion[],
+  mealType: MealType,
+): string | null {
   if (ingredients.length === 0) return null;
 
-  const lines = ingredients.slice(0, 4).map((ingredient) => {
-    if (ingredient.displayLine) return ingredient.displayLine;
-    return `${ingredient.aliment} (~${ingredient.grammes} g)`;
-  });
+  const classified = ingredients.map((ingredient) => ({
+    ...ingredient,
+    role: roleOf(ingredient.aliment),
+  }));
 
-  const suffix = ingredients.length > 4 ? "…" : "";
-  return `Vos portions aujourd’hui : ${lines.join(", ")}${suffix}.`;
+  const ideas: string[] = [];
+  const used = new Set<string>();
+  const remember = (key: string, sentence: string) => {
+    if (used.has(key) || ideas.length >= 3) return;
+    used.add(key);
+    ideas.push(sentence);
+  };
+
+  const protein = classified.find((item) => item.role === "protein" || item.role === "legume" || item.role === "dairy");
+  if (protein) {
+    remember(
+      "protein",
+      `${protein.aliment} porte les protéines ${slotHint(mealType)} : c’est lui qui cale, pas le reste de l’assiette.`,
+    );
+  }
+
+  const cappedFat = classified.find((item) => item.role === "fat" && item.grammes <= 80);
+  if (cappedFat) {
+    remember(
+      "fat",
+      `${cappedFat.aliment} est volontairement limité : assez de lipides pour ralentir le sucre, trop ferait exploser les calories.`,
+    );
+  }
+
+  const cappedStarch = classified.find((item) => item.role === "starch" && item.grammes <= 140);
+  if (cappedStarch) {
+    remember(
+      "starch",
+      `${cappedStarch.aliment} reste la part d’énergie mesurée, pas le centre du repas.`,
+    );
+  }
+
+  const volume = classified.find(
+    (item) => (item.role === "veg" || item.role === "legume") && item.grammes >= 100,
+  );
+  if (volume) {
+    remember(
+      "volume",
+      `${volume.aliment} occupe le volume : beaucoup d’assiette, peu de calories.`,
+    );
+  }
+
+  const fruit = classified.find((item) => item.role === "fruit");
+  if (fruit && ideas.length < 2) {
+    remember(
+      "fruit",
+      `${fruit.aliment} reste une portion fruit, pas un jus ni un dessert sucré.`,
+    );
+  }
+
+  const spice = classified.find((item) => item.role === "spice");
+  if (spice && ideas.length < 2) {
+    remember("spice", `${spice.aliment} relève le goût sans ajouter de sucre ni de sel excessif.`);
+  }
+
+  if (ideas.length === 0) {
+    const first = classified[0];
+    if (!first) return null;
+    remember(
+      "fallback",
+      `${first.aliment} structure ce créneau ; les quantités affichées évitent de surdoser les aliments denses.`,
+    );
+  }
+
+  return ideas.join(" ");
 }
 
 function portionAdjustmentNote(baseGrams: number, adjustedGrams: number, dailyTarget: number): string | null {
@@ -90,16 +157,16 @@ function portionAdjustmentNote(baseGrams: number, adjustedGrams: number, dailyTa
 
   const pct = Math.round(Math.abs(ratio - 1) * 100);
   if (ratio < 1) {
-    return `Quantités réduites d’environ ${pct} % par rapport au plan standard, selon votre morphologie et votre objectif (${dailyTarget} kcal/j).`;
+    return `Quantités réduites d’environ ${pct} % par rapport au plan standard, pour coller à votre objectif (${dailyTarget} kcal/j).`;
   }
-  return `Quantités majorées d’environ ${pct} % pour couvrir votre besoin énergétique personnel (${dailyTarget} kcal/j).`;
+  return `Quantités majorées d’environ ${pct} % pour couvrir votre besoin énergétique (${dailyTarget} kcal/j).`;
 }
 
 function buildProfileMealHook(profile: OnboardingData, mealName: string, mealType: MealType): string | null {
   const blob = normalizeText(mealName);
   const preferred = (profile.alimentsPreferes ?? []).filter((food) => blob.includes(normalizeText(food)));
   if (preferred.length > 0) {
-    return `Vous aviez indiqué aimer ${preferred.slice(0, 2).join(" et ")}  - ce repas s’appuie dessus.`;
+    return `Vous aviez indiqué aimer ${preferred.slice(0, 2).join(" et ")} — ce repas s’appuie dessus.`;
   }
 
   const symptoms = profile.symptomes ?? [];
@@ -109,54 +176,44 @@ function buildProfileMealHook(profile: OnboardingData, mealName: string, mealTyp
     );
 
   if (symptoms.some((symptom) => symptom.includes("Fringales")) && proteinRich) {
-    return "Riche en protéines : un bon levier pour vous, car vous signalez des fringales difficiles à calmer.";
+    return "Riche en protéines : un levier concret pour vous, car vous signalez des fringales difficiles à calmer.";
   }
   if (symptoms.some((symptom) => symptom.includes("fatigue")) && mealType === "dejeuner") {
     return "Un déjeuner structuré comme celui-ci peut limiter les coups de barre de l’après-midi.";
   }
   if (
     symptoms.some((symptom) => symptom.includes("gonflé") || symptom.includes("digestif")) &&
-    /soupe|crudit|lentille|pois chiche|legume/.test(blob)
+    /soupe|crudit|lentille|pois chiche/.test(blob)
   ) {
-    return "Fibres et légumes en volume : utile si vous avez un ventre sensible  - augmentez progressivement si besoin.";
+    return "Fibres et volume : utile si le ventre est sensible — augmentez progressivement si besoin.";
   }
-  if (symptoms.some((symptom) => symptom.includes("Nuits")) && mealType === "diner") {
-    return "Dîner sans excès de sucres rapides : plus confortable si vos nuits sont agitées.";
-  }
-  if (symptoms.some((symptom) => symptom.includes("ventre") || symptom.includes("Graisse"))) {
-    return "Repas à charge glycémique modérée, aligné avec votre objectif de régulation métabolique.";
-  }
-
-  const regime = profile.regimeAlimentaire ?? "";
-  if (regime.includes("Végétalienne") && !/oeuf|fromage|skyr|yaourt|feta|saumon|thon|dinde|poulet|steak|cabillaud|poisson/.test(blob)) {
-    return "Aligné avec votre régime végétalien.";
-  }
-  if (regime.includes("Végétarienne") && !/poulet|dinde|saumon|thon|steak|cabillaud|poisson/.test(blob)) {
-    return "Conforme à votre régime végétarien.";
+  if (symptoms.some((symptom) => symptom.includes("Nuits")) && mealType === "diner" && /soupe|poisson|legume|omelette/.test(blob)) {
+    return "Dîner sans amidon excessif : plus confortable si vos nuits sont agitées.";
   }
 
   const allergyHit = (profile.allergies ?? []).find((allergy) => blob.includes(normalizeText(allergy)));
   if (allergyHit) {
-    return `Ce libellé mentionne « ${allergyHit} »  - vérifiez la substitution si vous devez l’éviter.`;
+    return `Ce libellé mentionne « ${allergyHit} » — vérifiez la substitution si vous devez l’éviter.`;
   }
 
   const diagnostics = profile.diagnostics ?? [];
-  if (diagnostics.some((diagnostic) => diagnostic.includes("insuline")) && /quinoa|riz complet|avoine|lentille|legume|crudit|brocoli/.test(blob)) {
-    return "Glucides complets et fibres : pertinent si vous vivez une résistance à l’insuline.";
+  if (diagnostics.some((diagnostic) => diagnostic.includes("insuline")) && /quinoa|riz complet|avoine|lentille|brocoli/.test(blob)) {
+    return "Glucides complets dosés : pertinent si vous vivez une résistance à l’insuline.";
   }
-  if (diagnostics.some((diagnostic) => diagnostic.includes("Endométriose")) && /saumon|thon|légume|legume|brocoli|fruits rouges|baie/.test(blob)) {
-    return "Oméga-3 et légumes colorés : cohérent avec une approche anti-inflammatoire au quotidien.";
+  if (diagnostics.some((diagnostic) => diagnostic.includes("Endométriose")) && /saumon|thon|brocoli|fruits rouges|baie/.test(blob)) {
+    return "Oméga-3 ou légumes colorés dans ce plat : cohérent avec une approche anti-inflammatoire au quotidien.";
   }
 
   const detested = (profile.alimentsDetestes ?? []).filter((food) => blob.includes(normalizeText(food)));
   if (detested.length > 0) {
-    return `Ce repas contient « ${detested[0]} » que vous aviez exclu  - pensez à une alternative du plan si besoin.`;
+    return `Ce repas contient « ${detested[0]} » que vous aviez exclu — pensez à une alternative du plan si besoin.`;
   }
 
   return null;
 }
 
-export function buildMealWhyToday(
+/** Pédagogie à afficher sous la liste des portions (pas une 2ᵉ feature). */
+export function buildMealPortionTeaching(
   profile: OnboardingData,
   meal: MealEntry,
   day: DayPlan,
@@ -181,20 +238,26 @@ export function buildMealWhyToday(
   );
 
   const mealWhy =
-    lookupMealWhyCatalog(meal.nom) ??
-    (basePortions.why.includes("Portions estimées à partir du libellé")
-      ? inferMealWhyFromLabel(meal.nom, isSopkNutritionProfile(profile))
-      : basePortions.why);
+    lookupMealWhyCatalog(meal.nom) ?? teachFromDisplayedPortions(adjustedPortions.ingredients, meal.type);
 
   const baseGrams = basePortions.ingredients.reduce((sum, ingredient) => sum + ingredient.grammes, 0);
   const adjustedGrams = adjustedPortions.ingredients.reduce((sum, ingredient) => sum + ingredient.grammes, 0);
 
   return joinParagraphs([
     mealWhy,
-    formatPortionHighlight(adjustedPortions.ingredients),
     buildProfileMealHook(profile, meal.nom, meal.type),
     portionAdjustmentNote(baseGrams, adjustedGrams, dailyTarget),
   ]);
+}
+
+/** @deprecated Utiliser buildMealPortionTeaching — conservé pour les audits de profil. */
+export function buildMealWhyToday(
+  profile: OnboardingData,
+  meal: MealEntry,
+  day: DayPlan,
+  dailyTarget: number,
+): string {
+  return buildMealPortionTeaching(profile, meal, day, dailyTarget);
 }
 
 function symptomHydrationHint(profile: OnboardingData): string | null {

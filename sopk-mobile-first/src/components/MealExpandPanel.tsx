@@ -8,12 +8,12 @@ import { getMealPortionDetailsAdjusted, type MealPortionDetails } from "@/utils/
 import {
   catalogMealOverride,
   customMealOverride,
-  getEffectiveMeal,
   getMealAlternatives,
   getProfileAdjustedEffectiveMeal,
   resolveMealOverride,
 } from "@/utils/mealPersonalization";
 import { mealAlternativesLabel } from "@/utils/profilePath";
+import { buildMealPortionTeaching } from "@/utils/taskWhyToday";
 import type { DayPlan, MealOverrideEntry, MealOverrideState, OnboardingData } from "@/utils/types";
 
 import { MealImage } from "./PlanViewMealImage";
@@ -25,7 +25,13 @@ const labelByType = {
   diner: "Dîner",
 } as const;
 
-function MealPortionsSection({ portionDetails }: { portionDetails: MealPortionDetails }) {
+function MealPortionsSection({
+  portionDetails,
+  teaching,
+}: {
+  portionDetails: MealPortionDetails;
+  teaching: string;
+}) {
   return (
     <div className="rounded-2xl border border-slate-200/80 bg-gradient-to-b from-slate-50 to-white p-3">
       <p className="text-[11px] font-black uppercase tracking-wide text-slate-700">Portions par aliment</p>
@@ -50,8 +56,17 @@ function MealPortionsSection({ portionDetails }: { portionDetails: MealPortionDe
       ) : (
         <p className="mt-2 text-[12px] text-slate-400">Détail des portions non disponible pour ce repas.</p>
       )}
-      {portionDetails.why ? (
-        <p className="mt-2.5 text-[11px] leading-snug text-slate-500">{portionDetails.why}</p>
+      {teaching ? (
+        <div className="mt-3 border-t border-slate-200/80 pt-2.5">
+          <p className="text-[11px] font-black uppercase tracking-wide text-brand-800">Pourquoi ces quantités</p>
+          <div className="mt-1.5 space-y-2">
+            {teaching.split("\n\n").map((paragraph) => (
+              <p key={paragraph.slice(0, 48)} className="text-[13px] leading-relaxed text-slate-700">
+                {paragraph}
+              </p>
+            ))}
+          </div>
+        </div>
       ) : null}
     </div>
   );
@@ -144,6 +159,9 @@ export function MealExpandPanel({
     meal.type,
     meal.calories,
   );
+  const teaching = isFreeformMeal
+    ? ""
+    : buildMealPortionTeaching(profile, meal, selectedDay, dailyTarget);
 
   return (
     <div className="space-y-3">
@@ -177,7 +195,7 @@ export function MealExpandPanel({
           Repas personnalisé équivalent - pas de détail par aliment ({adjustedMealKcal} kcal).
         </div>
       ) : (
-        <MealPortionsSection portionDetails={portionDetails} />
+        <MealPortionsSection portionDetails={portionDetails} teaching={teaching} />
       )}
 
       {canEdit ? (

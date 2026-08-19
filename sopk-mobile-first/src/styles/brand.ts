@@ -46,4 +46,10 @@ export const brand = {
   graphFill: "url(#projectionFill)",
   gradientHero: "from-brand-700 via-brand-600 to-accent",
   gradientHeader: "from-brand-50/90 via-white to-brand-50/40",
+  /** Tâche du jour encore ouverte : reliquaire crème, pas un feu rouge. */
+  taskOpen:
+    "border-brand-200 bg-gradient-to-br from-white to-brand-50 text-ink shadow-card ring-1 ring-brand-100/80",
+  /** Tâche honorée : cachet prune → teal (charte), jamais émeraude. */
+  taskHonored:
+    "border-accent/45 bg-gradient-to-br from-brand-800 via-brand-600 to-accent text-white shadow-[0_10px_28px_rgba(61,42,74,0.35),inset_0_1px_0_rgba(255,255,255,0.22)] ring-1 ring-white/15",
 } as const;
