@@ -9,7 +9,7 @@ export default function TermsPage() {
       <section className="mx-auto w-full max-w-4xl px-5 pb-8 pt-6 md:px-8 md:pb-12 md:pt-8">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-10">
           <h1 className="text-3xl font-black tracking-tight text-slate-950 md:text-4xl">
-            Conditions d&apos;utilisation - Régime SOPK
+            Conditions d&apos;utilisation - SOPK Nutrition
           </h1>
           <p className="mt-3 text-sm text-slate-500">Dernière mise à jour : 17 juin 2026</p>
 
@@ -17,7 +17,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-lg font-bold text-slate-900">1) Objet</h2>
               <p className="mt-2">
-                Régime SOPK propose un accompagnement nutritionnel et un suivi de bien-être. L&apos;application
+                SOPK Nutrition propose un accompagnement nutritionnel et un suivi de bien-être. L&apos;application
                 ne remplace pas un avis médical, un diagnostic ou un traitement.
               </p>
             </section>
@@ -60,7 +60,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-lg font-bold text-slate-900">4) Propriété intellectuelle</h2>
               <p className="mt-2">
-                Les contenus, marques et éléments graphiques de Régime SOPK restent la propriété de leurs
+                Les contenus, marques et éléments graphiques de SOPK Nutrition restent la propriété de leurs
                 titulaires. Aucune licence de reproduction n&apos;est accordée au-delà de l&apos;usage prévu par
                 l&apos;application.
               </p>

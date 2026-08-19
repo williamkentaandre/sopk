@@ -30,25 +30,6 @@ export function programDayFromTrackingKey(key: string): number | null {
   return Number.isFinite(n) && n >= 1 ? n : null;
 }
 
-/** Indices des repas du JSON affichés / suivis selon le rythme choisi en onboarding. */
-export function visibleMealIndices(rythmeRepas: string | undefined): number[] {
-  const r = (rythmeRepas ?? "3 repas + collations").trim().toLowerCase();
-  if (r.includes("collation") || r.includes("3 repas +")) {
-    return [0, 1, 2, 3];
-  }
-  if (r.startsWith("3 repas")) {
-    return [0, 1, 3];
-  }
-  if (r.startsWith("2 repas")) {
-    return [1, 3];
-  }
-  return [0, 1, 2, 3];
-}
-
-export function visibleMealCount(rythmeRepas: string | undefined): number {
-  return visibleMealIndices(rythmeRepas).length;
-}
-
 /** Jour du programme source (ancien horizon) aligné sur la position dans le nouveau programme. */
 function sourceOldProgramDay(newDay: number, oldN: number, newN: number): number {
   if (newN <= 0 || oldN <= 0) return 1;

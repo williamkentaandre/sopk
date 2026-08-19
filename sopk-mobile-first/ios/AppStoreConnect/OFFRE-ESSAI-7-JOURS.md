@@ -11,8 +11,8 @@ L’app **ne gère pas** l’essai en local. Les 7 jours gratuits sont une **off
 
 ## Étapes dans App Store Connect
 
-1. Ouvrir [App Store Connect](https://appstoreconnect.apple.com) → **Mes apps** → **Régime SOPK** (`com.nutrisopk.app`).
-2. Menu **Fonctionnalités** (ou **Achats intégrés** / **Abonnements**) → groupe d’abonnements **Régime SOPK**.
+1. Ouvrir [App Store Connect](https://appstoreconnect.apple.com) → **Mes apps** → **SOPK Nutrition** (`com.nutrisopk.app`).
+2. Menu **Fonctionnalités** (ou **Achats intégrés** / **Abonnements**) → groupe d’abonnements **SOPK Nutrition**.
 3. Pour **chaque** abonnement (mensuel et annuel) :
    - Ouvrir l’abonnement → section **Offres d’introduction** (ou **Introductory Offers**).
    - **Créer une offre** :

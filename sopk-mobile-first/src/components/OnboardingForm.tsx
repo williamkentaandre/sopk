@@ -1,18 +1,30 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Capacitor } from "@capacitor/core";
 import type { Product } from "@capgo/native-purchases";
 
 import { BrandLogo } from "@/components/BrandLogo";
 import { AppIconSvg } from "@/components/AppIconSvg";
+import { APP_NAME } from "@/config/appBrand";
 import { SubscriptionLegalLinks } from "@/components/SubscriptionLegalLinks";
 import { capacitorPublicAsset } from "@/utils/capacitorStaticHref";
 import { isCapacitorNative } from "@/utils/capacitorRuntime";
 import { getEstimatedDailyLossGrams } from "@/utils/mealPlan";
 import { normalizeParcours } from "@/utils/profileMigrate";
+import {
+  buildDiagnosticsForProfile,
+  COMORBIDITY_UNKNOWN,
+  comorbiditiesOnly,
+  comorbiditySelection,
+  DIAGNOSTIC_NONE,
+  isSopkNutritionProfile,
+  PROFIL_NUTRITION_OPTIONS,
+  profileNutritionShortLabel,
+  resolveProfilNutrition,
+} from "@/utils/profilePath";
 import { STORAGE_KEYS, isoDateLocalLabelFr } from "@/utils/storage";
-import type { OnboardingData, ParcoursPerte } from "@/utils/types";
+import type { OnboardingData, ParcoursPerte, ProfilNutrition } from "@/utils/types";
 import {
   fetchSubscriptionProducts,
   purchaseSubscription,
@@ -58,18 +70,21 @@ const COMORBIDITY_ITEMS = [
   "Résistance à l’insuline",
 ] as const;
 
-const COMORBIDITY_UNKNOWN = "Je ne sais pas";
-
 const ONBOARDING_STEP_META: { phase: string; hint: string; footer?: string }[] = [
   {
     phase: "Bienvenue",
-    hint: "Conçu avec des nutritionnistes pour le SOPK",
+    hint: "Régime adapté à votre profil, avec ou sans SOPK",
     footer: "Environ 2 minutes · programme sur mesure · sans engagement avant l’essai.",
+  },
+  {
+    phase: "Votre profil",
+    hint: "Choisissez le parcours qui vous correspond",
+    footer: "Vous pourrez le modifier dans les paramètres.",
   },
   { phase: "Votre corps", hint: "Pour calibrer calories, eau et portions", footer: "Vos données restent sur votre appareil." },
   { phase: "Votre corps", hint: "Hydratation et portions ajustées à votre morphologie" },
   { phase: "Vos objectifs", hint: "Des cibles réalistes, encadrées par l’équipe diététique" },
-  { phase: "Votre quotidien", hint: "Ce qui revient le plus souvent avec le SOPK" },
+  { phase: "Votre quotidien", hint: "Ce qui revient le plus souvent au quotidien" },
   {
     phase: "Profils associés",
     hint: "Facultatif · pour affiner les repères si vous avez d’autres diagnostics",
@@ -87,10 +102,10 @@ const ONBOARDING_STEP_META: { phase: string; hint: string; footer?: string }[] =
   { phase: "Dernière étape", hint: "Essai gratuit · annulable dans l’App Store" },
 ];
 
-const ONBOARDING_DRAFT_VERSION = 2;
+const ONBOARDING_DRAFT_VERSION = 3;
 
 const WELCOME_TRUST_PILLARS = [
-  { title: "Menus SOPK", desc: "30 jours à 1 an selon votre horizon" },
+  { title: "Menus adaptés", desc: "30 jours à 1 an selon votre horizon" },
   { title: "Repères clairs", desc: "Calories, eau, pas calibrés pour vous" },
   { title: "Sans promesse miracle", desc: "Méthode tenable, repas concrets" },
 ] as const;
@@ -102,16 +117,18 @@ const defaultProfile: OnboardingData = {
   tailleCm: 165,
   parcoursPerte: "j90",
   objectifPoidsKg: 77,
-  diagnostics: ["SOPK"],
-  symptomes: ["Peu ou pas de tout cela"],
-  tentativePertePoids: "Oui, plusieurs fois (yo-yo)",
+  profilNutrition: undefined,
+  diagnostics: [],
+  // Aucune réponse n'est cochée à la place de l'utilisatrice : une allergie ou un
+  // symptôme pré-coché serait une donnée de santé inventée.
+  symptomes: [],
   niveauActivite: "Sédentaire",
   rythmeRepas: "3 repas",
   tempsCuisine: "15 - 30 min",
   regimeAlimentaire: "Omnivore",
-  alimentsPreferes: ["Avocat", "Poulet"],
-  allergies: ["Arachides"],
-  alimentsDetestes: ["Brocoli"],
+  alimentsPreferes: [],
+  allergies: [],
+  alimentsDetestes: [],
   billingPreference: "yearly",
 };
 
@@ -132,7 +149,8 @@ function migrateOnboardingDraftStep(rawStep: number, draftVersion = 0): number {
     else if (s >= 5 && s <= 10) s = Math.min(10, s + 1);
   }
   if (draftVersion < 2 && s >= 9) s = Math.min(11, s + 1);
-  return Math.max(0, Math.min(11, s));
+  if (draftVersion < 3 && s >= 1) s = Math.min(12, s + 1);
+  return Math.max(0, Math.min(12, s));
 }
 
 function readOnboardingDraft(userScope: string): { step: number; profile: OnboardingData } | null {
@@ -145,13 +163,13 @@ function readOnboardingDraft(userScope: string): { step: number; profile: Onboar
     const migratedStep = migrateOnboardingDraftStep(Math.floor(parsed.step), parsed.draftVersion ?? 0);
     const draftProfile = { ...parsed.profile };
     delete draftProfile.onboardingCompleted;
-    const diagnostics = (draftProfile.diagnostics ?? []).filter((d) => d !== "Aucun diagnostic");
+    const diagnostics = (draftProfile.diagnostics ?? []).filter((d) => d !== DIAGNOSTIC_NONE);
     return {
-      step: Math.max(0, Math.min(11, migratedStep)),
+      step: Math.max(0, Math.min(12, migratedStep)),
       profile: {
         ...defaultProfile,
         ...draftProfile,
-        diagnostics: diagnostics.includes("SOPK") ? diagnostics : ["SOPK", ...diagnostics],
+        diagnostics,
         parcoursPerte: normalizeParcours(draftProfile.parcoursPerte as string),
       },
     };
@@ -187,9 +205,10 @@ export function OnboardingForm({
     return d?.profile ?? defaultProfile;
   });
   const [step, setStep] = useState(() => (resumeProfile ? 0 : readOnboardingDraft(userScope)?.step ?? 0));
-  /** 0 accueil, 1-9 profil, 10 projection, 11 offre (sauf si skipPricingStep). */
-  const stepCount = skipPricingStep ? 11 : 12;
-  const lastNavigableStep = skipPricingStep ? 10 : 11;
+  const stepScrollRef = useRef<HTMLDivElement | null>(null);
+  /** 0 accueil, 1 parcours nutrition, 2-10 profil, 11 projection, 12 offre (sauf si skipPricingStep). */
+  const stepCount = skipPricingStep ? 12 : 13;
+  const lastNavigableStep = skipPricingStep ? 11 : 12;
 
   useEffect(() => {
     if (typeof window === "undefined" || resumeProfile) return;
@@ -207,7 +226,12 @@ export function OnboardingForm({
   }, [step, profile, userScope, resumeProfile]);
 
   useEffect(() => {
-    if (skipPricingStep || step !== 11) {
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    stepScrollRef.current?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [step]);
+
+  useEffect(() => {
+    if (skipPricingStep || step !== 12) {
       setIapProducts(undefined);
       setIapError(null);
       return;
@@ -248,18 +272,19 @@ export function OnboardingForm({
   const deltaKg = Math.max(0.1, profile.poidsKg - targetKg);
 
   const iapGateBlocksContinue = useMemo(() => {
-    if (skipPricingStep || step !== 11) return false;
+    if (skipPricingStep || step !== 12) return false;
     if (!shouldUseNativeIap()) return false;
     return iapProducts === undefined || iapProducts === null;
   }, [iapProducts, skipPricingStep, step]);
 
   const canProceed = useMemo(() => {
-    if (!skipPricingStep && step === 11) {
+    if (step === 1 && !profile.profilNutrition) return false;
+    if (!skipPricingStep && step === 12) {
       if (!profile.billingPreference) return false;
       if (iapGateBlocksContinue) return false;
     }
     return true;
-  }, [iapGateBlocksContinue, profile.billingPreference, skipPricingStep, step]);
+  }, [iapGateBlocksContinue, profile.billingPreference, profile.profilNutrition, skipPricingStep, step]);
 
   function handleStart() {
     const age = Number.isFinite(Number(profile.age)) ? Number(profile.age) : 30;
@@ -273,7 +298,8 @@ export function OnboardingForm({
       (document.activeElement as HTMLElement | null)?.blur?.();
     }
 
-    const comorbidities = (profile.diagnostics ?? []).filter((d) => d !== "SOPK" && d !== "Aucun diagnostic");
+    const profilNutrition = resolveProfilNutrition(profile);
+    const comorbidities = comorbiditiesOnly(profile.diagnostics);
 
     onComplete({
       ...profile,
@@ -282,7 +308,8 @@ export function OnboardingForm({
       poidsKg: Math.min(180, Math.max(40, poidsKg)),
       tailleCm: Math.min(210, Math.max(130, tailleCm)),
       objectifPoidsKg: Math.min(150, Math.max(35, objectifPoidsKg)),
-      diagnostics: ["SOPK", ...comorbidities],
+      profilNutrition,
+      diagnostics: buildDiagnosticsForProfile(profilNutrition, comorbidities),
       parcoursPerte: normalizeParcours(profile.parcoursPerte),
       billingPreference: profile.billingPreference ?? "yearly",
       onboardingCompleted: true,
@@ -296,6 +323,10 @@ export function OnboardingForm({
   }, [iapProducts, profile.billingPreference]);
 
   async function nextStep() {
+    if (!canProceed || iapBusy) return;
+    if (typeof document !== "undefined") {
+      (document.activeElement as HTMLElement | null)?.blur?.();
+    }
     if (step === lastNavigableStep) {
       if (!skipPricingStep && shouldUseNativeIap()) {
         const pack = iapProducts;
@@ -336,36 +367,46 @@ export function OnboardingForm({
   ) {
     setProfile((prev) => {
       const source = prev[field] ?? [];
-      return {
-        ...prev,
-        [field]: source.includes(value) ? source.filter((item) => item !== value) : [...source, value],
-      };
+      const adding = !source.includes(value);
+      const nextField = adding ? [...source, value] : source.filter((item) => item !== value);
+      if (!adding) {
+        return { ...prev, [field]: nextField };
+      }
+      const next: typeof prev = { ...prev, [field]: nextField };
+      if (field === "allergies") {
+        next.alimentsDetestes = (prev.alimentsDetestes ?? []).filter((item) => item !== value);
+      }
+      if (field === "alimentsDetestes") {
+        next.allergies = (prev.allergies ?? []).filter((item) => item !== value);
+      }
+      return next;
     });
   }
 
   function toggleComorbidity(value: string) {
     setProfile((prev) => {
+      const sopk = isSopkNutritionProfile(prev);
       if (value === COMORBIDITY_UNKNOWN) {
         const hasUnknown = (prev.diagnostics ?? []).includes(COMORBIDITY_UNKNOWN);
+        const base = sopk ? ["SOPK"] : [];
         return {
           ...prev,
-          diagnostics: hasUnknown ? ["SOPK"] : ["SOPK", COMORBIDITY_UNKNOWN],
+          diagnostics: hasUnknown ? base : [...base, COMORBIDITY_UNKNOWN],
         };
       }
-      const current = (prev.diagnostics ?? []).filter(
-        (d) => d !== "SOPK" && d !== "Aucun diagnostic" && d !== COMORBIDITY_UNKNOWN,
-      );
+      const current = comorbiditiesOnly(prev.diagnostics);
       const next = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
-      return { ...prev, diagnostics: ["SOPK", ...next] };
+      return { ...prev, diagnostics: buildDiagnosticsForProfile(resolveProfilNutrition(prev), next) };
     });
   }
 
+  const sopkOnboarding = isSopkNutritionProfile(profile);
+
   const diagnosticTag = useMemo(() => {
-    const tags = (profile.diagnostics ?? []).filter(
-      (d) => d !== "Aucun diagnostic" && d !== COMORBIDITY_UNKNOWN,
-    );
-    return tags.length > 0 ? tags.join(" · ") : "SOPK";
-  }, [profile.diagnostics]);
+    const tags = comorbiditiesOnly(profile.diagnostics);
+    if (tags.length > 0) return tags.join(" · ");
+    return profileNutritionShortLabel(profile);
+  }, [profile]);
   const profileEditResetLabel = profileEditResetDateLabel
     ? isoDateLocalLabelFr(profileEditResetDateLabel)
     : "aujourd'hui";
@@ -412,7 +453,7 @@ export function OnboardingForm({
           {step === 0 ? (
             <div className="min-w-0 flex-1" aria-hidden />
           ) : (
-            <BrandLogo variant="minimal" className="min-w-0 flex-1" />
+            <BrandLogo variant="minimal" className="min-w-0 flex-1" sopkFocus={sopkOnboarding} />
           )}
           <div className="shrink-0 rounded-full border border-brand-200/90 bg-white/90 px-2 py-0.5 shadow-sm">
             <p className="text-[10px] font-bold tabular-nums text-brand-700">
@@ -424,7 +465,7 @@ export function OnboardingForm({
 
         <div className="mt-1.5">
           <div className="mb-0.5 flex items-center justify-between gap-2">
-            <p className="truncate text-[10px] font-bold uppercase tracking-wide text-brand-600">{stepMeta.phase}</p>
+            <p className="truncate text-xs font-bold uppercase tracking-wide text-brand-600">{stepMeta.phase}</p>
             <p className="shrink-0 text-[10px] font-semibold tabular-nums text-brand-500">{progressPercent} %</p>
           </div>
           <div className="h-1 overflow-hidden rounded-full bg-brand-200/70">
@@ -444,7 +485,10 @@ export function OnboardingForm({
         </div>
       ) : null}
 
-      <div className="relative flex min-h-0 flex-1 flex-col justify-center overflow-hidden px-3 py-0.5 sm:px-4">
+      <div
+        ref={stepScrollRef}
+        className="relative flex min-h-0 flex-1 flex-col justify-start overflow-y-auto overscroll-y-contain px-3 py-2 [-webkit-overflow-scrolling:touch] sm:px-4"
+      >
 
         {step === 0 ? (
           <WelcomeHero />
@@ -452,8 +496,22 @@ export function OnboardingForm({
 
         {step === 1 ? (
           <OnboardingStepCard>
+            <ProfilNutritionStep
+              selected={profile.profilNutrition}
+              onSelect={(profilNutrition: ProfilNutrition) =>
+                setProfile((prev) => ({
+                  ...prev,
+                  profilNutrition,
+                  diagnostics: buildDiagnosticsForProfile(profilNutrition, comorbiditiesOnly(prev.diagnostics)),
+                }))
+              }
+            />
+          </OnboardingStepCard>
+        ) : null}
+
+        {step === 2 ? (
+          <OnboardingStepCard>
             <SliderScreen
-              compact
               title="Votre âge"
               subtitle="Pour calibrer calories, eau et portions."
               value={profile.age}
@@ -465,10 +523,9 @@ export function OnboardingForm({
           </OnboardingStepCard>
         ) : null}
 
-        {step === 2 ? (
+        {step === 3 ? (
           <OnboardingStepCard>
             <SliderScreen
-              compact
               title="Votre taille"
               subtitle="Hydratation et portions ajustées à votre morphologie."
               value={profile.tailleCm}
@@ -480,17 +537,18 @@ export function OnboardingForm({
           </OnboardingStepCard>
         ) : null}
 
-        {step === 3 ? (
+        {step === 4 ? (
           <OnboardingStepCard>
             <div>
-              <h3 className={`text-base font-bold leading-snug ${brand.text}`}>Poids de départ et cible</h3>
-              <p className={`mt-1 text-[11px] leading-snug ${brand.muted}`}>
+              <h3 className={`text-[22px] font-bold leading-snug sm:text-[24px] ${brand.text}`}>
+                Poids de départ et cible
+              </h3>
+              <p className={`mt-2 text-base leading-snug sm:text-[17px] ${brand.muted}`}>
                 Objectifs compatibles avec un suivi encadré (en général 0,5 à 1 kg/semaine).
               </p>
-              <div className="mt-2.5 grid grid-cols-2 gap-2">
-                <NumericCard compact label="Poids" value={profile.poidsKg} onChange={(v) => setProfile((p) => ({ ...p, poidsKg: v }))} />
+              <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <NumericCard label="Poids" value={profile.poidsKg} onChange={(v) => setProfile((p) => ({ ...p, poidsKg: v }))} />
                 <NumericCard
-                  compact
                   label="Cible"
                   value={profile.objectifPoidsKg ?? 77}
                   onChange={(v) => setProfile((p) => ({ ...p, objectifPoidsKg: v }))}
@@ -500,12 +558,15 @@ export function OnboardingForm({
           </OnboardingStepCard>
         ) : null}
 
-        {step === 4 ? (
+        {step === 5 ? (
           <OnboardingStepCard>
             <ChoiceScreen
-              compact
               title="Ce qui vous parle le plus"
-              subtitle="Cochez ce qui revient souvent avec le SOPK."
+              subtitle={
+                sopkOnboarding
+                  ? "Cochez ce qui revient souvent avec le SOPK."
+                  : "Cochez ce qui vous parle le plus au quotidien."
+              }
               items={[
                 "Coupes de fatigue à répétition",
                 "Fringales difficiles à calmer",
@@ -522,23 +583,21 @@ export function OnboardingForm({
           </OnboardingStepCard>
         ) : null}
 
-        {step === 5 ? (
+        {step === 6 ? (
           <OnboardingStepCard>
             <ChoiceScreen
-              compact
               title="Profils associés"
               subtitle="Facultatif · ou « Je ne sais pas »."
               items={[...COMORBIDITY_ITEMS, COMORBIDITY_UNKNOWN]}
-              selected={(profile.diagnostics ?? []).filter((d) => d !== "SOPK" && d !== "Ancun diagnostic")}
+              selected={comorbiditySelection(profile.diagnostics)}
               onPick={(v) => toggleComorbidity(v)}
             />
           </OnboardingStepCard>
         ) : null}
 
-        {step === 6 ? (
+        {step === 7 ? (
           <OnboardingStepCard>
             <ChoiceScreen
-              compact
               singleSelect
               title="Mouvement au quotidien"
               subtitle="Une seule réponse · pas ajustés sans pression."
@@ -549,16 +608,17 @@ export function OnboardingForm({
           </OnboardingStepCard>
         ) : null}
 
-        {step === 7 ? (
+        {step === 8 ? (
           <OnboardingStepCard>
             <div>
-              <h3 className={`text-base font-bold leading-snug ${brand.text}`}>Repas et cuisine</h3>
-              <p className={`mt-1 text-[11px] leading-snug ${brand.muted}`}>Un plan tenable pour votre semaine.</p>
-              <OnboardingSectionLabel compact>Prises alimentaires</OnboardingSectionLabel>
-              <div className="mt-1 grid grid-cols-2 gap-1">
+              <h3 className={`text-[22px] font-bold leading-snug sm:text-[24px] ${brand.text}`}>Repas et cuisine</h3>
+              <p className={`mt-2 text-base leading-snug sm:text-[17px] ${brand.muted}`}>
+                Un plan tenable pour votre semaine.
+              </p>
+              <OnboardingSectionLabel>Prises alimentaires</OnboardingSectionLabel>
+              <div className="mt-3 grid grid-cols-1 gap-3">
                 {["2 repas", "3 repas", "3 repas + collations"].map((item) => (
                   <ChoicePill
-                    compact
                     key={item}
                     label={item}
                     active={profile.rythmeRepas === item}
@@ -566,11 +626,10 @@ export function OnboardingForm({
                   />
                 ))}
               </div>
-              <OnboardingSectionLabel compact>Temps pour préparer</OnboardingSectionLabel>
-              <div className="mt-1 grid grid-cols-2 gap-1">
+              <OnboardingSectionLabel>Temps pour préparer</OnboardingSectionLabel>
+              <div className="mt-3 grid grid-cols-1 gap-3">
                 {["Moins de 15 min", "15 - 30 min", "30 - 45 min", "Peu importe"].map((item) => (
                   <ChoicePill
-                    compact
                     key={item}
                     label={item}
                     active={profile.tempsCuisine === item}
@@ -582,17 +641,18 @@ export function OnboardingForm({
           </OnboardingStepCard>
         ) : null}
 
-        {step === 8 ? (
+        {step === 9 ? (
           <OnboardingStepCard>
             <FoodPreferencesRegimeStep
               profile={profile}
+              sopkProfile={sopkOnboarding}
               onToggle={(field, key) => toggleArrayValue(field, key)}
               onRegimeChange={(regimeAlimentaire) => setProfile((p) => ({ ...p, regimeAlimentaire }))}
             />
           </OnboardingStepCard>
         ) : null}
 
-        {step === 9 ? (
+        {step === 10 ? (
           <OnboardingStepCard>
             <FoodPreferencesExclusionsStep
               profile={profile}
@@ -601,11 +661,12 @@ export function OnboardingForm({
           </OnboardingStepCard>
         ) : null}
 
-        {step === 10 ? (
+        {step === 11 ? (
           <OnboardingStepCard>
             <ProjectionStep
               compact
               profile={profile}
+              sopkProfile={sopkOnboarding}
               onParcoursChange={(parcoursPerte) =>
                 setProfile((p) => ({ ...p, parcoursPerte: normalizeParcours(parcoursPerte) }))
               }
@@ -617,7 +678,7 @@ export function OnboardingForm({
           </OnboardingStepCard>
         ) : null}
 
-        {!skipPricingStep && step === 11 ? (
+        {!skipPricingStep && step === 12 ? (
           <OnboardingStepCard>
             <PricingStep
               compact
@@ -651,14 +712,14 @@ export function OnboardingForm({
             />
           </OnboardingStepCard>
         ) : null}
-        {!skipPricingStep && step === 11 && iapError ? (
+        {!skipPricingStep && step === 12 && iapError ? (
           <p className="mt-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-center text-[10px] font-semibold leading-snug text-rose-800">
             {iapError}
           </p>
         ) : null}
       </div>
 
-      <footer className="relative shrink-0 border-t border-brand-200/40 bg-white/90 px-3 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_24px_-12px_rgba(61,42,74,0.15)] backdrop-blur-md sm:px-4">
+      <footer className="relative z-20 shrink-0 border-t border-brand-200/40 bg-white/90 px-3 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_24px_-12px_rgba(61,42,74,0.15)] backdrop-blur-md sm:px-4">
         <div className="rounded-xl border border-brand-100/80 bg-gradient-to-b from-white to-brand-50/40 p-2 shadow-sm">
           {onCancelResume ? (
             <button
@@ -673,19 +734,20 @@ export function OnboardingForm({
             type="button"
             onClick={() => void nextStep()}
             disabled={!canProceed || iapBusy}
-            className={`relative h-11 w-full overflow-hidden rounded-xl bg-gradient-to-r from-brand-700 via-brand-600 to-accent px-3 text-sm font-bold text-white shadow-[0_8px_22px_-6px_rgba(109,90,125,0.4)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.99] ${
+            aria-disabled={!canProceed || iapBusy}
+            className={`relative z-10 h-11 w-full touch-manipulation rounded-xl bg-gradient-to-r from-brand-700 via-brand-600 to-accent px-3 text-sm font-bold text-white shadow-[0_8px_22px_-6px_rgba(109,90,125,0.4)] transition hover:brightness-105 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.99] ${
               !iapBusy && canProceed ? "[animation:onboarding-progress-glow_2.5s_ease-in-out_infinite]" : ""
             }`}
           >
             <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/20 to-transparent" aria-hidden />
-            <span className="relative">
+            <span className="relative block w-full text-center">
             {iapBusy
               ? "Abonnement en cours…"
-              : skipPricingStep && step === 10
+              : skipPricingStep && step === 11
                 ? "Enregistrer le profil"
-                : step === 10
+                : step === 11
                   ? "Voir mon offre"
-                  : step === 11
+                  : step === 12
                     ? shouldUseNativeIap()
                       ? getSubscribeCtaLabel(selectedStoreProduct, "Commencer l’essai gratuit de 7 jours", true)
                       : "Commencer le programme"
@@ -694,16 +756,16 @@ export function OnboardingForm({
                       : "Continuer"}
             </span>
           </button>
-          <p className={`mt-1 line-clamp-1 text-center text-[10px] leading-snug ${brand.muted}`}>
+          <p className={`mt-1 line-clamp-2 text-center text-xs leading-snug ${brand.muted}`}>
             {stepMeta.footer ??
               stepMeta.hint ??
-              (step === 10 && skipPricingStep
+              (step === 11 && skipPricingStep
                 ? "Vos critères sont mis à jour ; votre accès reste inchangé."
-                : step === 11 && !skipPricingStep
+                : step === 12 && !skipPricingStep
                   ? shouldUseNativeIap()
                     ? getNativeTrialFooterText(selectedStoreProduct)
                     : "Abonnement et essai via l’App Store."
-                  : step < 10
+                  : step < 11
                     ? "Modifiable dans les réglages."
                     : null)}
           </p>
@@ -730,21 +792,23 @@ function FoodIconTile({
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-col items-center justify-center rounded-lg border-2 text-center transition active:scale-[0.97] ${
+        className={`flex flex-col items-center justify-center rounded-xl border-2 text-center transition active:scale-[0.97] ${
         compact
           ? "min-h-[2.35rem] px-0.5 py-1"
-          : "min-h-[3.25rem] rounded-xl px-0.5 py-1.5 sm:min-h-[5.25rem] sm:rounded-2xl sm:px-1 sm:py-2.5"
+          : "min-h-[4.75rem] px-1 py-2 sm:min-h-[5.25rem] sm:px-1.5 sm:py-2.5"
       } ${
         selected
           ? "border-[#6d5a7d] bg-[#6d5a7d]/10 shadow-sm ring-1 ring-[#6d5a7d]/25"
           : "border-[#e8e2eb] bg-white/90 hover:border-[#cfc8d4]"
       }`}
     >
-      <span className={`leading-none ${compact ? "text-base" : "text-lg sm:text-[1.75rem]"}`} aria-hidden>
+      <span className={`leading-none ${compact ? "text-base" : "text-2xl sm:text-[1.75rem]"}`} aria-hidden>
         {emoji}
       </span>
       <span
-        className={`mt-0.5 px-0.5 font-semibold leading-tight ${compact ? "text-[7px]" : "text-[9px] sm:mt-1.5 sm:text-[10px] md:text-[11px]"} ${brand.text}`}
+        className={`mt-1 w-full px-0.5 text-center font-semibold leading-snug break-words hyphens-auto ${
+          compact ? "text-[8px] line-clamp-2" : "text-[10px] sm:text-[11px] line-clamp-2"
+        } ${brand.text}`}
       >
         {label}
       </span>
@@ -757,9 +821,9 @@ function RegimeChip({ label, active, onClick }: { label: string; active: boolean
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-2 py-1 text-[10px] font-semibold transition active:scale-[0.98] ${
+      className={`min-h-[44px] rounded-xl border px-3.5 py-2 text-base font-semibold transition active:scale-[0.98] ${
         active
-          ? "border-brand-600 bg-brand-600/10 text-brand-800 ring-1 ring-brand-600/20"
+          ? "border-brand-600 bg-brand-600/10 text-brand-800 ring-2 ring-brand-600/20"
           : "border-brand-200 bg-white text-ink hover:border-brand-300"
       }`}
     >
@@ -768,21 +832,65 @@ function RegimeChip({ label, active, onClick }: { label: string; active: boolean
   );
 }
 
+function ProfilNutritionStep({
+  selected,
+  onSelect,
+}: {
+  selected?: ProfilNutrition;
+  onSelect: (value: ProfilNutrition) => void;
+}) {
+  return (
+    <div className="w-full">
+      <h3 className={`text-[22px] font-bold leading-snug sm:text-[26px] ${brand.text}`}>Quel est votre profil ?</h3>
+      <p className={`mt-2 text-base leading-snug sm:text-[17px] ${brand.muted}`}>
+        Un régime adapté à votre morphologie et votre objectif. Si vous avez le SOPK, nous l’intégrons dans votre
+        programme.
+      </p>
+      <div className="mt-5 space-y-3">
+        {PROFIL_NUTRITION_OPTIONS.map((option) => {
+          const active = selected === option.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => onSelect(option.id)}
+              className={`flex min-h-[64px] w-full flex-col justify-center rounded-2xl border-2 px-4 py-3.5 text-left transition active:scale-[0.99] ${
+                active
+                  ? "border-brand-600 bg-brand-600/8 shadow-sm ring-2 ring-brand-600/20"
+                  : "border-[#e8e2eb] bg-white/90 hover:border-[#d4cdd8]"
+              }`}
+            >
+              <span className={`block text-[17px] font-bold leading-snug ${brand.text}`}>{option.title}</span>
+              <span className={`mt-1 block text-[15px] leading-snug ${brand.muted}`}>{option.subtitle}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function FoodPreferencesRegimeStep({
   profile,
+  sopkProfile,
   onToggle,
   onRegimeChange,
 }: {
   profile: OnboardingData;
+  sopkProfile: boolean;
   onToggle: (field: "alimentsPreferes", key: string) => void;
   onRegimeChange: (regime: string) => void;
 }) {
   return (
-    <div>
-      <h3 className={`text-base font-bold leading-snug ${brand.text}`}>Régime et favoris</h3>
-      <p className={`mt-0.5 text-[11px] leading-snug ${brand.muted}`}>Repas compatibles SOPK dès le jour 1.</p>
-      <OnboardingSectionLabel compact>Régime</OnboardingSectionLabel>
-      <div className="mt-1 flex flex-wrap gap-1">
+    <div className="w-full">
+      <h3 className={`text-[22px] font-bold leading-snug sm:text-[24px] ${brand.text}`}>Régime et favoris</h3>
+      <p className={`mt-2 text-base leading-snug sm:text-[17px] ${brand.muted}`}>
+        {sopkProfile
+          ? "Repas compatibles SOPK dès le jour 1."
+          : "Repas adaptés à votre profil dès le jour 1."}
+      </p>
+      <OnboardingSectionLabel>Régime</OnboardingSectionLabel>
+      <div className="mt-3 flex flex-wrap gap-2">
         {REGIME_OPTIONS.map((item) => (
           <RegimeChip
             key={item}
@@ -792,11 +900,10 @@ function FoodPreferencesRegimeStep({
           />
         ))}
       </div>
-      <OnboardingSectionLabel compact>Souvent appréciés</OnboardingSectionLabel>
-      <div className="mt-1 grid grid-cols-6 gap-0.5">
+      <OnboardingSectionLabel>Souvent appréciés</OnboardingSectionLabel>
+      <div className="mt-2.5 grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
         {FOOD_PREFERENCES.map(({ key, emoji }) => (
           <FoodIconTile
-            compact
             key={key}
             emoji={emoji}
             label={key}
@@ -817,35 +924,39 @@ function FoodPreferencesExclusionsStep({
   onToggle: (field: "allergies" | "alimentsDetestes", key: string) => void;
 }) {
   return (
-    <div>
-      <h3 className={`text-base font-bold leading-snug ${brand.text}`}>Allergies et exclusions</h3>
-      <p className={`mt-0.5 text-[11px] leading-snug ${brand.muted}`}>Facultatif · cochez ce qui s’applique.</p>
-      <OnboardingSectionLabel compact>Allergènes</OnboardingSectionLabel>
-      <div className="mt-1 grid grid-cols-6 gap-0.5">
-        {ALLERGY_ITEMS.map(({ key, emoji }) => (
-          <FoodIconTile
-            compact
-            key={key}
-            emoji={emoji}
-            label={key}
-            selected={Boolean(profile.allergies?.includes(key))}
-            onClick={() => onToggle("allergies", key)}
-          />
-        ))}
-      </div>
-      <OnboardingSectionLabel compact>Exclusions (goût)</OnboardingSectionLabel>
-      <div className="mt-1 grid grid-cols-5 gap-0.5">
-        {EXCLUSION_ITEMS.map(({ key, emoji }) => (
-          <FoodIconTile
-            compact
-            key={key}
-            emoji={emoji}
-            label={key}
-            selected={Boolean(profile.alimentsDetestes?.includes(key))}
-            onClick={() => onToggle("alimentsDetestes", key)}
-          />
-        ))}
-      </div>
+    <div className="w-full pb-2">
+      <h3 className={`text-[22px] font-bold leading-snug sm:text-[24px] ${brand.text}`}>Allergies et exclusions</h3>
+      <p className={`mt-2 text-base leading-snug sm:text-[17px] ${brand.muted}`}>
+        Facultatif · cochez ce qui s’applique.
+      </p>
+      <section className="mt-5">
+        <OnboardingSectionLabel>Allergènes</OnboardingSectionLabel>
+        <div className="mt-2.5 grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
+          {ALLERGY_ITEMS.map(({ key, emoji }) => (
+            <FoodIconTile
+              key={key}
+              emoji={emoji}
+              label={key}
+              selected={Boolean(profile.allergies?.includes(key))}
+              onClick={() => onToggle("allergies", key)}
+            />
+          ))}
+        </div>
+      </section>
+      <section className="mt-6">
+        <OnboardingSectionLabel>Exclusions (goût)</OnboardingSectionLabel>
+        <div className="mt-2.5 grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
+          {EXCLUSION_ITEMS.map(({ key, emoji }) => (
+            <FoodIconTile
+              key={key}
+              emoji={emoji}
+              label={key}
+              selected={Boolean(profile.alimentsDetestes?.includes(key))}
+              onClick={() => onToggle("alimentsDetestes", key)}
+            />
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
@@ -988,6 +1099,7 @@ function ProjectionStep({
   targetKg,
   deltaKg,
   diagnosticTag,
+  sopkProfile = true,
   compact = false,
 }: {
   profile: OnboardingData;
@@ -996,6 +1108,7 @@ function ProjectionStep({
   targetKg: number;
   deltaKg: number;
   diagnosticTag: string;
+  sopkProfile?: boolean;
   compact?: boolean;
 }) {
   const reactId = useId().replace(/:/g, "");
@@ -1104,7 +1217,7 @@ function ProjectionStep({
       {!compact ? (
         <div className="mt-2 grid grid-cols-3 gap-1.5 sm:mt-4 sm:gap-2 md:grid-cols-3">
           {[
-            { t: "Menus SOPK", d: "De 30 jours à 1 an de menus selon l’horizon choisi" },
+            { t: sopkProfile ? "Menus SOPK" : "Menus adaptés", d: "De 30 jours à 1 an de menus selon l’horizon choisi" },
             { t: "Repères personnalisés", d: "Âge, symptômes, goûts, allergies" },
             { t: "Encadrement clair", d: "Repères nutritionnels, pas de promesse magique" },
           ].map((c) => (
@@ -1334,17 +1447,19 @@ export function PricingStep({
 
 function OnboardingStepCard({ children }: { children: ReactNode }) {
   return (
-    <div className="animate-[onboarding-fade-in_0.35s_ease-out]">
-      <div className="rounded-xl border border-brand-200/55 bg-white/95 p-2.5 shadow-card ring-1 ring-white/90">
-        {children}
-      </div>
+    <div className="animate-[onboarding-fade-in_0.35s_ease-out] flex w-full flex-col justify-start py-1 sm:py-2">
+      {children}
     </div>
   );
 }
 
 function OnboardingSectionLabel({ children, compact = false }: { children: ReactNode; compact?: boolean }) {
   return (
-    <p className={`text-[10px] font-bold uppercase tracking-wide text-brand-600/90 first:mt-0 ${compact ? "mt-2" : "mt-4 sm:mt-5"}`}>
+    <p
+      className={`font-semibold leading-snug text-brand-800 first:mt-0 ${
+        compact ? "mt-3 text-xs" : "mt-5 text-sm sm:text-base"
+      }`}
+    >
       {children}
     </p>
   );
@@ -1360,13 +1475,13 @@ function WelcomeHero() {
             <AppIconSvg size="md" className="ring-2 ring-white/20" />
           </div>
           <p className="relative mt-2 text-[9px] font-bold uppercase tracking-[0.16em] text-brand-100/90">
-            Programme nutrition SOPK
+            {APP_NAME}
           </p>
-          <h2 className="relative mt-1 text-lg font-black leading-snug tracking-tight">
+          <h2 className="relative mt-1 text-xl font-black leading-snug tracking-tight">
             Reprendre le contrôle, sans culpabiliser
           </h2>
-          <p className="relative mx-auto mt-1.5 max-w-sm text-[11px] leading-snug text-white/90">
-            Menus concrets, repères quotidiens et suivi personnalisé pour le SOPK.
+          <p className="relative mx-auto mt-2 max-w-sm text-sm leading-snug text-white/90">
+            Menus concrets, repères quotidiens et suivi personnalisé selon votre profil - avec ou sans SOPK.
           </p>
         </div>
       </div>
@@ -1377,8 +1492,8 @@ function WelcomeHero() {
             key={item.title}
             className="rounded-lg border border-brand-200/80 bg-white/95 px-1.5 py-2 text-center shadow-sm ring-1 ring-white/80"
           >
-            <p className={`text-[9px] font-bold leading-tight ${brand.text}`}>{item.title}</p>
-            <p className={`mt-0.5 text-[8px] leading-tight ${brand.muted}`}>{item.desc}</p>
+            <p className={`text-[11px] font-bold leading-tight sm:text-xs ${brand.text}`}>{item.title}</p>
+            <p className={`mt-0.5 text-[10px] leading-tight sm:text-[11px] ${brand.muted}`}>{item.desc}</p>
           </div>
         ))}
       </div>
@@ -1404,12 +1519,22 @@ function ChoiceScreen({
   singleSelect?: boolean;
 }) {
   return (
-    <div>
-      <h3 className={`font-bold leading-snug ${compact ? "text-base" : "text-lg sm:text-xl md:text-2xl"} ${brand.text}`}>
+    <div className="w-full">
+      <h3
+        className={`font-bold leading-snug ${
+          compact ? "text-lg" : "text-[22px] sm:text-[24px] md:text-[26px]"
+        } ${brand.text}`}
+      >
         {title}
       </h3>
-      <p className={`leading-snug ${compact ? "mt-0.5 text-[11px]" : "mt-1.5 text-sm"} ${brand.muted}`}>{subtitle}</p>
-      <div className={`grid ${compact ? "mt-2 grid-cols-2 gap-1" : "mt-4 gap-2 sm:gap-2.5"}`}>
+      <p
+        className={`leading-snug ${
+          compact ? "mt-1 text-sm" : "mt-2 text-base sm:text-[17px]"
+        } ${brand.muted}`}
+      >
+        {subtitle}
+      </p>
+      <div className={`grid grid-cols-1 ${compact ? "mt-2 gap-1.5" : "mt-4 gap-3 sm:gap-4"}`}>
         {items.map((item) => (
           <ChoicePill
             compact={compact}
@@ -1442,10 +1567,10 @@ function ChoicePill({
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center border text-left font-medium transition active:scale-[0.99] ${
+      className={`flex w-full items-center border text-left font-semibold transition active:scale-[0.99] ${
         compact
           ? `gap-1.5 rounded-lg px-2 py-1.5 text-[10px] leading-tight ${singleSelect ? "col-span-1" : ""}`
-          : "gap-3 rounded-2xl px-3.5 py-3 text-sm sm:px-4 sm:py-3.5 sm:text-[15px]"
+          : "min-h-[56px] gap-3 rounded-2xl px-4 py-3.5 text-base sm:min-h-[60px] sm:text-[17px]"
       } ${
         active
           ? "border-brand-600 bg-gradient-to-r from-brand-600/10 to-brand-50 text-ink shadow-[0_8px_24px_-14px_rgba(109,90,125,0.4)] ring-2 ring-brand-600/20"
@@ -1454,7 +1579,7 @@ function ChoicePill({
     >
       <span
         className={`flex shrink-0 items-center justify-center rounded-full border-2 font-bold transition ${
-          compact ? "h-4 w-4 text-[8px]" : "h-6 w-6 text-[11px]"
+          compact ? "h-4 w-4 text-[8px]" : "h-7 w-7 text-xs"
         } ${active ? "border-brand-600 bg-brand-600 text-white" : "border-brand-200 bg-white text-transparent"}`}
       >
         ✓
@@ -1484,22 +1609,38 @@ function SliderScreen({
   compact?: boolean;
 }) {
   return (
-    <div>
-      <h3 className={`font-bold leading-snug ${compact ? "text-base" : "text-lg sm:text-xl md:text-2xl"} ${brand.text}`}>
+    <div className="w-full">
+      <h3
+        className={`font-bold leading-snug ${
+          compact ? "text-lg" : "text-[22px] sm:text-[24px] md:text-[26px]"
+        } ${brand.text}`}
+      >
         {title}
       </h3>
-      <p className={`leading-snug ${compact ? "mt-0.5 text-[11px]" : "mt-1.5 text-sm"} ${brand.muted}`}>{subtitle}</p>
-      <div className={`flex flex-col items-center ${compact ? "mt-2" : "mt-5 sm:mt-6"}`}>
+      <p
+        className={`leading-snug ${
+          compact ? "mt-1 text-sm" : "mt-2 text-base sm:text-[17px]"
+        } ${brand.muted}`}
+      >
+        {subtitle}
+      </p>
+      <div className={`flex flex-col items-center ${compact ? "mt-2" : "mt-6 sm:mt-8"}`}>
         <div
           className={`flex items-center justify-center rounded-full bg-gradient-to-br from-brand-600 to-brand-800 shadow-[0_12px_32px_-8px_rgba(109,90,125,0.45)] ring-4 ring-brand-100 ${
-            compact ? "h-20 w-20" : "h-28 w-28 sm:h-32 sm:w-32"
+            compact ? "h-20 w-20" : "h-32 w-32 sm:h-36 sm:w-36"
           }`}
         >
-          <p className={`font-black tabular-nums tracking-tight text-white ${compact ? "text-3xl" : "text-4xl sm:text-5xl"}`}>
+          <p
+            className={`font-black tabular-nums tracking-tight text-white ${
+              compact ? "text-3xl" : "text-5xl sm:text-6xl"
+            }`}
+          >
             {value}
           </p>
         </div>
-        <p className={`font-semibold ${compact ? "mt-1 text-sm" : "mt-2 text-base sm:text-lg"} ${brand.muted}`}>{unit}</p>
+        <p className={`font-semibold ${compact ? "mt-1 text-sm" : "mt-3 text-lg sm:text-xl"} ${brand.muted}`}>
+          {unit}
+        </p>
       </div>
       <input
         type="range"
@@ -1507,9 +1648,11 @@ function SliderScreen({
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className={`h-2 w-full cursor-pointer appearance-none rounded-full bg-brand-200/80 accent-brand-600 ${compact ? "mt-2" : "mt-5 sm:mt-6"} [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand-600 [&::-webkit-slider-thumb]:shadow-md`}
+        className={`h-2.5 w-full cursor-pointer appearance-none rounded-full bg-brand-200/80 accent-brand-600 ${
+          compact ? "mt-2" : "mt-6 sm:mt-8"
+        } [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand-600 [&::-webkit-slider-thumb]:shadow-md`}
       />
-      <div className={`mt-1 flex justify-between ${compact ? "text-[10px]" : "text-xs sm:text-sm"} ${brand.muted}`}>
+      <div className={`mt-2 flex justify-between ${compact ? "text-[10px]" : "text-sm sm:text-base"} ${brand.muted}`}>
         <span>
           {min} {unit}
         </span>
@@ -1559,7 +1702,7 @@ function NumericCard({
   }
 
   return (
-    <label className={`font-semibold uppercase tracking-[0.12em] text-[#8a8494] ${compact ? "text-[10px]" : "text-[11px]"}`}>
+    <label className={`font-semibold uppercase tracking-[0.12em] text-[#8a8494] ${compact ? "text-[10px]" : "text-xs sm:text-sm"}`}>
       {label}
       <input
         type="text"
@@ -1574,8 +1717,8 @@ function NumericCard({
           if (Number.isFinite(parsed)) onChange(parsed);
         }}
         onBlur={() => commitDraft(draft)}
-        className={`mt-1 w-full rounded-lg border border-[#e0d8e4] bg-white/90 px-2 font-semibold tabular-nums outline-none focus:border-[#6d5a7d] ${
-          compact ? "h-9 text-base" : "mt-1.5 h-11 rounded-xl text-lg sm:mt-2 sm:h-14 sm:rounded-2xl sm:px-3 sm:text-2xl"
+        className={`mt-1.5 w-full rounded-xl border border-[#e0d8e4] bg-white/90 px-3 font-semibold tabular-nums outline-none focus:border-[#6d5a7d] ${
+          compact ? "h-9 text-base" : "h-14 text-2xl sm:h-16 sm:text-3xl"
         } ${brand.text}`}
       />
     </label>

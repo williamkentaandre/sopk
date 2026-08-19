@@ -9,7 +9,7 @@ export default function PrivacyPage() {
       <section className="mx-auto w-full max-w-4xl px-5 pb-8 pt-6 md:px-8 md:pb-12 md:pt-8">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-10">
           <h1 className="text-3xl font-black tracking-tight text-slate-950 md:text-4xl">
-            Politique de confidentialité - Régime SOPK
+            Politique de confidentialité - SOPK Nutrition
           </h1>
           <p className="mt-3 text-sm text-slate-500">Dernière mise à jour : 7 mai 2026</p>
 
@@ -68,7 +68,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-lg font-bold text-slate-900">7) Information importante</h2>
               <p className="mt-2">
-                Régime SOPK ne remplace pas un avis médical. L&apos;application fournit des
+                SOPK Nutrition ne remplace pas un avis médical. L&apos;application fournit des
                 recommandations de bien-être et de nutrition générale.
               </p>
             </section>

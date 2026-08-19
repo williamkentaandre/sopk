@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 
 import { useCapacitorPublicAsset } from "@/hooks/useCapacitorPublicAsset";
-import { getMealImageUrl, isLocalMealImage, MEAL_TYPE_FALLBACK } from "@/utils/mealImages";
+import { FOOD_BY_MEAL_TYPE, getMealImageUrl, isLocalMealImage } from "@/utils/mealImages";
 import type { MealEntry } from "@/utils/types";
 
 export function MealImage({
@@ -13,15 +13,15 @@ export function MealImage({
   hideImage = false,
 }: {
   meal: Pick<MealEntry, "nom" | "type" | "image">;
-  size?: "xs" | "md";
+  size?: "xs" | "md" | "hero";
   hideImage?: boolean;
 }) {
   if (hideImage) return null;
 
   const primary = getMealImageUrl(meal);
   const isLocal = isLocalMealImage(primary);
-  const localPrimarySrc = useCapacitorPublicAsset(primary);
-  const fallbackSrc = useCapacitorPublicAsset(MEAL_TYPE_FALLBACK[meal.type]);
+  const localPrimarySrc = useCapacitorPublicAsset(isLocal ? primary : "/images/meal-dejeuner.svg");
+  const fallbackSrc = FOOD_BY_MEAL_TYPE[meal.type];
   const [useFallback, setUseFallback] = useState(false);
 
   useEffect(() => {
@@ -29,6 +29,28 @@ export function MealImage({
   }, [primary]);
 
   const displaySrc = useFallback ? fallbackSrc : isLocal ? localPrimarySrc : primary;
+
+  if (size === "hero") {
+    return (
+      <div className="relative aspect-[16/10] max-h-44 w-full bg-violet-50">
+        <Image
+          src={displaySrc}
+          alt=""
+          fill
+          unoptimized
+          onError={() => {
+            if (!useFallback) setUseFallback(true);
+          }}
+          sizes="100vw"
+          className="object-cover"
+        />
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent"
+          aria-hidden
+        />
+      </div>
+    );
+  }
 
   return (
     <Image

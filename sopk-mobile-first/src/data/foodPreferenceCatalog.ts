@@ -68,6 +68,7 @@ export const EXCLUSION_ITEMS: { key: string; emoji: string }[] = [
   { key: "Fromage", emoji: "🧀" },
   { key: "Poisson", emoji: "🐟" },
   { key: "Viande rouge", emoji: "🥩" },
+  { key: "Œufs", emoji: "🥚" },
   { key: "Piment", emoji: "🌶️" },
   { key: "Ananas", emoji: "🍍" },
 ];

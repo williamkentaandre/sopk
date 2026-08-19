@@ -245,6 +245,375 @@ const detailsByMealName: Record<string, MealPortionDetails> = {
     ],
     why: "Dîner léger en calories mais riche en volume et protéines pour mieux tenir la nuit.",
   },
+  "pain complet + fromage blanc + kiwi": {
+    ingredients: [
+      { aliment: "Pain complet", grammes: 50 },
+      { aliment: "Fromage blanc nature", grammes: 120 },
+      { aliment: "Kiwi", grammes: 90 },
+    ],
+    why: "Petit-déjeuner équilibré sans œufs, riche en protéines et fibres pour une satiété durable.",
+  },
+
+  // --- Repas de secours sans aucun des 12 allergènes réglementaires ---
+  "riz complet aux fruits rouges et graines de courge": {
+    ingredients: [
+      { aliment: "Riz complet cuit", grammes: 130 },
+      { aliment: "Fruits rouges", grammes: 100 },
+      { aliment: "Graines de courge", grammes: 15 },
+    ],
+    why: "Petit-déjeuner sans allergène majeur : glucides complets, fibres et magnésium pour une énergie stable.",
+  },
+  "compote pomme-cannelle et graines de chia": {
+    ingredients: [
+      { aliment: "Compote de pomme sans sucre", grammes: 200 },
+      { aliment: "Graines de chia", grammes: 20 },
+      { aliment: "Cannelle", grammes: 2 },
+    ],
+    why: "Option très digeste sans allergène majeur ; les graines de chia apportent fibres et bons lipides.",
+  },
+  "quinoa tiède, banane et graines de tournesol": {
+    ingredients: [
+      { aliment: "Quinoa cuit", grammes: 140 },
+      { aliment: "Banane", grammes: 100 },
+      { aliment: "Graines de tournesol", grammes: 15 },
+    ],
+    why: "Quinoa complet et graines : protéines végétales et satiété, sans gluten ni produit laitier.",
+  },
+  "salade de quinoa, pois chiches et concombre": {
+    ingredients: [
+      { aliment: "Quinoa cuit", grammes: 140 },
+      { aliment: "Pois chiches cuits", grammes: 130 },
+      { aliment: "Concombre", grammes: 120 },
+    ],
+    why: "Déjeuner complet sans allergène majeur : protéines végétales et fibres pour tenir l’après-midi.",
+  },
+  "riz complet, haricots rouges et avocat": {
+    ingredients: [
+      { aliment: "Riz complet cuit", grammes: 140 },
+      { aliment: "Haricots rouges cuits", grammes: 130 },
+      { aliment: "Avocat", grammes: 60 },
+    ],
+    why: "Association céréale + légumineuse pour des protéines complètes, sans allergène majeur.",
+  },
+  "pomme et graines de courge": {
+    ingredients: [
+      { aliment: "Pomme", grammes: 150 },
+      { aliment: "Graines de courge", grammes: 15 },
+    ],
+    why: "Collation sans allergène majeur : fibres et bons lipides pour éviter le coup de fatigue.",
+  },
+  "myrtilles et graines de tournesol": {
+    ingredients: [
+      { aliment: "Myrtilles", grammes: 120 },
+      { aliment: "Graines de tournesol", grammes: 15 },
+    ],
+    why: "Antioxydants et lipides de qualité, sans allergène majeur.",
+  },
+  "dahl de lentilles corail et riz basmati": {
+    ingredients: [
+      { aliment: "Lentilles corail cuites", grammes: 160 },
+      { aliment: "Riz basmati cuit", grammes: 120 },
+      { aliment: "Carottes", grammes: 80 },
+    ],
+    why: "Dîner végétal réconfortant, riche en fibres et protéines, sans allergène majeur.",
+  },
+  "patate douce rôtie, pois chiches et salade verte": {
+    ingredients: [
+      { aliment: "Patate douce", grammes: 180 },
+      { aliment: "Pois chiches cuits", grammes: 130 },
+      { aliment: "Salade verte", grammes: 60 },
+    ],
+    why: "Glucides à index glycémique modéré et protéines végétales, sans allergène majeur.",
+  },
+
+  // ---------- Variantes et alternatives du plan ----------
+  // Ces plats étaient proposés sans portions déclarées : le détail était alors déduit du
+  // libellé, ce qui produisait des lignes absurdes (« Salade lentilles vertes, concombre,
+  // tomate, feta : 145 g »). Tout repas affichable a désormais ses grammages réels.
+  "yaourt grec nature + fruits rouges + graines de chia": {
+    ingredients: [
+      { aliment: "Yaourt grec nature", grammes: 170 },
+      { aliment: "Fruits rouges", grammes: 100 },
+      { aliment: "Graines de chia", grammes: 12 },
+    ],
+    why: "Protéines lentes et fibres dès le matin pour limiter les fringales de la matinée.",
+  },
+  "salade quinoa, tofu grillé, avocat, legumes croquants": {
+    ingredients: [
+      { aliment: "Quinoa cuit", grammes: 120 },
+      { aliment: "Tofu grillé", grammes: 140 },
+      { aliment: "Avocat", grammes: 60 },
+      { aliment: "Légumes croquants", grammes: 150 },
+    ],
+    why: "Version végétale du déjeuner : mêmes protéines et fibres, sans produit animal.",
+  },
+  "poire + noix": {
+    ingredients: [
+      { aliment: "Poire", grammes: 160 },
+      { aliment: "Noix", grammes: 15 },
+    ],
+    why: "Fruit et bon gras pour ralentir l’absorption du sucre entre deux repas.",
+  },
+  "cabillaud + haricots verts + riz complet": {
+    ingredients: [
+      { aliment: "Cabillaud", grammes: 150 },
+      { aliment: "Haricots verts", grammes: 180 },
+      { aliment: "Riz complet cuit", grammes: 120 },
+    ],
+    why: "Protéines maigres et glucides complets pour un dîner rassasiant sans lourdeur.",
+  },
+  "buddha bowl pois chiches, crudites, feta": {
+    ingredients: [
+      { aliment: "Pois chiches cuits", grammes: 130 },
+      { aliment: "Crudités", grammes: 180 },
+      { aliment: "Feta", grammes: 35 },
+    ],
+    why: "Légumineuses riches en fibres et protéines pour la sensibilité à l’insuline.",
+  },
+  "skyr nature + cannelle": {
+    ingredients: [
+      { aliment: "Skyr nature", grammes: 150 },
+      { aliment: "Cannelle", grammes: 2 },
+    ],
+    why: "Collation très protéinée, la cannelle relève sans ajouter de sucre.",
+  },
+  "tempeh sauté + legumes + quinoa": {
+    ingredients: [
+      { aliment: "Tempeh", grammes: 120 },
+      { aliment: "Légumes de saison", grammes: 180 },
+      { aliment: "Quinoa cuit", grammes: 110 },
+    ],
+    why: "Protéines végétales fermentées, bien tolérées et riches en fibres.",
+  },
+  "omelette 2 oeufs + tomates cerises": {
+    ingredients: [
+      { aliment: "Oeufs", grammes: 106 },
+      { aliment: "Tomates cerises", grammes: 120 },
+    ],
+    why: "Petit-déjeuner protéiné à charge glycémique très basse.",
+  },
+  "wrap complet au poulet, crudites, houmous": {
+    ingredients: [
+      { aliment: "Galette de blé complet", grammes: 60 },
+      { aliment: "Poulet grillé", grammes: 110 },
+      { aliment: "Crudités", grammes: 120 },
+      { aliment: "Houmous", grammes: 40 },
+    ],
+    why: "Déjeuner nomade complet : protéines, fibres et bon gras en un seul format.",
+  },
+  "concombre + guacamole leger": {
+    ingredients: [
+      { aliment: "Concombre", grammes: 150 },
+      { aliment: "Guacamole léger", grammes: 50 },
+    ],
+    why: "Collation très peu calorique, le gras de l’avocat prolonge la satiété.",
+  },
+  "bol de lentilles epicees + salade verte": {
+    ingredients: [
+      { aliment: "Lentilles cuites", grammes: 180 },
+      { aliment: "Épices et aromates", grammes: 5 },
+      { aliment: "Salade verte", grammes: 70 },
+    ],
+    why: "Dîner végétal à index glycémique bas, très riche en fibres.",
+  },
+  "galettes de sarrasin + fromage blanc": {
+    ingredients: [
+      { aliment: "Galettes de sarrasin", grammes: 100 },
+      { aliment: "Fromage blanc nature", grammes: 120 },
+    ],
+    why: "Alternative au pain de blé, avec une source de protéines pour tenir la matinée.",
+  },
+  "tofu mariné + quinoa + legumes": {
+    ingredients: [
+      { aliment: "Tofu mariné", grammes: 140 },
+      { aliment: "Quinoa cuit", grammes: 110 },
+      { aliment: "Légumes de saison", grammes: 170 },
+    ],
+    why: "Assiette végétale équilibrée en protéines, glucides complets et fibres.",
+  },
+  "clementines + noisettes": {
+    ingredients: [
+      { aliment: "Clémentines", grammes: 150 },
+      { aliment: "Noisettes", grammes: 15 },
+    ],
+    why: "Sucre naturel du fruit tamponné par les lipides des oléagineux.",
+  },
+  "soupe de legumes + omelette aux herbes": {
+    ingredients: [
+      { aliment: "Soupe de légumes", grammes: 300 },
+      { aliment: "Oeufs", grammes: 106 },
+      { aliment: "Herbes fraîches", grammes: 5 },
+    ],
+    why: "Dîner léger mais protéiné, confortable quand les nuits sont agitées.",
+  },
+  "skyr + banane + graines de lin": {
+    ingredients: [
+      { aliment: "Skyr nature", grammes: 150 },
+      { aliment: "Banane", grammes: 100 },
+      { aliment: "Graines de lin", grammes: 12 },
+    ],
+    why: "Protéines et oméga-3 végétaux pour un petit-déjeuner rapide et rassasiant.",
+  },
+  "salade lentilles vertes, concombre, tomate, feta": {
+    ingredients: [
+      { aliment: "Lentilles vertes cuites", grammes: 150 },
+      { aliment: "Concombre", grammes: 120 },
+      { aliment: "Tomate", grammes: 100 },
+      { aliment: "Feta", grammes: 35 },
+    ],
+    why: "Légumineuses froides et légumes crus : satiété durable sans cuisson longue.",
+  },
+  "fromage blanc + fraises": {
+    ingredients: [
+      { aliment: "Fromage blanc nature", grammes: 150 },
+      { aliment: "Fraises", grammes: 120 },
+    ],
+    why: "Collation protéinée et peu sucrée, adaptée en fin d’après-midi.",
+  },
+  "curry de tofu + chou-fleur + riz complet": {
+    ingredients: [
+      { aliment: "Tofu", grammes: 140 },
+      { aliment: "Chou-fleur", grammes: 180 },
+      { aliment: "Riz complet cuit", grammes: 110 },
+    ],
+    why: "Curry végétal doux, protéines complètes et glucides à diffusion lente.",
+  },
+  "bol de muesli sans sucre + yaourt nature": {
+    ingredients: [
+      { aliment: "Muesli sans sucre ajouté", grammes: 50 },
+      { aliment: "Yaourt nature", grammes: 150 },
+    ],
+    why: "Petit-déjeuner express : fibres des céréales complètes et protéines du yaourt.",
+  },
+  "bowl tofu fumé, riz complet, avocat, concombre": {
+    ingredients: [
+      { aliment: "Tofu fumé", grammes: 130 },
+      { aliment: "Riz complet cuit", grammes: 120 },
+      { aliment: "Avocat", grammes: 60 },
+      { aliment: "Concombre", grammes: 120 },
+    ],
+    why: "Version végétale du bowl : mêmes apports, sans poisson.",
+  },
+  "pomme + pistaches": {
+    ingredients: [
+      { aliment: "Pomme", grammes: 150 },
+      { aliment: "Pistaches", grammes: 15 },
+    ],
+    why: "Fruit entier et oléagineux pour éviter le pic glycémique de l’après-midi.",
+  },
+  "galette vegetale + legumes + quinoa": {
+    ingredients: [
+      { aliment: "Galette végétale", grammes: 110 },
+      { aliment: "Légumes de saison", grammes: 180 },
+      { aliment: "Quinoa cuit", grammes: 110 },
+    ],
+    why: "Dîner végétal complet, riche en fibres et en protéines végétales.",
+  },
+  "tofu brouillé + pain complet": {
+    ingredients: [
+      { aliment: "Tofu brouillé", grammes: 150 },
+      { aliment: "Pain complet", grammes: 50 },
+    ],
+    why: "Équivalent végétal des œufs brouillés, même rôle rassasiant le matin.",
+  },
+  "salade nicoise vegetarienne aux pois chiches": {
+    ingredients: [
+      { aliment: "Pois chiches cuits", grammes: 140 },
+      { aliment: "Oeufs", grammes: 53 },
+      { aliment: "Haricots verts", grammes: 100 },
+      { aliment: "Tomate", grammes: 100 },
+      { aliment: "Salade verte", grammes: 60 },
+    ],
+    why: "Niçoise sans poisson : les pois chiches remplacent le thon à protéines égales.",
+  },
+  "compote sans sucre + yaourt nature": {
+    ingredients: [
+      { aliment: "Compote sans sucre ajouté", grammes: 100 },
+      { aliment: "Yaourt nature", grammes: 125 },
+    ],
+    why: "Collation douce pour l’estomac, sans sucre ajouté.",
+  },
+  "gratin de legumes + tempeh": {
+    ingredients: [
+      { aliment: "Légumes gratinés", grammes: 250 },
+      { aliment: "Tempeh", grammes: 120 },
+    ],
+    why: "Version végétale du gratin, protéines fermentées faciles à digérer.",
+  },
+
+  // ---------- Plats rapides ≤ 15 min ----------
+  "oeufs brouilles aux tomates cerises": {
+    ingredients: [
+      { aliment: "Oeufs", grammes: 120 },
+      { aliment: "Tomates cerises", grammes: 120 },
+    ],
+    why: "Petit-déjeuner protéiné sans gluten ni lait, prêt en quelques minutes.",
+  },
+  "banane, beurre d’amande et graines de chia": {
+    ingredients: [
+      { aliment: "Banane", grammes: 120 },
+      { aliment: "Beurre d’amande", grammes: 20 },
+      { aliment: "Graines de chia", grammes: 12 },
+    ],
+    why: "Aucun gluten, aucun lait : fibres et bons lipides pour tenir jusqu’au déjeuner.",
+  },
+  "salade pois chiches, concombre, tomate et avocat": {
+    ingredients: [
+      { aliment: "Pois chiches cuits", grammes: 140 },
+      { aliment: "Concombre", grammes: 100 },
+      { aliment: "Tomate", grammes: 100 },
+      { aliment: "Avocat", grammes: 60 },
+    ],
+    why: "Déjeuner végétal sans fromage, assemblé à froid en moins de 15 minutes.",
+  },
+  "houmous, crudites et quinoa": {
+    ingredients: [
+      { aliment: "Houmous", grammes: 80 },
+      { aliment: "Crudités", grammes: 180 },
+      { aliment: "Quinoa cuit", grammes: 120 },
+    ],
+    why: "Assiette froide : protéines végétales et fibres, sans cuisson longue.",
+  },
+  "feuilles de laitue, tofu et crudites": {
+    ingredients: [
+      { aliment: "Feuilles de laitue", grammes: 80 },
+      { aliment: "Tofu", grammes: 140 },
+      { aliment: "Crudités", grammes: 150 },
+    ],
+    why: "Sans pain : le tofu et les légumes tiennent lieu de wrap, prêt en quelques minutes.",
+  },
+  "salade de lentilles, carottes rapees et citron": {
+    ingredients: [
+      { aliment: "Lentilles cuites", grammes: 160 },
+      { aliment: "Carottes râpées", grammes: 120 },
+      { aliment: "Citron et huile d’olive", grammes: 15 },
+    ],
+    why: "Dîner froid, sans œuf ni produit laitier, assemblé à partir de lentilles déjà cuites.",
+  },
+  "bol avocat, pois chiches et tomate": {
+    ingredients: [
+      { aliment: "Avocat", grammes: 80 },
+      { aliment: "Pois chiches cuits", grammes: 140 },
+      { aliment: "Tomate", grammes: 120 },
+    ],
+    why: "Dîner végétal sans cuisson, rassasiant grâce à l’avocat et aux légumineuses.",
+  },
+  "thon au naturel, crudites et riz complet": {
+    ingredients: [
+      { aliment: "Thon au naturel", grammes: 120 },
+      { aliment: "Crudités", grammes: 180 },
+      { aliment: "Riz complet cuit", grammes: 120 },
+    ],
+    why: "Dîner sans œuf, assemblé en dix minutes si le riz est déjà cuit.",
+  },
+  "salade de quinoa, avocat et concombre": {
+    ingredients: [
+      { aliment: "Quinoa cuit", grammes: 140 },
+      { aliment: "Avocat", grammes: 70 },
+      { aliment: "Concombre", grammes: 120 },
+    ],
+    why: "Dîner végétal froid, sans allergène majeur, prêt dès que le quinoa est cuit.",
+  },
 };
 
 function normalize(text: string): string {
@@ -303,7 +672,13 @@ function inferPortionsFromMealLabel(mealName: string, planMealKcal: number): Mea
     return { ingredients: [], why: INFER_WHY };
   }
 
-  const segments = trimmed.split(/\s*\+\s*/).map((s) => s.trim()).filter(Boolean);
+  // Découpage sur « + » ET sur les virgules : un nom du type « Salade quinoa, tofu,
+  // avocat » ne contient aucun « + » et produisait alors une ligne unique égale au nom
+  // du plat entier (« Salade quinoa, tofu, avocat : 145 g »), ce qui n'a aucun sens.
+  const segments = trimmed
+    .split(/\s*\+\s*|\s*,\s*/)
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (segments.length === 0) {
     return { ingredients: [{ aliment: trimmed, grammes: 200 }], why: INFER_WHY };
   }
@@ -358,9 +733,27 @@ function inferPortionsFromMealLabel(mealName: string, planMealKcal: number): Mea
   return { ingredients, why: INFER_WHY };
 }
 
+let detailsByNormalizedName: Map<string, MealPortionDetails> | null = null;
+
+function portionDetailsIndex(): Map<string, MealPortionDetails> {
+  if (!detailsByNormalizedName) {
+    detailsByNormalizedName = new Map(
+      Object.entries(detailsByMealName).map(([key, value]) => [normalize(key), value]),
+    );
+  }
+  return detailsByNormalizedName;
+}
+
+/**
+ * Le repas a-t-il des portions rédigées à la main ? Tout plat proposable doit en avoir :
+ * l'inférence depuis le libellé ne sert qu'aux repas saisis librement par l'utilisatrice.
+ */
+export function hasExplicitPortions(mealName: string): boolean {
+  return portionDetailsIndex().has(normalize(mealName));
+}
+
 export function getMealPortionDetails(mealName: string, planMealKcal?: number): MealPortionDetails {
-  const normalized = normalize(mealName);
-  const exactMatch = Object.entries(detailsByMealName).find(([key]) => normalize(key) === normalized)?.[1];
+  const exactMatch = portionDetailsIndex().get(normalize(mealName));
   if (exactMatch) return exactMatch;
 
   return inferPortionsFromMealLabel(mealName, planMealKcal ?? 450);

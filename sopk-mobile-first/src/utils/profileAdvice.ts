@@ -1,4 +1,5 @@
 import type { OnboardingData } from "@/utils/types";
+import { comorbiditiesOnly, defaultFoodFiltersLabel, isSopkNutritionProfile } from "@/utils/profilePath";
 
 const SYMPTOM_TIPS: Record<string, string> = {
   "Coupes de fatigue à répétition":
@@ -39,8 +40,7 @@ export function buildProfileDayTips(profile: OnboardingData, max = 3): string[] 
     if (tips.length >= max) return tips;
   }
 
-  for (const d of profile.diagnostics ?? []) {
-    if (d === "SOPK" || d === "Aucun diagnostic" || d === "Je ne sais pas") continue;
+  for (const d of comorbiditiesOnly(profile.diagnostics)) {
     const tip = COMORBIDITY_TIPS[d];
     if (tip && !seen.has(tip)) {
       tips.push(tip);
@@ -55,7 +55,11 @@ export function buildProfileDayTips(profile: OnboardingData, max = 3): string[] 
   }
 
   if (tips.length === 0) {
-    tips.push("Vos repères (calories, eau, pas) sont calculés à partir de votre profil SOPK.");
+    tips.push(
+      isSopkNutritionProfile(profile)
+        ? "Vos repères (calories, eau, pas) sont calibrés à partir de votre profil SOPK."
+        : "Vos repères (calories, eau, pas) sont calibrés à partir de votre profil.",
+    );
   }
 
   return tips.slice(0, max);
@@ -71,5 +75,5 @@ export function profileFoodFiltersLabel(profile: OnboardingData): string {
   if (detests.length) parts.push(`${detests.length} exclusion${detests.length > 1 ? "s" : ""}`);
   const prefs = profile.alimentsPreferes ?? [];
   if (prefs.length) parts.push(`${prefs.length} favori${prefs.length > 1 ? "s" : ""}`);
-  return parts.length ? parts.join(" · ") : "Omnivore · menus SOPK standards";
+  return parts.length ? parts.join(" · ") : defaultFoodFiltersLabel(profile);
 }

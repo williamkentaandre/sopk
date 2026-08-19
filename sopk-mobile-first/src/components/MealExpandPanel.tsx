@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 
+import { fitsPrepBudget, getPrepMinutes } from "@/data/mealPrepTimeCatalog";
 import { getMealCaloriesForTarget } from "@/utils/mealPlan";
 import { getMealPortionDetailsAdjusted, type MealPortionDetails } from "@/utils/meal-portions";
 import {
@@ -9,8 +10,10 @@ import {
   customMealOverride,
   getEffectiveMeal,
   getMealAlternatives,
+  getProfileAdjustedEffectiveMeal,
   resolveMealOverride,
 } from "@/utils/mealPersonalization";
+import { mealAlternativesLabel } from "@/utils/profilePath";
 import type { DayPlan, MealOverrideEntry, MealOverrideState, OnboardingData } from "@/utils/types";
 
 import { MealImage } from "./PlanViewMealImage";
@@ -99,11 +102,40 @@ export function MealExpandPanel({
   if (!plannedMeal) return null;
 
   const overrideEntry = resolveMealOverride(mealOverrides[mealKey]);
-  const meal = getEffectiveMeal(plannedMeal, mealOverrides[mealKey]);
+  const meal = getProfileAdjustedEffectiveMeal(
+    plannedMeal,
+    mealOverrides[mealKey],
+    profile,
+    selectedDay.jour + mealIndex,
+  );
+
+  if (!meal) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-[13px] font-semibold text-slate-900">Aucun repas compatible</p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 px-3 py-1.5 text-[11px] font-bold text-slate-700 shadow-sm transition hover:bg-slate-100"
+          >
+            Fermer
+          </button>
+        </div>
+        <p className="rounded-2xl border border-amber-200/80 bg-amber-50/80 px-3 py-2.5 text-[12px] leading-snug text-amber-950">
+          Vos allergènes et exclusions écartent tous les repas de ce créneau. Retirez au moins un filtre dans
+          Réglages → Modifier le profil pour recevoir une proposition sûre.
+        </p>
+      </div>
+    );
+  }
+
   const isCustomMeal = Boolean(overrideEntry && overrideEntry.nom !== plannedMeal.nom);
   const isFreeformMeal = overrideEntry?.custom === true;
   const alternatives = getMealAlternatives(profile, plannedMeal, meal.nom);
-  const adjustedMealKcal = getMealCaloriesForTarget(meal.calories, selectedDay, dailyTarget);
+  const adjustedMealKcal = getMealCaloriesForTarget(meal.calories, selectedDay, dailyTarget, profile.rythmeRepas);
+  const prepMinutes = getPrepMinutes(meal.nom);
+  const exceedsPrepBudget = !isFreeformMeal && prepMinutes != null && !fitsPrepBudget(meal.nom, profile.tempsCuisine);
   const kcalRatio = meal.calories > 0 ? adjustedMealKcal / meal.calories : 1;
   const portionDetails = getMealPortionDetailsAdjusted(
     meal.nom,
@@ -121,6 +153,7 @@ export function MealExpandPanel({
           <p className="text-[13px] font-semibold text-slate-900">{meal.nom}</p>
           <p className="mt-0.5 text-[12px] text-slate-500">
             {labelByType[meal.type]} · {adjustedMealKcal} kcal
+            {prepMinutes != null ? ` · ${prepMinutes} min de préparation` : ""}
           </p>
         </div>
         <button
@@ -131,6 +164,13 @@ export function MealExpandPanel({
           Fermer
         </button>
       </div>
+
+      {exceedsPrepBudget ? (
+        <p className="rounded-2xl border border-amber-200/80 bg-amber-50/80 px-3 py-2.5 text-[12px] leading-snug text-amber-950">
+          Ce repas demande {prepMinutes} min alors que vous aviez indiqué « {profile.tempsCuisine} ». Aucune
+          option plus rapide n’est compatible avec vos filtres pour ce créneau.
+        </p>
+      ) : null}
 
       {isFreeformMeal ? (
         <div className="rounded-2xl border border-amber-200/80 bg-amber-50/80 px-3 py-2.5 text-[12px] text-amber-950">
@@ -179,7 +219,7 @@ export function MealExpandPanel({
           ref={swapSectionRef}
           className="space-y-2 rounded-2xl border border-brand-200/80 bg-gradient-to-b from-brand-50 to-white p-3 shadow-inner scroll-mt-[max(3.5rem,calc(env(safe-area-inset-top,0px)+2.75rem))]"
         >
-          <p className="text-eyebrow text-brand-900">Alternatives SOPK</p>
+          <p className="text-eyebrow text-brand-900">{mealAlternativesLabel(profile)}</p>
           {alternatives.length === 0 ? (
             <p className="text-[11px] text-brand-800/80">Aucune alternative pour vos filtres.</p>
           ) : (

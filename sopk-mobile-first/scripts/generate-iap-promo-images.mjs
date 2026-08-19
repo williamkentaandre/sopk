@@ -53,8 +53,8 @@ function promoSvg({ badge, title, subtitle, price, accent, gradientTop, gradient
   <text x="512" y="460" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="48" font-weight="600" fill="rgba(255,255,255,0.92)">${escapeXml(subtitle)}</text>
   <rect x="212" y="540" width="600" height="120" rx="28" fill="${accent}"/>
   <text x="512" y="615" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="40" font-weight="700" fill="#ffffff">${escapeXml(price)}</text>
-  <text x="512" y="780" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="36" font-weight="600" fill="rgba(255,255,255,0.88)">Régime SOPK</text>
-  <text x="512" y="860" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="28" fill="rgba(255,255,255,0.7)">Programme nutrition SOPK</text>
+  <text x="512" y="780" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="36" font-weight="600" fill="rgba(255,255,255,0.88)">SOPK Nutrition</text>
+  <text x="512" y="860" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="28" fill="rgba(255,255,255,0.7)">Au quotidien</text>
 </svg>`);
 }
 

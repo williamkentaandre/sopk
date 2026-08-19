@@ -12,10 +12,10 @@ import {
   getEstimatedDailyLossGrams,
   getPersonalizedHydrationLiters,
 } from "@/utils/mealPlan";
+import { visibleMealIndicesForDay } from "@/utils/mealRhythm";
 import {
   mealKey,
   stepsProgressStorageKey,
-  visibleMealIndices,
   waterProgressStorageKey,
 } from "@/utils/planTracking";
 
@@ -118,12 +118,12 @@ interface DayTrackingRatios {
 function computeDayTrackingRatios(
   profile: OnboardingData,
   day: DayPlan,
-  mealVisibleIdx: number[],
   mealChecklist: MealChecklistState,
   waterProgress: WaterProgressState,
   stepProgress: StepProgressState,
   deviationLog: DeviationLogState,
 ): DayTrackingRatios {
+  const mealVisibleIdx = visibleMealIndicesForDay(day.repas, profile.rythmeRepas);
   const dayMealIndexes = mealVisibleIdx.filter(
     (i) => i < day.repas.length && mealChecklist[mealKey(day.jour, i)],
   );
@@ -188,7 +188,6 @@ function applyDayWeightDelta(
 function computeDayWeightDelta(
   profile: OnboardingData,
   day: DayPlan,
-  mealVisibleIdx: number[],
   mealChecklist: MealChecklistState,
   waterProgress: WaterProgressState,
   stepProgress: StepProgressState,
@@ -198,7 +197,6 @@ function computeDayWeightDelta(
   const ratios = computeDayTrackingRatios(
     profile,
     day,
-    mealVisibleIdx,
     mealChecklist,
     waterProgress,
     stepProgress,
@@ -231,7 +229,6 @@ function weightKgFromCumulative(
 function computeDayLossGrams(
   profile: OnboardingData,
   day: DayPlan,
-  mealVisibleIdx: number[],
   mealChecklist: MealChecklistState,
   waterProgress: WaterProgressState,
   stepProgress: StepProgressState,
@@ -240,7 +237,6 @@ function computeDayLossGrams(
   return computeDayWeightDelta(
     profile,
     day,
-    mealVisibleIdx,
     mealChecklist,
     waterProgress,
     stepProgress,
@@ -257,13 +253,11 @@ export function computeProgramDayLossGrams(
   stepProgress: StepProgressState,
   deviationLog: DeviationLogState = {},
 ): number {
-  const mealVisibleIdx = visibleMealIndices(profile.rythmeRepas);
   return Math.max(
     0,
     computeDayLossGrams(
       profile,
       day,
-      mealVisibleIdx,
       mealChecklist,
       waterProgress,
       stepProgress,
@@ -293,7 +287,6 @@ export function computeProgramWeightCurveSeries(
   stepProgress: StepProgressState,
   deviationLog: DeviationLogState = {},
 ): ProgramWeightCurvePoint[] {
-  const mealVisibleIdx = visibleMealIndices(profile.rythmeRepas);
   const G = jours.length;
   if (G === 0) return [];
 
@@ -311,7 +304,6 @@ export function computeProgramWeightCurveSeries(
     const { netLossGrams, surplusGrams } = computeDayWeightDelta(
       profile,
       day,
-      mealVisibleIdx,
       mealChecklist,
       waterProgress,
       stepProgress,
@@ -343,7 +335,6 @@ export function computePlanDayWeightSnapshot(
   stepProgress: StepProgressState,
   deviationLog: DeviationLogState = {},
 ): PlanDayWeightSnapshot {
-  const mealVisibleIdx = visibleMealIndices(profile.rythmeRepas);
   const refDay = jours.find((d) => d.jour === refDayJour) ?? jours[0];
   if (!refDay) {
     const p = profile.poidsKg;
@@ -378,7 +369,6 @@ export function computePlanDayWeightSnapshot(
     const delta = computeDayWeightDelta(
       profile,
       day,
-      mealVisibleIdx,
       mealChecklist,
       waterProgress,
       stepProgress,
@@ -394,7 +384,6 @@ export function computePlanDayWeightSnapshot(
   const refRatios = computeDayTrackingRatios(
     profile,
     refDay,
-    mealVisibleIdx,
     mealChecklist,
     waterProgress,
     stepProgress,
@@ -405,7 +394,6 @@ export function computePlanDayWeightSnapshot(
     ? computeDayWeightDelta(
         profile,
         refDay,
-        mealVisibleIdx,
         mealChecklist,
         waterProgress,
         stepProgress,
@@ -419,7 +407,6 @@ export function computePlanDayWeightSnapshot(
   const refDayDelta = computeDayWeightDelta(
     profile,
     refDay,
-    mealVisibleIdx,
     mealChecklist,
     waterProgress,
     stepProgress,

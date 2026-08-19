@@ -1,11 +1,13 @@
 import { MetadataRoute } from "next";
 
+import { APP_MANIFEST_NAME, APP_NAME } from "@/config/appBrand";
+
 export const dynamic = "force-static";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Régime SOPK - 30 jours",
-    short_name: "Régime SOPK",
+    name: APP_MANIFEST_NAME,
+    short_name: APP_NAME,
     description:
       "Application mobile-first SOPK avec onboarding, plan repas 30 jours, suivi quotidien et hydratation.",
     start_url: "/",

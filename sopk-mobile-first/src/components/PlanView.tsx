@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 
+import { APP_NAME } from "@/config/appBrand";
 import {
   getDailyWalkingRecommendation,
   getMealPlan,
@@ -15,15 +16,17 @@ import { STORAGE_KEYS, todayIso } from "@/utils/storage";
 import {
   mealKey,
   stepsProgressStorageKey,
-  visibleMealIndices,
   waterProgressStorageKey,
 } from "@/utils/planTracking";
+import { visibleMealIndicesForDay } from "@/utils/mealRhythm";
 import { countValidatedDayStreak } from "@/utils/dayValidation";
 import { computePlanDayWeightSnapshot, computeProgramGoalWeightKg, computeProgramWeightCurveSeries, formatGainGramsLabel, formatLossGramsLabel, formatWeightDeltaFromStartLabel, formatWeightKgLive } from "@/utils/weightSummary";
 import { formatLitersFrFromMl, WATER_STEP_ML, snapWaterStepMl, waterProgressPercent } from "@/utils/waterDisplay";
 import { deviationStorageKey, getDeviationKcalForDay } from "@/utils/deviationLog";
-import { getEffectiveMeal, resolveMealOverride } from "@/utils/mealPersonalization";
+import { getEffectiveMeal, getProfileAdjustedEffectiveMeal, resolveMealOverride } from "@/utils/mealPersonalization";
 import { buildProfileDayTips, profileFoodFiltersLabel } from "@/utils/profileAdvice";
+import { isSopkNutritionProfile, profileSectionTitle } from "@/utils/profilePath";
+import { buildMealWhyToday, buildStepsWhyToday, buildWaterWhyToday } from "@/utils/taskWhyToday";
 import type {
   DeviationLogState,
   MealChecklistState,
@@ -51,6 +54,13 @@ function programDayToDateLabel(programDay: number, programStartDateIso?: string 
   const date = new Date(y, m - 1, d);
   date.setDate(date.getDate() + (programDay - 1));
   return `${date.getDate()} ${MOIS_FR[date.getMonth()]}`;
+}
+
+/** Scroll fiable sur la page plan (document), y compris iOS / Capacitor. */
+function scrollElementIntoDocumentView(el: HTMLElement) {
+  const scrollMarginTop = Number.parseFloat(window.getComputedStyle(el).scrollMarginTop) || 0;
+  const top = el.getBoundingClientRect().top + window.scrollY - scrollMarginTop;
+  window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
 }
 
 export { programDayToDateLabel };
@@ -108,7 +118,6 @@ export function PlanView({
 
   const data = useMemo(() => getMealPlan({ parcoursPerte: profile.parcoursPerte }), [profile.parcoursPerte]);
   const dayCount = getProgramDayCount(profile.parcoursPerte);
-  const mealVisibleIdx = useMemo(() => visibleMealIndices(profile.rythmeRepas), [profile.rythmeRepas]);
   /** Jour du plan (1…N) depuis la date de début ; aligné sur la journée civile pour les pas Santé. */
   const todayJour = useMemo(
     () => getTodayJourInProgram(dayCount, profile.programStartDateIso),
@@ -122,7 +131,6 @@ export function PlanView({
 
   const bilanSectionRef = useRef<HTMLDivElement | null>(null);
   const pendingBilanScrollRef = useRef(false);
-  const mealsSectionRef = useRef<HTMLDivElement | null>(null);
   const [selectedDayIndex, setSelectedDayIndex] = useState(() =>
     Math.max(
       0,
@@ -186,6 +194,10 @@ export function PlanView({
   }, [dayCount, data.jours.length, profile.programStartDateIso]);
 
   const selectedDay = data.jours[selectedDayIndex] ?? data.jours[0];
+  const mealVisibleIdx = useMemo(
+    () => visibleMealIndicesForDay(selectedDay.repas, profile.rythmeRepas),
+    [selectedDay.repas, profile.rythmeRepas],
+  );
   /** Journée civile → un seul jour du programme reçoit les pas Apple / Health Connect. */
   const healthStepsTargetProgramDay = todayJour;
   const isStepsHealthSyncDay = selectedDay.jour === healthStepsTargetProgramDay;
@@ -224,7 +236,7 @@ export function PlanView({
           if (requestPermission && !silent) {
             if (result.reason === "denied") {
               setHealthStepsMessage(
-                "Accès refusé : activez les pas pour Régime SOPK dans Réglages → Confidentialité et sécurité → Santé.",
+                `Accès refusé : activez les pas pour ${APP_NAME} dans Réglages → Confidentialité et sécurité → Santé.`,
               );
             } else if (result.reason === "no_data") {
               setHealthStepsMessage("Aucun pas enregistré pour aujourd’hui dans Santé, ou accès incomplet.");
@@ -288,7 +300,7 @@ export function PlanView({
         );
       } else if (firstRequest && res && !res.ok && res.reason === "denied") {
         setHealthStepsMessage(
-          "Pour afficher vos pas automatiquement, autorisez l’accès à Santé dans Réglages → Confidentialité → Santé → Régime SOPK.",
+          `Pour afficher vos pas automatiquement, autorisez l’accès à Santé dans Réglages → Confidentialité → Santé → ${APP_NAME}.`,
         );
       }
     })();
@@ -311,6 +323,19 @@ export function PlanView({
   const [expandedMealKey, setExpandedMealKey] = useState<string | null>(null);
   const [customMealDraft, setCustomMealDraft] = useState<Record<string, { label: string; kcal: string }>>({});
   const [showBilanPanel, setShowBilanPanel] = useState(false);
+
+  const scrollPlanPageToTop = useCallback(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    });
+  }, []);
+
+  const closeMealExpandPanel = useCallback(() => {
+    setExpandedMealKey(null);
+    scrollPlanPageToTop();
+  }, [scrollPlanPageToTop]);
 
   useEffect(() => {
     setShowBilanPanel(false);
@@ -366,6 +391,12 @@ export function PlanView({
   const waterChecked = waterRawMl >= waterTargetMl;
 
   const walkingChecked = stepsCurrent >= stepsTarget;
+
+  const waterWhyToday = useMemo(
+    () => buildWaterWhyToday(profile, waterTargetMl),
+    [profile, waterTargetMl],
+  );
+  const stepsWhyToday = useMemo(() => buildStepsWhyToday(profile, stepsTarget), [profile, stepsTarget]);
   const checkedMealIndexes = mealVisibleIdx.filter(
     (i) => i < selectedDay.repas.length && mealChecklist[mealKey(selectedDay.jour, i)]
   );
@@ -427,6 +458,14 @@ export function PlanView({
       if (!canEditSelectedDay) return;
       const checking = !mealChecklist[key];
       onToggleMeal(key);
+      // Fermer le panneau détail : sinon les boutons « portions / changer » disparaissent de la carte.
+      setExpandedMealKey((current) => (current === key ? null : current));
+      setOpenMealSwap((prev) => {
+        if (!prev[key]) return prev;
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
       if (!checking) return;
       const mealMatch = /^day-\d+-meal-(\d+)$/.exec(key);
       if (!mealMatch) return;
@@ -526,13 +565,12 @@ export function PlanView({
       countValidatedDayStreak(
         data.jours,
         selectedDay.jour,
-        mealVisibleIdx,
         mealChecklist,
         waterProgress,
         stepProgress,
         profile,
       ),
-    [data.jours, selectedDay.jour, mealVisibleIdx, mealChecklist, waterProgress, stepProgress, profile],
+    [data.jours, selectedDay.jour, mealChecklist, waterProgress, stepProgress, profile],
   );
   const tomorrowDay = useMemo(
     () => data.jours.find((d) => d.jour === selectedDay.jour + 1) ?? null,
@@ -540,12 +578,21 @@ export function PlanView({
   );
   const tomorrowFirstMeal = useMemo(() => {
     if (!tomorrowDay) return null;
-    for (const idx of mealVisibleIdx) {
-      const meal = tomorrowDay.repas[idx];
+    const indices = visibleMealIndicesForDay(tomorrowDay.repas, profile.rythmeRepas);
+    for (const idx of indices.length > 0 ? indices : [0]) {
+      const planned = tomorrowDay.repas[idx];
+      if (!planned) continue;
+      // L’aperçu de demain doit respecter les mêmes filtres que le plan du jour.
+      const meal = getProfileAdjustedEffectiveMeal(
+        planned,
+        mealOverrides[mealKey(tomorrowDay.jour, idx)],
+        profile,
+        tomorrowDay.jour + idx,
+      );
       if (meal) return meal;
     }
-    return tomorrowDay.repas[0] ?? null;
-  }, [tomorrowDay, mealVisibleIdx]);
+    return null;
+  }, [tomorrowDay, mealOverrides, profile]);
   const tomorrowDateLabel = tomorrowDay
     ? programDayToDateLabel(tomorrowDay.jour, profile.programStartDateIso)
     : null;
@@ -623,12 +670,37 @@ export function PlanView({
           const plannedMeal = selectedDay.repas[index];
           const key = mealKey(selectedDay.jour, index);
           const override = resolveMealOverride(mealOverrides[key]);
-          const meal = getEffectiveMeal(plannedMeal, mealOverrides[key]);
+          const meal = getProfileAdjustedEffectiveMeal(
+            plannedMeal,
+            mealOverrides[key],
+            profile,
+            selectedDay.jour + index,
+          );
+
+          if (!meal) {
+            return {
+              key,
+              typeLabel: labelByType[plannedMeal.type],
+              nom: "Aucun repas compatible avec vos filtres",
+              checked: false,
+              unavailable: true,
+              whyToday:
+                "Vos allergènes et exclusions écartent tous les repas de ce créneau. Retirez au moins un filtre dans Réglages → Modifier le profil pour recevoir une proposition sûre.",
+              meal: {
+                nom: plannedMeal.nom,
+                type: plannedMeal.type,
+                image: "",
+                hideImage: true,
+              },
+            };
+          }
+
           return {
             key,
             typeLabel: labelByType[meal.type],
             nom: meal.nom,
             checked: Boolean(mealChecklist[key]),
+            whyToday: buildMealWhyToday(profile, meal, selectedDay, dailyTarget),
             meal: {
               nom: meal.nom,
               type: meal.type,
@@ -637,7 +709,7 @@ export function PlanView({
             },
           };
         }),
-    [mealVisibleIdx, selectedDay.repas, selectedDay.jour, mealOverrides, mealChecklist],
+    [mealVisibleIdx, selectedDay, selectedDay.repas, selectedDay.jour, mealOverrides, mealChecklist, profile, dailyTarget],
   );
 
   const dateLabel = programDayToDateLabel(selectedDay.jour, profile.programStartDateIso);
@@ -691,10 +763,7 @@ export function PlanView({
         </div>
       ) : null}
 
-      <div
-        ref={mealsSectionRef}
-        className="scroll-mt-[max(3.5rem,calc(env(safe-area-inset-top,0px)+2.75rem))]"
-      >
+      <div className="scroll-mt-[max(3.5rem,calc(env(safe-area-inset-top,0px)+2.75rem))]">
         <DayTaskGameBoard
           checkedToday={checkedToday}
           totalTasks={totalTasks}
@@ -704,7 +773,12 @@ export function PlanView({
           meals={gameMeals}
           onMealToggle={handleToggleMealWithFeedback}
           expandedMealKey={expandedMealKey}
+          expandedMealSwapOpen={expandedMealKey ? Boolean(openMealSwap[expandedMealKey]) : false}
           onMealExpand={(key, mode) => {
+            if (mode === "portions" && expandedMealKey === key && !openMealSwap[key]) {
+              closeMealExpandPanel();
+              return;
+            }
             setExpandedMealKey(key);
             setOpenMealSwap((prev) => ({ ...prev, [key]: mode === "swap" }));
           }}
@@ -732,7 +806,7 @@ export function PlanView({
                 }
                 onSetMealOverride={onSetMealOverride}
                 canEdit={canEditSelectedDay}
-                onClose={() => setExpandedMealKey(null)}
+                onClose={closeMealExpandPanel}
               />
             ) : null
           }
@@ -746,19 +820,24 @@ export function PlanView({
           stepsCurrent={stepsCurrent}
           stepsTarget={stepsTarget}
           stepsPercent={stepsPercent}
-          onStepsChange={(value) => onUpdateStepProgress(stepsProgressKey, value)}
-          stepsExtra={
-            Capacitor.getPlatform() !== "web" && nativeHealthStepsLabel() && isStepsHealthSyncDay ? (
-              <button
-                type="button"
-                disabled={healthStepsBusy}
-                onClick={() => void syncStepsFromDevice(true)}
-                className="mt-1 w-full rounded-md bg-white/20 py-0.5 text-[9px] font-bold text-white disabled:opacity-50"
-              >
-                {healthStepsBusy ? "..." : `Sync ${nativeHealthStepsLabel()}`}
-              </button>
-            ) : null
+          stepsStatusLabel={
+            Capacitor.getPlatform() === "web"
+              ? "Synchro auto sur l’app mobile"
+              : isStepsHealthSyncDay
+                ? healthStepsBusy
+                  ? "Mise à jour…"
+                  : `Automatique · ${nativeHealthStepsLabel() ?? "Santé"}`
+                : isPastProgramDay
+                  ? "Compteur du jour"
+                  : null
           }
+          stepsHint={
+            healthStepsMessage && isStepsHealthSyncDay && Capacitor.getPlatform() !== "web"
+              ? healthStepsMessage
+              : null
+          }
+          waterWhyToday={waterWhyToday}
+          stepsWhyToday={stepsWhyToday}
           dateLabel={dateLabel}
           jour={selectedDay.jour}
           showTodayButton={false}
@@ -1005,7 +1084,7 @@ export function PlanView({
           <section className="mt-4 rounded-2xl border border-brand-200/60 bg-white/95 p-3 shadow-sm ring-1 ring-white/80 sm:p-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand-600">Votre profil SOPK</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand-600">{profileSectionTitle(profile)}</p>
                 <p className="mt-0.5 text-sm font-semibold text-brand-900">{parcoursLabel}</p>
               </div>
               <p className="text-[11px] leading-snug text-slate-500">{foodFiltersLabel}</p>

@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.nutrisopk.app',
-  appName: 'Régime SOPK',
+  appName: 'SOPK Nutrition',
   webDir: 'out',
   /** Réduit le flash sombre pendant les transitions WKWebView (fond derrière la vue si opaque = false). */
   backgroundColor: '#faf5ff',

@@ -1,5 +1,5 @@
 /**
- * Charte Régime SOPK - source unique couleurs & classes Tailwind (Geist partout).
+ * Charte SOPK Nutrition - source unique couleurs & classes Tailwind (Geist partout).
  * Primaire : prune douce · Accent santé : teal · Sémantique : emerald / amber / rose
  */
 export const brandColors = {

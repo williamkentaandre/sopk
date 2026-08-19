@@ -1,3 +1,4 @@
+import { getMealPortionDetails } from "@/utils/meal-portions";
 import type { MealEntry, MealType } from "@/utils/types";
 
 const UNSPLASH = (id: string) =>
@@ -13,10 +14,11 @@ export function mealImageSlug(nom: string): string {
     .slice(0, 80);
 }
 
-function localMealImagePath(nom: string): string {
-  return `/images/meals/${mealImageSlug(nom)}.jpg`;
-}
-
+/**
+ * Illustrations abstraites par type de repas. Interdites pour un plat du catalogue :
+ * elles ne représentent pas un aliment. Conservées pour un état non alimentaire
+ * (créneau vide, saisie libre).
+ */
 export const MEAL_TYPE_FALLBACK: Record<MealType, string> = {
   petit_dejeuner: "/images/meal-petit-dejeuner.svg",
   dejeuner: "/images/meal-dejeuner.svg",
@@ -24,7 +26,7 @@ export const MEAL_TYPE_FALLBACK: Record<MealType, string> = {
   diner: "/images/meal-diner.svg",
 };
 
-/** Photo la plus fidèle par plat (clé = nom exact dans mealPlan.json). */
+/** Photo de plat nommé (Unsplash), utilisée telle quelle. */
 export const MEAL_IMAGE_BY_NAME: Record<string, string> = {
   "Omelette épinards + pain complet": UNSPLASH("photo-1510693206972-df098062cb71"),
   "Salade quinoa, poulet, avocat, légumes croquants": UNSPLASH("photo-1540189549336-e6e99c3679fe"),
@@ -56,38 +58,88 @@ export const MEAL_IMAGE_BY_NAME: Record<string, string> = {
   "Gratin de légumes + filet de poisson": UNSPLASH("photo-1625944525533-473f1a3d54e7"),
 };
 
-const KEYWORD_FALLBACKS: { keys: string[]; url: string }[] = [
-  { keys: ["omelette", "œuf poché", "oeuf poché", "brouill", "pancake", "toast"], url: UNSPLASH("photo-1510693206972-df098062cb71") },
-  { keys: ["porridge", "avoine", "flocon", "smoothie", "skyr"], url: UNSPLASH("photo-1515003197210-e0cd71810b5f") },
-  { keys: ["saumon", "poisson", "thon", "cabillaud", "gratin"], url: UNSPLASH("photo-1467003909585-2f8a72700288") },
-  { keys: ["poulet", "dinde", "steak", "viande", "curry"], url: UNSPLASH("photo-1596797038530-2c107229654b") },
-  { keys: ["salade", "bowl", "quinoa", "lentille", "niçoise", "wrap", "houmous", "carotte"], url: UNSPLASH("photo-1540189549336-e6e99c3679fe") },
-  { keys: ["soupe", "chili", "haricot"], url: UNSPLASH("photo-1547592166-23ac45744acd") },
-  { keys: ["yaourt", "fromage blanc"], url: UNSPLASH("photo-1488477181946-6428a0291777") },
-  { keys: ["pomme", "poire", "orange", "kiwi", "framboise", "myrtille", "fruit", "amande", "noix", "chocolat"], url: UNSPLASH("photo-1568702846914-96b305d2aaeb") },
+/**
+ * Photos d'aliments, du plus spécifique au plus générique.
+ * Un plat sans photo dédiée prend celle de son aliment principal, pas un SVG.
+ */
+const FOOD_PHOTOS: { terms: string[]; url: string }[] = [
+  { terms: ["avocat", "guacamole"], url: UNSPLASH("photo-1523049673857-eb18f1d7b578") },
+  { terms: ["pois chiche", "houmous"], url: UNSPLASH("photo-1512621776951-a57141f2eefd") },
+  { terms: ["tomate"], url: UNSPLASH("photo-1546094096-0df4bcaaa337") },
+  { terms: ["tofu"], url: UNSPLASH("photo-1546069901-ba9599a7e63c") },
+  { terms: ["laitue"], url: UNSPLASH("photo-1556801712-76c8eb07bbc9") },
+  { terms: ["lentille", "dahl"], url: UNSPLASH("photo-1547592166-23ac45744acd") },
+  { terms: ["quinoa"], url: UNSPLASH("photo-1543332164-6e82f355badc") },
+  { terms: ["thon"], url: UNSPLASH("photo-1539136788836-5699e78bfc75") },
+  { terms: ["saumon", "cabillaud", "poisson"], url: UNSPLASH("photo-1467003909585-2f8a72700288") },
+  { terms: ["omelette", "oeuf", "œuf", "brouill", "pancake", "toast"], url: UNSPLASH("photo-1510693206972-df098062cb71") },
+  { terms: ["porridge", "avoine", "flocon", "smoothie"], url: UNSPLASH("photo-1515003197210-e0cd71810b5f") },
+  { terms: ["poulet", "dinde", "steak", "viande", "curry"], url: UNSPLASH("photo-1596797038530-2c107229654b") },
+  { terms: ["wrap"], url: UNSPLASH("photo-1626700051175-6818013e1d4f") },
+  { terms: ["soupe", "chili", "haricot"], url: UNSPLASH("photo-1547592166-23ac45744acd") },
+  { terms: ["yaourt", "fromage", "skyr", "compote"], url: UNSPLASH("photo-1488477181946-6428a0291777") },
+  { terms: ["banane"], url: UNSPLASH("photo-1571771894821-ce9b6c11bba9") },
+  { terms: ["clementine", "clémentine"], url: UNSPLASH("photo-1611080626919-7cf5a9dbab5b") },
+  { terms: ["concombre"], url: UNSPLASH("photo-1449301377387-8186cdd4230e") },
+  { terms: ["pomme", "poire", "orange", "kiwi", "framboise", "myrtille", "fruit", "amande", "noix", "noisette", "chocolat"], url: UNSPLASH("photo-1568702846914-96b305d2aaeb") },
+  { terms: ["riz", "patate"], url: UNSPLASH("photo-1512058564366-18510be2db19") },
+  { terms: ["tempeh"], url: UNSPLASH("photo-1546069901-ba9599a7e63c") },
+  { terms: ["salade", "bowl", "bol", "crudit"], url: UNSPLASH("photo-1540189549336-e6e99c3679fe") },
 ];
+
+/** Dernier repli encore alimentaire (un vrai plat), par type de repas. */
+export const FOOD_BY_MEAL_TYPE: Record<MealType, string> = {
+  petit_dejeuner: UNSPLASH("photo-1510693206972-df098062cb71"),
+  dejeuner: UNSPLASH("photo-1540189549336-e6e99c3679fe"),
+  collation: UNSPLASH("photo-1568702846914-96b305d2aaeb"),
+  diner: UNSPLASH("photo-1467003909585-2f8a72700288"),
+};
 
 function normalizeForMatch(text: string): string {
   return text
     .toLowerCase()
     .normalize("NFD")
-    .replace(/\p{M}/gu, "");
+    .replace(/\p{M}/gu, "")
+    .replace(/[œŒ]/g, "oe");
 }
 
-function matchByKeywords(nom: string): string | null {
-  const n = normalizeForMatch(nom);
-  for (const { keys, url } of KEYWORD_FALLBACKS) {
-    if (keys.some((k) => n.includes(normalizeForMatch(k)))) return url;
+function matchFoodPhoto(text: string): string | null {
+  const n = normalizeForMatch(text);
+  for (const { terms, url } of FOOD_PHOTOS) {
+    if (terms.some((term) => n.includes(normalizeForMatch(term)))) return url;
   }
   return null;
 }
 
-export function getMealImageUrl(meal: Pick<MealEntry, "nom" | "type" | "image">): string {
-  if (MEAL_IMAGE_BY_NAME[meal.nom]) return localMealImagePath(meal.nom);
-  const byKeyword = matchByKeywords(meal.nom);
-  if (byKeyword) return byKeyword;
-  if (meal.image?.trim()) return meal.image.trim();
-  return MEAL_TYPE_FALLBACK[meal.type];
+export function isMealTypeSvgFallback(url: string): boolean {
+  return url.endsWith(".svg") || Object.values(MEAL_TYPE_FALLBACK).includes(url);
+}
+
+/**
+ * Image d'un repas : photo du plat, sinon photo de l'aliment principal, sinon
+ * photo alimentaire du type de repas. Jamais le SVG abstrait pour un plat nommé.
+ */
+export function getMealImageUrl(
+  meal: Pick<MealEntry, "nom" | "type" | "image"> & Partial<Pick<MealEntry, "calories">>,
+): string {
+  const byName = MEAL_IMAGE_BY_NAME[meal.nom];
+  if (byName) return byName;
+
+  const byLabel = matchFoodPhoto(meal.nom);
+  if (byLabel) return byLabel;
+
+  const portions = getMealPortionDetails(meal.nom, meal.calories);
+  for (const ingredient of portions.ingredients) {
+    const byIngredient = matchFoodPhoto(ingredient.aliment);
+    if (byIngredient) return byIngredient;
+  }
+
+  const declared = meal.image?.trim();
+  if (declared && !isMealTypeSvgFallback(declared) && !declared.startsWith("/images/meals/")) {
+    return declared;
+  }
+
+  return FOOD_BY_MEAL_TYPE[meal.type];
 }
 
 export function isLocalMealImage(url: string): boolean {

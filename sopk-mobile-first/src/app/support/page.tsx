@@ -11,10 +11,10 @@ export default function SupportPage() {
             Assistance officielle
           </p>
           <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950 md:text-4xl">
-            Support - Régime SOPK
+            Support - SOPK Nutrition
           </h1>
           <p className="mt-3 text-slate-700">
-            Cette page fournit les informations de support de l&apos;application Régime SOPK. Elle
+            Cette page fournit les informations de support de l&apos;application SOPK Nutrition. Elle
             est affichée sur la fiche App Store.
           </p>
 
@@ -51,7 +51,7 @@ export default function SupportPage() {
             />
             <FaqItem
               question="L&apos;application donne-t-elle un avis médical"
-              answer="Non. Régime SOPK propose un accompagnement nutritionnel et de suivi bien-être. Cela ne remplace pas un professionnel de santé."
+              answer="Non. SOPK Nutrition propose un accompagnement nutritionnel et de suivi bien-être. Cela ne remplace pas un professionnel de santé."
             />
           </div>
         </div>
@@ -82,7 +82,7 @@ export default function SupportPage() {
           </ul>
         </div>
         <footer className="mt-6 text-center text-xs text-slate-500">
-          © 2026 Régime SOPK. Tous droits réservés.
+          © 2026 SOPK Nutrition. Tous droits réservés.
         </footer>
       </section>
     </main>

@@ -25,7 +25,7 @@ OU supprimer l’image promotionnelle si vous ne promouvez pas l’IAP sur l’A
 Publier regimesopk.com (page /terms/) - OBLIGATOIRE avant resoumission :
 
 Option A - Dashboard Vercel (2 min)
-1. https://vercel.com → projet Régime SOPK / regimesopk.com
+1. https://vercel.com → projet SOPK Nutrition / regimesopk.com
 2. Settings → Git → Root Directory = sopk-mobile-first
 3. Deployments → Redeploy (dernier commit main)
 
@@ -43,7 +43,7 @@ Vérifier : curl -I https://regimesopk.com/terms/  → doit retourner HTTP 200
 
 ---
 
-Nouveau build iOS requis : 1.0.5 (7)
+Nouveau build iOS requis : 1.0.7 (9)
 
   cd sopk-mobile-first && npm run cap:deploy
   Xcode → Archive → Upload build 6

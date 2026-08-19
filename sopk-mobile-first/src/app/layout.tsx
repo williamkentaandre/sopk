@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { ServiceWorkerBootstrap } from "@/components/ServiceWorkerBootstrap";
+import { APP_NAME, APP_PAGE_TITLE } from "@/config/appBrand";
 
 import "./globals.css";
 
@@ -45,7 +46,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://nutrisopk.local"),
-  title: "Régime SOPK - Programme mobile SOPK 30 jours",
+  title: APP_PAGE_TITLE,
   description:
     "Application mobile-first SOPK: onboarding, plan alimentaire 30 jours, suivi quotidien, conseils personnalisés et hydratation.",
   manifest: "/manifest.webmanifest",
@@ -58,7 +59,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "Régime SOPK",
+    title: APP_NAME,
     statusBarStyle: "default",
   },
 };

@@ -25,6 +25,9 @@ export interface MealPlanData {
 /** Horizon du programme (jours) : même objectif de poids, vitesses et déficits adaptés. */
 export type ParcoursPerte = "j30" | "j90" | "j180" | "j365";
 
+/** Parcours nutrition choisi à l’onboarding. */
+export type ProfilNutrition = "sopk" | "incertain" | "general";
+
 export interface OnboardingData {
   prenom: string;
   age: number;
@@ -37,11 +40,11 @@ export interface OnboardingData {
   trackingResetEpoch?: number;
   /** À true uniquement après la dernière étape d’onboarding (évite d’accéder au plan sans finir). */
   onboardingCompleted?: boolean;
+  /** Parcours SOPK explicite ou régime général adapté au profil. */
+  profilNutrition?: ProfilNutrition;
   objectifPoidsKg?: number;
-  objectifs?: string[];
   diagnostics?: string[];
   symptomes?: string[];
-  tentativePertePoids?: string;
   niveauActivite?: string;
   rythmeRepas?: string;
   tempsCuisine?: string;

@@ -1,4 +1,5 @@
-import type { OnboardingData, ParcoursPerte } from "@/utils/types";
+import type { OnboardingData, ParcoursPerte, ProfilNutrition } from "@/utils/types";
+import { resolveProfilNutrition } from "@/utils/profilePath";
 import { todayIsoLocal } from "@/utils/storage";
 
 /** Anciennes valeurs persistées (y compris l’ancienne paire 2 modes). */
@@ -61,9 +62,11 @@ export function normalizeStoredProfile(profile: OnboardingData | null): Onboardi
   if (!programStartDateIso && shouldBackfillProgramStart(profile)) {
     programStartDateIso = todayIsoLocal();
   }
+  const profilNutrition: ProfilNutrition = resolveProfilNutrition(profile);
   return {
     ...profile,
     parcoursPerte,
+    profilNutrition,
     ...(programStartDateIso ? { programStartDateIso } : {}),
   };
 }

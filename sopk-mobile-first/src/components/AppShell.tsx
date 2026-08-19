@@ -7,6 +7,7 @@ import { Capacitor } from "@capacitor/core";
 import { AppleSignInCard } from "@/components/AppleSignInCard";
 import { AppIconSvg } from "@/components/AppIconSvg";
 import { BrandLogo } from "@/components/BrandLogo";
+import { isSopkNutritionProfile } from "@/utils/profilePath";
 import { OnboardingForm } from "@/components/OnboardingForm";
 import { SubscriptionPaywall } from "@/components/SubscriptionPaywall";
 import { SubscriptionLegalLinks } from "@/components/SubscriptionLegalLinks";
@@ -236,7 +237,7 @@ export function AppShell({ forcePlan = false }: AppShellProps) {
     if (synced) {
       mealOverridesStore.update(synced);
     }
-  }, [mealPersonalizationFingerprint, plan, displayedProfile, savedProfileNorm, accessOpts, mealOverridesStore.value]);
+  }, [mealPersonalizationFingerprint, plan, displayedProfile, savedProfileNorm, accessOpts, mealOverridesStore]);
 
   const applyProfileSave = useCallback(
     (profile: OnboardingData) => {
@@ -458,16 +459,16 @@ export function AppShell({ forcePlan = false }: AppShellProps) {
       }}
     >
       <header className="sticky top-0 z-40 -mx-3 mb-3 flex items-center justify-between gap-2 border-b border-brand-200/80 bg-white/80 px-3 py-2.5 shadow-[0_4px_24px_rgba(109,90,125,0.08)] backdrop-blur-xl md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
-        <BrandLogo variant="compact" />
+        <BrandLogo variant="compact" sopkFocus={isSopkNutritionProfile(savedProfileNorm ?? {})} />
         <button
           type="button"
-          aria-label="Ouvrir les réglages"
+          aria-label="Ouvrir les paramètres"
           aria-expanded={settingsOpen}
           onClick={() => {
             setPurchaseNotice(null);
             setSettingsOpen(true);
           }}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-brand-200 bg-gradient-to-br from-white to-brand-50 text-brand-700 shadow-sm transition hover:shadow-md active:scale-[0.97]"
+          className="flex shrink-0 items-center gap-1.5 rounded-xl border border-brand-200 bg-gradient-to-br from-white to-brand-50 px-2.5 py-2 text-brand-700 shadow-sm transition hover:shadow-md active:scale-[0.97]"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
             <path
@@ -481,6 +482,7 @@ export function AppShell({ forcePlan = false }: AppShellProps) {
               d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"
             />
           </svg>
+          <span className="text-[10px] font-bold uppercase leading-none tracking-wide text-brand-800">Paramètres</span>
         </button>
       </header>
 
@@ -577,9 +579,19 @@ export function AppShell({ forcePlan = false }: AppShellProps) {
                   <p className="mt-2 text-[10px] leading-snug text-slate-500">
                     Ingrédients des repas prévus du jour <strong>{shoppingList.startJour}</strong> au jour{" "}
                     <strong>{shoppingList.endJour}</strong> ({shoppingList.spanDays} jour
-                    {shoppingList.spanDays > 1 ? "s" : ""}) · portions adaptées à votre profil et à vos repas
-                    choisis
+                    {shoppingList.spanDays > 1 ? "s" : ""}) · allergies, régime et exclusions appliqués à votre
+                    profil
+                    {shoppingList.requestedSpan === 14 ? " · semaines 1 et 2 avec menus différents" : ""}
                   </p>
+                  {(displayedProfile.allergies?.length ?? 0) > 0 ||
+                  (displayedProfile.alimentsDetestes?.length ?? 0) > 0 ? (
+                    <p className="mt-1 text-[10px] font-medium text-emerald-700">
+                      Filtre profil actif
+                      {shoppingList.excludedIngredientCount > 0
+                        ? ` · ${shoppingList.excludedIngredientCount} ligne${shoppingList.excludedIngredientCount > 1 ? "s" : ""} d’ingrédient retirée${shoppingList.excludedIngredientCount > 1 ? "s" : ""}`
+                        : ""}
+                    </p>
+                  ) : null}
                   {shoppingList.lines.length === 0 ? (
                     <p className="mt-2 text-xs text-slate-500">Aucun ingrédient pour cette période.</p>
                   ) : (

@@ -26,7 +26,7 @@ export default function Home() {
               border: 0,
             }}
           >
-            Régime SOPK - application nutritionnelle et suivi
+            SOPK Nutrition - application nutritionnelle et suivi
           </h1>
           <p className="mx-auto mt-6 max-w-3xl text-center text-lg leading-relaxed text-slate-700 md:text-xl">
             Une nutrition adaptée à votre profil hormonal. Pour les femmes qui ont essayé tous les
@@ -137,7 +137,7 @@ export default function Home() {
           </div>
         </div>
         <footer className="mt-6 text-center text-xs text-slate-500">
-          © 2026 Régime SOPK. Tous droits réservés.
+          © 2026 SOPK Nutrition. Tous droits réservés.
         </footer>
       </section>
     </main>

@@ -1,11 +1,12 @@
 "use client";
 
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import type { MealEntry } from "@/utils/types";
 import { formatLitersFrFromMl, WATER_STEP_ML } from "@/utils/waterDisplay";
 
 import { MealImage } from "./PlanViewMealImage";
+import { TaskWhyTodaySheet, type TaskWhyTodayImage, type TaskWhyTodaySheetState, TaskWhyTodayTrigger } from "./TaskWhyTodaySheet";
 import { TrackingTaskImage } from "./TrackingTaskImage";
 
 export function taskBrickClasses(done: boolean): string {
@@ -19,6 +20,9 @@ interface GameMealBrick {
   typeLabel: string;
   nom: string;
   checked: boolean;
+  whyToday: string;
+  /** Aucun repas du catalogue ne respecte les allergènes / exclusions du profil. */
+  unavailable?: boolean;
   meal: Pick<MealEntry, "nom" | "type" | "image"> & { hideImage?: boolean };
 }
 
@@ -31,6 +35,8 @@ interface DayTaskGameBoardProps {
   meals: GameMealBrick[];
   onMealToggle: (key: string) => void;
   expandedMealKey: string | null;
+  /** Panneau ouvert en mode « changer de repas » (pas portions). */
+  expandedMealSwapOpen?: boolean;
   onMealExpand: (key: string, mode: "swap" | "portions") => void;
   expandedMealPanel: ReactNode;
   waterChecked: boolean;
@@ -43,8 +49,11 @@ interface DayTaskGameBoardProps {
   stepsCurrent: number;
   stepsTarget: number;
   stepsPercent: number;
-  onStepsChange: (value: number) => void;
-  stepsExtra?: ReactNode;
+  /** Libellé sous le compteur (ex. synchro Santé automatique). */
+  stepsStatusLabel?: string | null;
+  stepsHint?: string | null;
+  waterWhyToday: string;
+  stepsWhyToday: string;
   dateLabel: string;
   jour: number;
   showTodayButton: boolean;
@@ -72,12 +81,14 @@ function GameBrickShine({ done }: { done: boolean }) {
 function MealDoneToggleBar({ checked }: { checked: boolean }) {
   return (
     <div
-      className={`flex w-full items-center justify-center gap-2 border-t border-white/20 px-2 py-2.5 text-[11px] font-bold leading-tight ${
-        checked ? "bg-emerald-950/25 text-white" : "bg-white text-emerald-800"
+      className={`flex w-full items-center gap-3 border-t-2 px-3 py-3.5 ${
+        checked
+          ? "border-emerald-300/40 bg-emerald-950/45 text-white"
+          : "border-emerald-200 bg-white text-emerald-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
       }`}
     >
       <span
-        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-[2.5px] shadow-sm ${
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-[2.5px] shadow-sm ${
           checked
             ? "border-white bg-white text-emerald-600"
             : "border-emerald-600 bg-white text-emerald-600"
@@ -93,20 +104,22 @@ function MealDoneToggleBar({ checked }: { checked: boolean }) {
             />
           </svg>
         ) : (
-          <span className="block h-2.5 w-2.5 rounded-full bg-emerald-500/35" />
+          <span className="block h-3 w-3 rounded-full bg-emerald-500/40" />
         )}
       </span>
-      <span className="text-left">
+      <span className="min-w-0 flex-1 text-left">
         {checked ? (
           <>
-            <span className="block uppercase tracking-wide">Repas terminé</span>
-            <span className="block text-[9px] font-semibold normal-case text-white/75">Toucher pour annuler</span>
+            <span className="block text-[15px] font-black leading-tight">Appuyez ici pour annuler</span>
+            <span className="mt-0.5 block text-[14px] font-semibold normal-case text-white/90">Repas terminé</span>
           </>
         ) : (
           <>
-            <span className="block uppercase tracking-wide">Marquer terminé</span>
-            <span className="block text-[9px] font-semibold normal-case text-emerald-700/80">
-              J&apos;ai bien pris ce repas
+            <span className="block text-[15px] font-black leading-tight text-emerald-900">
+              Appuyez ici pour marquer terminé
+            </span>
+            <span className="mt-0.5 block text-[14px] font-semibold normal-case text-emerald-700">
+              Touchez la carte ou ce bandeau
             </span>
           </>
         )}
@@ -124,6 +137,7 @@ export function DayTaskGameBoard({
   meals,
   onMealToggle,
   expandedMealKey,
+  expandedMealSwapOpen = false,
   onMealExpand,
   expandedMealPanel,
   waterChecked,
@@ -136,8 +150,10 @@ export function DayTaskGameBoard({
   stepsCurrent,
   stepsTarget,
   stepsPercent,
-  onStepsChange,
-  stepsExtra,
+  stepsStatusLabel,
+  stepsHint,
+  waterWhyToday,
+  stepsWhyToday,
   dateLabel,
   jour,
   showTodayButton,
@@ -145,11 +161,20 @@ export function DayTaskGameBoard({
 }: DayTaskGameBoardProps) {
   const taskProgressPercent = totalTasks > 0 ? Math.round((checkedToday / totalTasks) * 100) : 0;
   const expandedPanelRef = useRef<HTMLDivElement | null>(null);
+  const [whySheet, setWhySheet] = useState<TaskWhyTodaySheetState | null>(null);
+
+  const openWhy = (subtitle: string, explanation: string, image?: TaskWhyTodayImage) => {
+    setWhySheet({ subtitle, explanation, image });
+  };
 
   useLayoutEffect(() => {
     if (!expandedMealKey) return;
     const frame = requestAnimationFrame(() => {
-      expandedPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      const panel = expandedPanelRef.current;
+      if (!panel) return;
+      const scrollMarginTop = Number.parseFloat(window.getComputedStyle(panel).scrollMarginTop) || 0;
+      const top = panel.getBoundingClientRect().top + window.scrollY - scrollMarginTop;
+      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
     });
     return () => cancelAnimationFrame(frame);
   }, [expandedMealKey]);
@@ -228,7 +253,8 @@ export function DayTaskGameBoard({
 
         <div className="grid grid-cols-2 gap-2.5">
           {meals.map((meal) => {
-            const mealToggleDisabled = !canEdit || isFutureDay;
+            const mealToggleDisabled = !canEdit || isFutureDay || Boolean(meal.unavailable);
+            const portionsPanelOpen = expandedMealKey === meal.key && !expandedMealSwapOpen;
             const activateMealToggle = () => {
               if (mealToggleDisabled) return;
               onMealToggle(meal.key);
@@ -240,6 +266,16 @@ export function DayTaskGameBoard({
               className={`relative overflow-hidden rounded-2xl border-2 transition-all duration-300 ${taskBrickClasses(meal.checked)}`}
             >
               <GameBrickShine done={meal.checked} />
+              <TaskWhyTodayTrigger
+                onOpen={() =>
+                  openWhy(`${meal.typeLabel} · ${meal.nom}`, meal.whyToday, {
+                    type: "meal",
+                    meal: meal.meal,
+                    hideImage: meal.meal.hideImage,
+                  })
+                }
+                className="left-1.5 top-1.5"
+              />
               <div
                 role="button"
                 tabIndex={mealToggleDisabled ? -1 : 0}
@@ -247,8 +283,8 @@ export function DayTaskGameBoard({
                 aria-disabled={mealToggleDisabled}
                 aria-label={
                   meal.checked
-                    ? `Repas ${meal.nom} terminé, appuyer pour annuler`
-                    : `Marquer le repas ${meal.nom} comme terminé`
+                    ? `Appuyez ici pour annuler : repas ${meal.nom} terminé`
+                    : `Appuyez ici pour marquer terminé : ${meal.nom}`
                 }
                 onClick={activateMealToggle}
                 onKeyDown={(event) => {
@@ -293,32 +329,44 @@ export function DayTaskGameBoard({
                   <MealDoneToggleBar checked={meal.checked} />
                 </div>
               </div>
-              {expandedMealKey !== meal.key ? (
-                <div className="relative z-[2] border-t border-white/20">
+              <div className="relative z-[2] border-t border-white/20">
+                {meal.unavailable ? (
+                  <p className="bg-black/25 px-2.5 py-2 text-[10px] font-semibold leading-snug text-white/90">
+                    Ajustez vos allergènes ou vos exclusions dans les réglages pour débloquer un repas.
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  disabled={meal.unavailable}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onMealExpand(meal.key, "portions");
+                  }}
+                  className={`w-full py-1.5 text-[10px] font-bold uppercase tracking-wide transition ${
+                    portionsPanelOpen
+                      ? "bg-white/20 text-white ring-1 ring-inset ring-white/25"
+                      : "bg-black/15 text-white/90 hover:bg-black/25"
+                  }`}
+                >
+                  {portionsPanelOpen ? "Portions affichées" : "Voir les portions"}
+                </button>
+                {canEdit && !isFutureDay && !meal.unavailable ? (
                   <button
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
-                      onMealExpand(meal.key, "portions");
+                      onMealExpand(meal.key, "swap");
                     }}
-                    className="w-full bg-black/15 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white/90 transition hover:bg-black/25"
+                    className={`w-full border-t border-white/15 py-1.5 text-[10px] font-bold uppercase tracking-wide transition ${
+                      expandedMealKey === meal.key
+                        ? "bg-white/15 text-white hover:bg-white/20"
+                        : "bg-black/10 text-white/80 hover:bg-black/20"
+                    }`}
                   >
-                    Voir les portions
+                    Changer de repas
                   </button>
-                  {canEdit && !isFutureDay ? (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onMealExpand(meal.key, "swap");
-                      }}
-                      className="w-full border-t border-white/15 bg-black/10 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white/80 transition hover:bg-black/20"
-                    >
-                      Changer de repas
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
+                ) : null}
+              </div>
             </div>
             );
           })}
@@ -327,6 +375,15 @@ export function DayTaskGameBoard({
             className={`relative flex flex-col overflow-hidden rounded-2xl border-2 transition-all duration-300 ${taskBrickClasses(waterChecked)}`}
           >
             <TrackingTaskImage kind="water" />
+            <TaskWhyTodayTrigger
+              onOpen={() =>
+                openWhy(`Eau · ${formatLitersFrFromMl(waterTargetMl)} visés`, waterWhyToday, {
+                  type: "tracking",
+                  kind: "water",
+                })
+              }
+              className="left-1.5 top-1.5"
+            />
             <div className="relative flex min-h-[4.5rem] flex-1 flex-col justify-between p-2.5">
               <GameBrickShine done={waterChecked} />
               <div className="relative flex items-baseline justify-between gap-1">
@@ -358,6 +415,16 @@ export function DayTaskGameBoard({
             className={`relative flex flex-col overflow-hidden rounded-2xl border-2 transition-all duration-300 ${taskBrickClasses(stepsChecked)}`}
           >
             <TrackingTaskImage kind="steps" />
+            <TaskWhyTodayTrigger
+              onOpen={() =>
+                openWhy(
+                  `Pas · ${stepsTarget.toLocaleString("fr-FR")} recommandés`,
+                  stepsWhyToday,
+                  { type: "tracking", kind: "steps" },
+                )
+              }
+              className="left-1.5 top-1.5"
+            />
             <div className="relative flex min-h-[4.5rem] flex-1 flex-col justify-between p-2.5">
               <GameBrickShine done={stepsChecked} />
               <div className="relative flex items-baseline justify-between gap-1">
@@ -368,18 +435,30 @@ export function DayTaskGameBoard({
               </div>
               <p className="relative text-[18px] font-black tabular-nums leading-none drop-shadow-sm">
                 {stepsCurrent.toLocaleString("fr-FR")}
+                <span className="text-[10px] font-semibold text-white/75">
+                  {" "}
+                  / {stepsTarget.toLocaleString("fr-FR")}
+                </span>
               </p>
-              <input
-                type="range"
-                min={0}
-                max={stepsTarget}
-                step={100}
-                value={stepsCurrent}
-                disabled={!canEdit || isFutureDay}
-                onChange={(e) => onStepsChange(Number(e.target.value))}
-                className="game-range relative h-1 w-full cursor-pointer accent-white disabled:opacity-40"
-              />
-              {stepsExtra}
+              <div
+                className="relative h-1 w-full overflow-hidden rounded-full bg-black/25"
+                role="progressbar"
+                aria-valuenow={stepsCurrent}
+                aria-valuemin={0}
+                aria-valuemax={stepsTarget}
+                aria-label="Progression des pas"
+              >
+                <div
+                  className="h-full rounded-full bg-white/90 transition-[width] duration-300"
+                  style={{ width: `${Math.min(100, stepsPercent)}%` }}
+                />
+              </div>
+              {stepsStatusLabel ? (
+                <p className="relative text-[8px] font-bold uppercase tracking-wide text-white/75">{stepsStatusLabel}</p>
+              ) : null}
+              {stepsHint ? (
+                <p className="relative text-[8px] font-medium leading-snug text-white/80">{stepsHint}</p>
+              ) : null}
             </div>
           </div>
         </div>
@@ -398,11 +477,12 @@ export function DayTaskGameBoard({
             Journée complète - victoire !
           </p>
         ) : (
-          <p className="relative text-center text-[10px] font-semibold leading-snug text-white/50">
-            Touchez la carte repas (nom, photo ou bandeau) pour cocher · vert = fait
+          <p className="relative text-center text-[14px] font-semibold leading-snug text-white/85">
+            Appuyez ici sur une carte repas pour la cocher ou la décocher. Vert = repas pris.
           </p>
         )}
       </div>
+      <TaskWhyTodaySheet open={whySheet} onClose={() => setWhySheet(null)} />
     </div>
   );
 }

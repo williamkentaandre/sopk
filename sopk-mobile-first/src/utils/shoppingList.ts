@@ -1,7 +1,8 @@
 import { getMealCaloriesForTarget, getPersonalizedCalories } from "@/utils/mealPlan";
-import { getEffectiveMeal } from "@/utils/mealPersonalization";
+import { getProfileAdjustedEffectiveMeal, isIngredientExcludedForProfile } from "@/utils/mealPersonalization";
 import { getMealPortionDetailsAdjusted } from "@/utils/meal-portions";
-import { mealKey, visibleMealIndices } from "@/utils/planTracking";
+import { visibleMealIndicesForDay } from "@/utils/mealRhythm";
+import { mealKey } from "@/utils/planTracking";
 import type { DayPlan, MealOverrideState, OnboardingData } from "@/utils/types";
 
 export type ShoppingListSpanDays = 7 | 14;
@@ -21,6 +22,8 @@ export interface ShoppingList {
   periodIndex: number;
   /** Durée choisie : 7 ou 14 jours. */
   requestedSpan: ShoppingListSpanDays;
+  /** Ingrédients retirés car allergies / exclusions du profil. */
+  excludedIngredientCount: number;
 }
 
 function normalizeIngredientKey(s: string): string {
@@ -53,7 +56,6 @@ export function buildShoppingList(
   mealOverrides: MealOverrideState = {},
 ): ShoppingList {
   const dailyTarget = getPersonalizedCalories(profile);
-  const indices = visibleMealIndices(profile.rythmeRepas);
   const last = jours.length;
   if (last === 0) {
     return {
@@ -63,6 +65,7 @@ export function buildShoppingList(
       spanDays: 0,
       periodIndex: 0,
       requestedSpan,
+      excludedIngredientCount: 0,
     };
   }
 
@@ -73,16 +76,24 @@ export function buildShoppingList(
   const periodIndex = Math.floor((start - 1) / requestedSpan) + 1;
 
   const merged = new Map<string, { display: string; grammes: number }>();
+  let excludedIngredientCount = 0;
 
   for (let jour = start; jour <= end; jour++) {
     const day = jours.find((d) => d.jour === jour);
     if (!day) continue;
 
-    for (const i of indices) {
+    for (const i of visibleMealIndicesForDay(day.repas, profile.rythmeRepas)) {
       if (i >= day.repas.length) continue;
       const plannedMeal = day.repas[i];
-      const meal = getEffectiveMeal(plannedMeal, mealOverrides[mealKey(jour, i)]);
-      const adjustedKcal = getMealCaloriesForTarget(meal.calories, day, dailyTarget);
+      // Les courses doivent refléter le repas réellement affiché, filtres profil inclus.
+      const meal = getProfileAdjustedEffectiveMeal(
+        plannedMeal,
+        mealOverrides[mealKey(jour, i)],
+        profile,
+        jour + i,
+      );
+      if (!meal) continue;
+      const adjustedKcal = getMealCaloriesForTarget(meal.calories, day, dailyTarget, profile.rythmeRepas);
       const kcalRatio = meal.calories > 0 ? adjustedKcal / meal.calories : 1;
       const portion = getMealPortionDetailsAdjusted(
         meal.nom,
@@ -99,6 +110,10 @@ export function buildShoppingList(
       );
 
       for (const ing of portion.ingredients) {
+        if (isIngredientExcludedForProfile(ing.aliment, profile)) {
+          excludedIngredientCount += 1;
+          continue;
+        }
         const key = normalizeIngredientKey(ing.aliment);
         const prev = merged.get(key);
         const display = prev?.display ?? ing.aliment;
@@ -115,7 +130,7 @@ export function buildShoppingList(
     .filter((l) => l.grammes > 0)
     .sort((a, b) => a.aliment.localeCompare(b.aliment, "fr", { sensitivity: "base" }));
 
-  return { lines, startJour: start, endJour: end, spanDays, periodIndex, requestedSpan };
+  return { lines, startJour: start, endJour: end, spanDays, periodIndex, requestedSpan, excludedIngredientCount };
 }
 
 /** @deprecated Utiliser {@link buildShoppingList} avec `requestedSpan: 7`. */

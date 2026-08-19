@@ -2,10 +2,10 @@ import {
   getDailyWalkingRecommendation,
   getPersonalizedHydrationLiters,
 } from "@/utils/mealPlan";
+import { visibleMealIndicesForDay } from "@/utils/mealRhythm";
 import {
   mealKey,
   stepsProgressStorageKey,
-  visibleMealIndices,
   waterProgressStorageKey,
 } from "@/utils/planTracking";
 import type {
@@ -18,12 +18,12 @@ import type {
 
 export function isProgramDayValidated(
   day: DayPlan,
-  mealVisibleIdx: number[],
   mealChecklist: MealChecklistState,
   waterProgress: WaterProgressState,
   stepProgress: StepProgressState,
   profile: OnboardingData,
 ): boolean {
+  const mealVisibleIdx = visibleMealIndicesForDay(day.repas, profile.rythmeRepas);
   const mealSlots = mealVisibleIdx.filter((i) => i < day.repas.length).length;
   const checkedMeals = mealVisibleIdx.filter(
     (i) => i < day.repas.length && mealChecklist[mealKey(day.jour, i)],
@@ -42,7 +42,6 @@ export function isProgramDayValidated(
 export function countValidatedDayStreak(
   jours: DayPlan[],
   upToJour: number,
-  mealVisibleIdx: number[],
   mealChecklist: MealChecklistState,
   waterProgress: WaterProgressState,
   stepProgress: StepProgressState,
@@ -52,7 +51,7 @@ export function countValidatedDayStreak(
   for (let j = upToJour; j >= 1; j--) {
     const day = jours.find((d) => d.jour === j);
     if (!day) break;
-    if (!isProgramDayValidated(day, mealVisibleIdx, mealChecklist, waterProgress, stepProgress, profile)) {
+    if (!isProgramDayValidated(day, mealChecklist, waterProgress, stepProgress, profile)) {
       break;
     }
     streak++;
@@ -69,12 +68,12 @@ export function programDayMilestoneLabel(jour: number, dayCount: number): string
 
 export function getProgramDayProgress(
   day: DayPlan,
-  mealVisibleIdx: number[],
   mealChecklist: MealChecklistState,
   waterProgress: WaterProgressState,
   stepProgress: StepProgressState,
   profile: OnboardingData,
 ): { checked: number; total: number; validated: boolean } {
+  const mealVisibleIdx = visibleMealIndicesForDay(day.repas, profile.rythmeRepas);
   const mealSlots = mealVisibleIdx.filter((i) => i < day.repas.length).length;
   const checkedMeals = mealVisibleIdx.filter(
     (i) => i < day.repas.length && mealChecklist[mealKey(day.jour, i)],
@@ -89,6 +88,6 @@ export function getProgramDayProgress(
   return {
     checked,
     total,
-    validated: isProgramDayValidated(day, mealVisibleIdx, mealChecklist, waterProgress, stepProgress, profile),
+    validated: isProgramDayValidated(day, mealChecklist, waterProgress, stepProgress, profile),
   };
 }

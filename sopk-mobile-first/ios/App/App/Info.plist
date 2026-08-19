@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Régime SOPK</string>
+        <string>SOPK Nutrition</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -48,8 +48,8 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Régime SOPK lit votre nombre de pas pour remplir automatiquement votre suivi marche du jour, sans partager ces données sur Internet.</string>
+	<string>SOPK Nutrition lit votre nombre de pas pour remplir automatiquement votre suivi marche du jour, sans partager ces données sur Internet.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>Régime SOPK n&apos;écrit pas vos données de santé ; cette autorisation peut être demandée par iOS avec la lecture.</string>
+	<string>SOPK Nutrition n&apos;écrit pas vos données de santé ; cette autorisation peut être demandée par iOS avec la lecture.</string>
 </dict>
 </plist>

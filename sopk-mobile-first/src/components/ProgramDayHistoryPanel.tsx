@@ -4,7 +4,6 @@ import { useMemo } from "react";
 
 import { programDayToDateLabel } from "@/components/PlanView";
 import { getProgramDayProgress } from "@/utils/dayValidation";
-import { visibleMealIndices } from "@/utils/planTracking";
 import type {
   DayPlan,
   DeviationLogState,
@@ -36,14 +35,12 @@ export function buildProgramDayHistoryEntries(
   stepProgress: StepProgressState,
   deviationLog: DeviationLogState,
 ): ProgramDayHistoryEntry[] {
-  const mealVisibleIdx = visibleMealIndices(profile.rythmeRepas);
   return jours
     .filter((d) => d.jour <= todayJour)
     .sort((a, b) => b.jour - a.jour)
     .map((day) => {
       const progress = getProgramDayProgress(
         day,
-        mealVisibleIdx,
         mealChecklist,
         waterProgress,
         stepProgress,

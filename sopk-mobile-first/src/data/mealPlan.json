@@ -18,7 +18,7 @@
           "type": "dejeuner",
           "nom": "Salade quinoa, poulet, avocat, légumes croquants",
           "calories": 470,
-          "substitution": "Tofu grillé à la place du poulet",
+          "substitution": "Salade quinoa, tofu grillé, avocat, légumes croquants",
           "image": "/images/meals/salade-quinoa-poulet-avocat-legumes-croquants.jpg"
         },
         {
@@ -57,7 +57,7 @@
           "type": "dejeuner",
           "nom": "Buddha bowl lentilles, crudités, feta",
           "calories": 460,
-          "substitution": "Pois chiches à la place des lentilles",
+          "substitution": "Buddha bowl pois chiches, crudités, feta",
           "image": "/images/meals/buddha-bowl-lentilles-crudites-feta.jpg"
         },
         {
@@ -96,7 +96,7 @@
           "type": "dejeuner",
           "nom": "Wrap complet au thon, crudités, houmous",
           "calories": 450,
-          "substitution": "Wrap poulet ou tofu",
+          "substitution": "Wrap complet au poulet, crudités, houmous",
           "image": "/images/meals/wrap-complet-au-thon-crudites-houmous.jpg"
         },
         {
@@ -110,7 +110,7 @@
           "type": "diner",
           "nom": "Chili maison haricots rouges + salade verte",
           "calories": 540,
-          "substitution": "Bol de lentilles épicées",
+          "substitution": "Bol de lentilles épicées + salade verte",
           "image": "/images/meals/chili-maison-haricots-rouges-salade-verte.jpg"
         }
       ],
@@ -149,7 +149,7 @@
           "type": "diner",
           "nom": "Soupe de légumes + pois chiches + salade",
           "calories": 500,
-          "substitution": "Soupe + omelette aux herbes",
+          "substitution": "Soupe de légumes + omelette aux herbes",
           "image": "/images/meals/soupe-de-legumes-pois-chiches-salade.jpg"
         }
       ],
@@ -167,14 +167,14 @@
           "type": "petit_dejeuner",
           "nom": "Smoothie protéiné (sans sucre ajouté) + flocons",
           "calories": 370,
-          "substitution": "Skyr + banane + graines",
+          "substitution": "Skyr + banane + graines de lin",
           "image": "/images/meals/smoothie-proteine-sans-sucre-ajoute-flocons.jpg"
         },
         {
           "type": "dejeuner",
           "nom": "Salade pois chiches, concombre, tomate, feta",
           "calories": 450,
-          "substitution": "Lentilles vertes à la place des pois chiches",
+          "substitution": "Salade lentilles vertes, concombre, tomate, feta",
           "image": "/images/meals/salade-pois-chiches-concombre-tomate-feta.jpg"
         },
         {
@@ -188,7 +188,7 @@
           "type": "diner",
           "nom": "Poulet au curry doux + chou-fleur + riz complet",
           "calories": 540,
-          "substitution": "Curry de tofu",
+          "substitution": "Curry de tofu + chou-fleur + riz complet",
           "image": "/images/meals/poulet-au-curry-doux-chou-fleur-riz-complet.jpg"
         }
       ],
@@ -213,7 +213,7 @@
           "type": "dejeuner",
           "nom": "Bowl saumon fumé, riz complet, avocat, concombre",
           "calories": 500,
-          "substitution": "Bowl tofu fumé",
+          "substitution": "Bowl tofu fumé, riz complet, avocat, concombre",
           "image": "/images/meals/bowl-saumon-fume-riz-complet-avocat-concombre.jpg"
         },
         {
@@ -252,7 +252,7 @@
           "type": "dejeuner",
           "nom": "Salade niçoise revisitée (sans pommes de terre)",
           "calories": 460,
-          "substitution": "Version végétarienne avec pois chiches",
+          "substitution": "Salade niçoise végétarienne aux pois chiches",
           "image": "/images/meals/salade-nicoise-revisitee-sans-pommes-de-terre.jpg"
         },
         {
@@ -277,132 +277,15 @@
     },
     {
       "jour": 8,
-      "hydratationLitres": 2.2,
-      "rappelHydratation": "Jour 8: repartir sur une bonne hydratation relance ta semaine et réduit les grignotages.",
-      "repas": [
-        {
-          "type": "petit_dejeuner",
-          "nom": "Omelette épinards + pain complet",
-          "calories": 390,
-          "substitution": "Yaourt grec nature + fruits rouges + graines de chia",
-          "image": "/images/meals/omelette-epinards-pain-complet.jpg"
-        },
-        {
-          "type": "dejeuner",
-          "nom": "Salade quinoa, poulet, avocat, légumes croquants",
-          "calories": 470,
-          "substitution": "Tofu grillé à la place du poulet",
-          "image": "/images/meals/salade-quinoa-poulet-avocat-legumes-croquants.jpg"
-        },
-        {
-          "type": "collation",
-          "nom": "Pomme + 10 amandes",
-          "calories": 170,
-          "substitution": "Poire + noix",
-          "image": "/images/meals/pomme-10-amandes.jpg"
-        },
-        {
-          "type": "diner",
-          "nom": "Saumon au four + brocoli + patate douce",
-          "calories": 520,
-          "substitution": "Cabillaud + haricots verts + riz complet",
-          "image": "/images/meals/saumon-au-four-brocoli-patate-douce.jpg"
-        }
-      ],
-      "conseils": [
-        "Commence chaque repas par une source de protéines.",
-        "Évite les jus de fruits, préfère le fruit entier."
-      ]
-    },
-    {
-      "jour": 9,
       "hydratationLitres": 2.3,
-      "rappelHydratation": "Jour 9: l’eau maintient une énergie stable pendant la journée active.",
+      "rappelHydratation": "Jour 8: nouvelle semaine, des menus différents pour garder le plaisir et la variété.",
       "repas": [
         {
           "type": "petit_dejeuner",
-          "nom": "Porridge flocons d’avoine, lait végétal, cannelle",
-          "calories": 360,
-          "substitution": "Pain complet + fromage blanc + kiwi",
-          "image": "/images/meals/porridge-flocons-d-avoine-lait-vegetal-cannelle.jpg"
-        },
-        {
-          "type": "dejeuner",
-          "nom": "Buddha bowl lentilles, crudités, feta",
-          "calories": 460,
-          "substitution": "Pois chiches à la place des lentilles",
-          "image": "/images/meals/buddha-bowl-lentilles-crudites-feta.jpg"
-        },
-        {
-          "type": "collation",
-          "nom": "Fromage blanc nature + graines de courge",
-          "calories": 180,
-          "substitution": "Skyr nature + cannelle",
-          "image": "/images/meals/fromage-blanc-nature-graines-de-courge.jpg"
-        },
-        {
-          "type": "diner",
-          "nom": "Dinde sautée + courgettes + riz basmati complet",
-          "calories": 530,
-          "substitution": "Tempeh sauté + légumes + quinoa",
-          "image": "/images/meals/dinde-sautee-courgettes-riz-basmati-complet.jpg"
-        }
-      ],
-      "conseils": [
-        "Ajoute une cuillère d’huile d’olive sur tes légumes.",
-        "Hydrate-toi avant la collation pour vérifier la vraie faim."
-      ]
-    },
-    {
-      "jour": 10,
-      "hydratationLitres": 2.4,
-      "rappelHydratation": "Jour 10: bien t’hydrater améliore la digestion des repas riches en fibres.",
-      "repas": [
-        {
-          "type": "petit_dejeuner",
-          "nom": "Skyr + noix + framboises",
-          "calories": 340,
-          "substitution": "Omelette 2 œufs + tomates cerises",
-          "image": "/images/meals/skyr-noix-framboises.jpg"
-        },
-        {
-          "type": "dejeuner",
-          "nom": "Wrap complet au thon, crudités, houmous",
-          "calories": 450,
-          "substitution": "Wrap poulet ou tofu",
-          "image": "/images/meals/wrap-complet-au-thon-crudites-houmous.jpg"
-        },
-        {
-          "type": "collation",
-          "nom": "Carottes + houmous",
-          "calories": 170,
-          "substitution": "Concombre + guacamole léger",
-          "image": "/images/meals/carottes-houmous.jpg"
-        },
-        {
-          "type": "diner",
-          "nom": "Chili maison haricots rouges + salade verte",
-          "calories": 540,
-          "substitution": "Bol de lentilles épicées",
-          "image": "/images/meals/chili-maison-haricots-rouges-salade-verte.jpg"
-        }
-      ],
-      "conseils": [
-        "Fais une marche de 15 minutes après le déjeuner.",
-        "Privilégie des glucides complets le soir."
-      ]
-    },
-    {
-      "jour": 11,
-      "hydratationLitres": 2.2,
-      "rappelHydratation": "Jour 11: l’hydratation régulière réduit la confusion entre soif et faim.",
-      "repas": [
-        {
-          "type": "petit_dejeuner",
-          "nom": "Toast complet, avocat, œuf poché",
-          "calories": 380,
-          "substitution": "Galettes de sarrasin + fromage blanc",
-          "image": "/images/meals/toast-complet-avocat-uf-poche.jpg"
+          "nom": "Smoothie protéiné (sans sucre ajouté) + flocons",
+          "calories": 370,
+          "substitution": "Skyr + banane + graines de lin",
+          "image": "/images/meals/smoothie-proteine-sans-sucre-ajoute-flocons.jpg"
         },
         {
           "type": "dejeuner",
@@ -413,6 +296,84 @@
         },
         {
           "type": "collation",
+          "nom": "Carottes + houmous",
+          "calories": 170,
+          "substitution": "Concombre + guacamole léger",
+          "image": "/images/meals/carottes-houmous.jpg"
+        },
+        {
+          "type": "diner",
+          "nom": "Dinde sautée + courgettes + riz basmati complet",
+          "calories": 530,
+          "substitution": "Tempeh sauté + légumes + quinoa",
+          "image": "/images/meals/dinde-sautee-courgettes-riz-basmati-complet.jpg"
+        }
+      ],
+      "conseils": [
+        "Varie les sources de protéines cette semaine.",
+        "Prépare une collation portable pour les journées chargées."
+      ]
+    },
+    {
+      "jour": 9,
+      "hydratationLitres": 2.4,
+      "rappelHydratation": "Jour 9: l’eau aide à digérer les repas riches en légumineuses et fibres.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Pancakes flocons d’avoine maison + skyr",
+          "calories": 390,
+          "substitution": "Bol de muesli sans sucre + yaourt nature",
+          "image": "/images/meals/pancakes-flocons-d-avoine-maison-skyr.jpg"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Salade niçoise revisitée (sans pommes de terre)",
+          "calories": 460,
+          "substitution": "Salade niçoise végétarienne aux pois chiches",
+          "image": "/images/meals/salade-nicoise-revisitee-sans-pommes-de-terre.jpg"
+        },
+        {
+          "type": "collation",
+          "nom": "Pomme + 10 amandes",
+          "calories": 170,
+          "substitution": "Poire + noix",
+          "image": "/images/meals/pomme-10-amandes.jpg"
+        },
+        {
+          "type": "diner",
+          "nom": "Poulet au curry doux + chou-fleur + riz complet",
+          "calories": 540,
+          "substitution": "Curry de tofu + chou-fleur + riz complet",
+          "image": "/images/meals/poulet-au-curry-doux-chou-fleur-riz-complet.jpg"
+        }
+      ],
+      "conseils": [
+        "Ajoute des herbes fraîches pour relever les plats sans sel.",
+        "Marche 10 minutes après le dîner si possible."
+      ]
+    },
+    {
+      "jour": 10,
+      "hydratationLitres": 2.2,
+      "rappelHydratation": "Jour 10: bien s’hydrater limite les fringales en fin d’après-midi.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Porridge flocons d’avoine, lait végétal, cannelle",
+          "calories": 360,
+          "substitution": "Pain complet + fromage blanc + kiwi",
+          "image": "/images/meals/porridge-flocons-d-avoine-lait-vegetal-cannelle.jpg"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Salade pois chiches, concombre, tomate, feta",
+          "calories": 450,
+          "substitution": "Salade lentilles vertes, concombre, tomate, feta",
+          "image": "/images/meals/salade-pois-chiches-concombre-tomate-feta.jpg"
+        },
+        {
+          "type": "collation",
           "nom": "Orange + 1 carré chocolat noir 85%",
           "calories": 160,
           "substitution": "Clémentines + noisettes",
@@ -420,138 +381,99 @@
         },
         {
           "type": "diner",
-          "nom": "Soupe de légumes + pois chiches + salade",
-          "calories": 500,
-          "substitution": "Soupe + omelette aux herbes",
-          "image": "/images/meals/soupe-de-legumes-pois-chiches-salade.jpg"
+          "nom": "Steak haché 5% + haricots verts + quinoa",
+          "calories": 510,
+          "substitution": "Galette végétale + légumes + quinoa",
+          "image": "/images/meals/steak-hache-5-haricots-verts-quinoa.jpg"
         }
       ],
       "conseils": [
-        "Garde un dîner léger mais riche en fibres.",
-        "Évite les écrans 45 minutes avant le coucher."
+        "Privilégie les légumes colorés à chaque repas.",
+        "Évite de grignoter devant un écran."
+      ]
+    },
+    {
+      "jour": 11,
+      "hydratationLitres": 2.5,
+      "rappelHydratation": "Jour 11: une bonne hydratation soutient l’énergie en milieu de semaine.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Skyr + noix + framboises",
+          "calories": 340,
+          "substitution": "Omelette 2 œufs + tomates cerises",
+          "image": "/images/meals/skyr-noix-framboises.jpg"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Buddha bowl lentilles, crudités, feta",
+          "calories": 460,
+          "substitution": "Buddha bowl pois chiches, crudités, feta",
+          "image": "/images/meals/buddha-bowl-lentilles-crudites-feta.jpg"
+        },
+        {
+          "type": "collation",
+          "nom": "Kiwi + noix de cajou",
+          "calories": 160,
+          "substitution": "Pomme + pistaches",
+          "image": "/images/meals/kiwi-noix-de-cajou.jpg"
+        },
+        {
+          "type": "diner",
+          "nom": "Saumon au four + brocoli + patate douce",
+          "calories": 520,
+          "substitution": "Cabillaud + haricots verts + riz complet",
+          "image": "/images/meals/saumon-au-four-brocoli-patate-douce.jpg"
+        }
+      ],
+      "conseils": [
+        "Mange lentement pour mieux sentir la satiété.",
+        "Prévois une portion de légumes supplémentaire au déjeuner."
       ]
     },
     {
       "jour": 12,
-      "hydratationLitres": 2.5,
-      "rappelHydratation": "Jour 12: une hydratation plus haute soutient le métabolisme lors des journées denses.",
+      "hydratationLitres": 2.3,
+      "rappelHydratation": "Jour 12: boire régulièrement aide à tenir le rythme sans coup de fatigue.",
       "repas": [
         {
           "type": "petit_dejeuner",
-          "nom": "Smoothie protéiné (sans sucre ajouté) + flocons",
-          "calories": 370,
-          "substitution": "Skyr + banane + graines",
-          "image": "/images/meals/smoothie-proteine-sans-sucre-ajoute-flocons.jpg"
+          "nom": "Toast complet, avocat, œuf poché",
+          "calories": 390,
+          "substitution": "Galettes de sarrasin + fromage blanc",
+          "image": "/images/meals/toast-complet-avocat-oeuf-poche.jpg"
         },
         {
           "type": "dejeuner",
-          "nom": "Salade pois chiches, concombre, tomate, feta",
-          "calories": 450,
-          "substitution": "Lentilles vertes à la place des pois chiches",
-          "image": "/images/meals/salade-pois-chiches-concombre-tomate-feta.jpg"
+          "nom": "Bowl saumon fumé, riz complet, avocat, concombre",
+          "calories": 500,
+          "substitution": "Bowl tofu fumé, riz complet, avocat, concombre",
+          "image": "/images/meals/bowl-saumon-fume-riz-complet-avocat-concombre.jpg"
         },
         {
           "type": "collation",
-          "nom": "Yaourt nature + myrtilles",
-          "calories": 170,
-          "substitution": "Fromage blanc + fraises",
-          "image": "/images/meals/yaourt-nature-myrtilles.jpg"
+          "nom": "Fruits rouges + fromage blanc",
+          "calories": 150,
+          "substitution": "Compote sans sucre + yaourt nature",
+          "image": "/images/meals/fruits-rouges-fromage-blanc.jpg"
         },
         {
           "type": "diner",
-          "nom": "Poulet au curry doux + chou-fleur + riz complet",
+          "nom": "Chili maison haricots rouges + salade verte",
           "calories": 540,
-          "substitution": "Curry de tofu",
-          "image": "/images/meals/poulet-au-curry-doux-chou-fleur-riz-complet.jpg"
+          "substitution": "Bol de lentilles épicées + salade verte",
+          "image": "/images/meals/chili-maison-haricots-rouges-salade-verte.jpg"
         }
       ],
       "conseils": [
-        "Mange lentement pour améliorer la satiété.",
-        "Vise 7 000 à 9 000 pas dans la journée."
+        "Batch-cooking le soir pour le lendemain.",
+        "Hydrate-toi avant chaque repas."
       ]
     },
     {
       "jour": 13,
       "hydratationLitres": 2.4,
-      "rappelHydratation": "Jour 13: maintenir l’hydratation t’aide à limiter la fatigue en fin de semaine.",
-      "repas": [
-        {
-          "type": "petit_dejeuner",
-          "nom": "Pancakes flocons d’avoine maison + skyr",
-          "calories": 390,
-          "substitution": "Bol de muesli sans sucre + yaourt nature",
-          "image": "/images/meals/pancakes-flocons-d-avoine-maison-skyr.jpg"
-        },
-        {
-          "type": "dejeuner",
-          "nom": "Bowl saumon fumé, riz complet, avocat, concombre",
-          "calories": 500,
-          "substitution": "Bowl tofu fumé",
-          "image": "/images/meals/bowl-saumon-fume-riz-complet-avocat-concombre.jpg"
-        },
-        {
-          "type": "collation",
-          "nom": "Kiwi + noix de cajou",
-          "calories": 160,
-          "substitution": "Pomme + pistaches",
-          "image": "/images/meals/kiwi-noix-de-cajou.jpg"
-        },
-        {
-          "type": "diner",
-          "nom": "Steak haché 5% + haricots verts + quinoa",
-          "calories": 510,
-          "substitution": "Galette végétale + légumes + quinoa",
-          "image": "/images/meals/steak-hache-5-haricots-verts-quinoa.jpg"
-        }
-      ],
-      "conseils": [
-        "Prépare tes repas du lendemain pour réduire le stress.",
-        "Hydrate-toi régulièrement en petites quantités."
-      ]
-    },
-    {
-      "jour": 14,
-      "hydratationLitres": 2.3,
-      "rappelHydratation": "Jour 14: terminer ce cycle hydratée renforce l’adhérence au programme.",
-      "repas": [
-        {
-          "type": "petit_dejeuner",
-          "nom": "Œufs brouillés + champignons + pain complet",
-          "calories": 380,
-          "substitution": "Tofu brouillé + pain complet",
-          "image": "/images/meals/ufs-brouilles-champignons-pain-complet.jpg"
-        },
-        {
-          "type": "dejeuner",
-          "nom": "Salade niçoise revisitée (sans pommes de terre)",
-          "calories": 460,
-          "substitution": "Version végétarienne avec pois chiches",
-          "image": "/images/meals/salade-nicoise-revisitee-sans-pommes-de-terre.jpg"
-        },
-        {
-          "type": "collation",
-          "nom": "Fruits rouges + fromage blanc",
-          "calories": 150,
-          "substitution": "Compote sans sucre + yaourt nature",
-          "image": "/images/meals/fruits-rouges-fromage-blanc.jpg"
-        },
-        {
-          "type": "diner",
-          "nom": "Gratin de légumes + filet de poisson",
-          "calories": 520,
-          "substitution": "Gratin de légumes + tempeh",
-          "image": "/images/meals/gratin-de-legumes-filet-de-poisson.jpg"
-        }
-      ],
-      "conseils": [
-        "Fais le bilan de la semaine sans culpabilité.",
-        "Choisis un objectif simple pour la semaine suivante."
-      ]
-    },
-    {
-      "jour": 15,
-      "hydratationLitres": 2.2,
-      "rappelHydratation": "Jour 15: boire avant les repas aide à mieux respecter les quantités prévues.",
+      "rappelHydratation": "Jour 13: l’eau facilite le transit avec les repas riches en fibres.",
       "repas": [
         {
           "type": "petit_dejeuner",
@@ -564,86 +486,8 @@
           "type": "dejeuner",
           "nom": "Salade quinoa, poulet, avocat, légumes croquants",
           "calories": 470,
-          "substitution": "Tofu grillé à la place du poulet",
+          "substitution": "Salade quinoa, tofu grillé, avocat, légumes croquants",
           "image": "/images/meals/salade-quinoa-poulet-avocat-legumes-croquants.jpg"
-        },
-        {
-          "type": "collation",
-          "nom": "Pomme + 10 amandes",
-          "calories": 170,
-          "substitution": "Poire + noix",
-          "image": "/images/meals/pomme-10-amandes.jpg"
-        },
-        {
-          "type": "diner",
-          "nom": "Saumon au four + brocoli + patate douce",
-          "calories": 520,
-          "substitution": "Cabillaud + haricots verts + riz complet",
-          "image": "/images/meals/saumon-au-four-brocoli-patate-douce.jpg"
-        }
-      ],
-      "conseils": [
-        "Commence chaque repas par une source de protéines.",
-        "Évite les jus de fruits, préfère le fruit entier."
-      ]
-    },
-    {
-      "jour": 16,
-      "hydratationLitres": 2.3,
-      "rappelHydratation": "Jour 16: une hydratation stable améliore la concentration et les décisions alimentaires.",
-      "repas": [
-        {
-          "type": "petit_dejeuner",
-          "nom": "Porridge flocons d’avoine, lait végétal, cannelle",
-          "calories": 360,
-          "substitution": "Pain complet + fromage blanc + kiwi",
-          "image": "/images/meals/porridge-flocons-d-avoine-lait-vegetal-cannelle.jpg"
-        },
-        {
-          "type": "dejeuner",
-          "nom": "Buddha bowl lentilles, crudités, feta",
-          "calories": 460,
-          "substitution": "Pois chiches à la place des lentilles",
-          "image": "/images/meals/buddha-bowl-lentilles-crudites-feta.jpg"
-        },
-        {
-          "type": "collation",
-          "nom": "Fromage blanc nature + graines de courge",
-          "calories": 180,
-          "substitution": "Skyr nature + cannelle",
-          "image": "/images/meals/fromage-blanc-nature-graines-de-courge.jpg"
-        },
-        {
-          "type": "diner",
-          "nom": "Dinde sautée + courgettes + riz basmati complet",
-          "calories": 530,
-          "substitution": "Tempeh sauté + légumes + quinoa",
-          "image": "/images/meals/dinde-sautee-courgettes-riz-basmati-complet.jpg"
-        }
-      ],
-      "conseils": [
-        "Ajoute une cuillère d’huile d’olive sur tes légumes.",
-        "Hydrate-toi avant la collation pour vérifier la vraie faim."
-      ]
-    },
-    {
-      "jour": 17,
-      "hydratationLitres": 2.4,
-      "rappelHydratation": "Jour 17: l’eau facilite le transit et aide à réduire l’inconfort digestif.",
-      "repas": [
-        {
-          "type": "petit_dejeuner",
-          "nom": "Skyr + noix + framboises",
-          "calories": 340,
-          "substitution": "Omelette 2 œufs + tomates cerises",
-          "image": "/images/meals/skyr-noix-framboises.jpg"
-        },
-        {
-          "type": "dejeuner",
-          "nom": "Wrap complet au thon, crudités, houmous",
-          "calories": 450,
-          "substitution": "Wrap poulet ou tofu",
-          "image": "/images/meals/wrap-complet-au-thon-crudites-houmous.jpg"
         },
         {
           "type": "collation",
@@ -654,152 +498,35 @@
         },
         {
           "type": "diner",
-          "nom": "Chili maison haricots rouges + salade verte",
-          "calories": 540,
-          "substitution": "Bol de lentilles épicées",
-          "image": "/images/meals/chili-maison-haricots-rouges-salade-verte.jpg"
+          "nom": "Gratin de légumes + filet de poisson",
+          "calories": 520,
+          "substitution": "Gratin de légumes + tempeh",
+          "image": "/images/meals/gratin-de-legumes-filet-de-poisson.jpg"
         }
       ],
       "conseils": [
-        "Fais une marche de 15 minutes après le déjeuner.",
-        "Privilégie des glucides complets le soir."
+        "Garde une collation protéinée à portée de main.",
+        "Couche-toi à heure fixe si possible."
       ]
     },
     {
-      "jour": 18,
+      "jour": 14,
       "hydratationLitres": 2.2,
-      "rappelHydratation": "Jour 18: boire régulièrement aide à garder une faim plus prévisible.",
+      "rappelHydratation": "Jour 14: fin de cycle sur deux semaines variées - continue à boire régulièrement.",
       "repas": [
         {
           "type": "petit_dejeuner",
-          "nom": "Toast complet, avocat, œuf poché",
-          "calories": 380,
-          "substitution": "Galettes de sarrasin + fromage blanc",
-          "image": "/images/meals/toast-complet-avocat-uf-poche.jpg"
+          "nom": "Pain complet + fromage blanc + kiwi",
+          "calories": 360,
+          "substitution": "Porridge flocons d’avoine, lait végétal, cannelle",
+          "image": "/images/meals/porridge-flocons-d-avoine-lait-vegetal-cannelle.jpg"
         },
         {
           "type": "dejeuner",
-          "nom": "Poisson blanc, quinoa, légumes rôtis",
-          "calories": 480,
-          "substitution": "Tofu mariné + quinoa + légumes",
-          "image": "/images/meals/poisson-blanc-quinoa-legumes-rotis.jpg"
-        },
-        {
-          "type": "collation",
-          "nom": "Orange + 1 carré chocolat noir 85%",
-          "calories": 160,
-          "substitution": "Clémentines + noisettes",
-          "image": "/images/meals/orange-1-carre-chocolat-noir-85.jpg"
-        },
-        {
-          "type": "diner",
-          "nom": "Soupe de légumes + pois chiches + salade",
-          "calories": 500,
-          "substitution": "Soupe + omelette aux herbes",
-          "image": "/images/meals/soupe-de-legumes-pois-chiches-salade.jpg"
-        }
-      ],
-      "conseils": [
-        "Garde un dîner léger mais riche en fibres.",
-        "Évite les écrans 45 minutes avant le coucher."
-      ]
-    },
-    {
-      "jour": 19,
-      "hydratationLitres": 2.5,
-      "rappelHydratation": "Jour 19: une hydratation élevée soutient l’effort et la récupération de la journée.",
-      "repas": [
-        {
-          "type": "petit_dejeuner",
-          "nom": "Smoothie protéiné (sans sucre ajouté) + flocons",
-          "calories": 370,
-          "substitution": "Skyr + banane + graines",
-          "image": "/images/meals/smoothie-proteine-sans-sucre-ajoute-flocons.jpg"
-        },
-        {
-          "type": "dejeuner",
-          "nom": "Salade pois chiches, concombre, tomate, feta",
+          "nom": "Wrap complet au thon, crudités, houmous",
           "calories": 450,
-          "substitution": "Lentilles vertes à la place des pois chiches",
-          "image": "/images/meals/salade-pois-chiches-concombre-tomate-feta.jpg"
-        },
-        {
-          "type": "collation",
-          "nom": "Yaourt nature + myrtilles",
-          "calories": 170,
-          "substitution": "Fromage blanc + fraises",
-          "image": "/images/meals/yaourt-nature-myrtilles.jpg"
-        },
-        {
-          "type": "diner",
-          "nom": "Poulet au curry doux + chou-fleur + riz complet",
-          "calories": 540,
-          "substitution": "Curry de tofu",
-          "image": "/images/meals/poulet-au-curry-doux-chou-fleur-riz-complet.jpg"
-        }
-      ],
-      "conseils": [
-        "Mange lentement pour améliorer la satiété.",
-        "Vise 7 000 à 9 000 pas dans la journée."
-      ]
-    },
-    {
-      "jour": 20,
-      "hydratationLitres": 2.4,
-      "rappelHydratation": "Jour 20: rester hydratée limite les baisses d’énergie et les envies impulsives.",
-      "repas": [
-        {
-          "type": "petit_dejeuner",
-          "nom": "Pancakes flocons d’avoine maison + skyr",
-          "calories": 390,
-          "substitution": "Bol de muesli sans sucre + yaourt nature",
-          "image": "/images/meals/pancakes-flocons-d-avoine-maison-skyr.jpg"
-        },
-        {
-          "type": "dejeuner",
-          "nom": "Bowl saumon fumé, riz complet, avocat, concombre",
-          "calories": 500,
-          "substitution": "Bowl tofu fumé",
-          "image": "/images/meals/bowl-saumon-fume-riz-complet-avocat-concombre.jpg"
-        },
-        {
-          "type": "collation",
-          "nom": "Kiwi + noix de cajou",
-          "calories": 160,
-          "substitution": "Pomme + pistaches",
-          "image": "/images/meals/kiwi-noix-de-cajou.jpg"
-        },
-        {
-          "type": "diner",
-          "nom": "Steak haché 5% + haricots verts + quinoa",
-          "calories": 510,
-          "substitution": "Galette végétale + légumes + quinoa",
-          "image": "/images/meals/steak-hache-5-haricots-verts-quinoa.jpg"
-        }
-      ],
-      "conseils": [
-        "Prépare tes repas du lendemain pour réduire le stress.",
-        "Hydrate-toi régulièrement en petites quantités."
-      ]
-    },
-    {
-      "jour": 21,
-      "hydratationLitres": 2.3,
-      "rappelHydratation": "Jour 21: fin de programme, l’hydratation reste une habitude clé à conserver.",
-      "repas": [
-        {
-          "type": "petit_dejeuner",
-          "nom": "Œufs brouillés + champignons + pain complet",
-          "calories": 380,
-          "substitution": "Tofu brouillé + pain complet",
-          "image": "/images/meals/ufs-brouilles-champignons-pain-complet.jpg"
-        },
-        {
-          "type": "dejeuner",
-          "nom": "Salade niçoise revisitée (sans pommes de terre)",
-          "calories": 460,
-          "substitution": "Version végétarienne avec pois chiches",
-          "image": "/images/meals/salade-nicoise-revisitee-sans-pommes-de-terre.jpg"
+          "substitution": "Wrap complet au poulet, crudités, houmous",
+          "image": "/images/meals/wrap-complet-au-thon-crudites-houmous.jpg"
         },
         {
           "type": "collation",
@@ -810,6 +537,240 @@
         },
         {
           "type": "diner",
+          "nom": "Soupe de légumes + pois chiches + salade",
+          "calories": 500,
+          "substitution": "Soupe de légumes + omelette aux herbes",
+          "image": "/images/meals/soupe-de-legumes-pois-chiches-salade.jpg"
+        }
+      ],
+      "conseils": [
+        "Fais le point sur ce qui a bien fonctionné.",
+        "Planifie la semaine suivante sans rigidité."
+      ]
+    },
+    {
+      "jour": 15,
+      "hydratationLitres": 2.3,
+      "rappelHydratation": "Jour 15: nouvelle semaine, des menus différents pour garder le plaisir et la variété.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Smoothie protéiné (sans sucre ajouté) + flocons",
+          "calories": 370,
+          "substitution": "Skyr + banane + graines de lin",
+          "image": "/images/meals/smoothie-proteine-sans-sucre-ajoute-flocons.jpg"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Poisson blanc, quinoa, légumes rôtis",
+          "calories": 480,
+          "substitution": "Tofu mariné + quinoa + légumes",
+          "image": "/images/meals/poisson-blanc-quinoa-legumes-rotis.jpg"
+        },
+        {
+          "type": "collation",
+          "nom": "Carottes + houmous",
+          "calories": 170,
+          "substitution": "Concombre + guacamole léger",
+          "image": "/images/meals/carottes-houmous.jpg"
+        },
+        {
+          "type": "diner",
+          "nom": "Dinde sautée + courgettes + riz basmati complet",
+          "calories": 530,
+          "substitution": "Tempeh sauté + légumes + quinoa",
+          "image": "/images/meals/dinde-sautee-courgettes-riz-basmati-complet.jpg"
+        }
+      ],
+      "conseils": [
+        "Varie les sources de protéines cette semaine.",
+        "Prépare une collation portable pour les journées chargées."
+      ]
+    },
+    {
+      "jour": 16,
+      "hydratationLitres": 2.4,
+      "rappelHydratation": "Jour 16: l’eau aide à digérer les repas riches en légumineuses et fibres.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Pancakes flocons d’avoine maison + skyr",
+          "calories": 390,
+          "substitution": "Bol de muesli sans sucre + yaourt nature",
+          "image": "/images/meals/pancakes-flocons-d-avoine-maison-skyr.jpg"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Salade niçoise revisitée (sans pommes de terre)",
+          "calories": 460,
+          "substitution": "Salade niçoise végétarienne aux pois chiches",
+          "image": "/images/meals/salade-nicoise-revisitee-sans-pommes-de-terre.jpg"
+        },
+        {
+          "type": "collation",
+          "nom": "Pomme + 10 amandes",
+          "calories": 170,
+          "substitution": "Poire + noix",
+          "image": "/images/meals/pomme-10-amandes.jpg"
+        },
+        {
+          "type": "diner",
+          "nom": "Poulet au curry doux + chou-fleur + riz complet",
+          "calories": 540,
+          "substitution": "Curry de tofu + chou-fleur + riz complet",
+          "image": "/images/meals/poulet-au-curry-doux-chou-fleur-riz-complet.jpg"
+        }
+      ],
+      "conseils": [
+        "Ajoute des herbes fraîches pour relever les plats sans sel.",
+        "Marche 10 minutes après le dîner si possible."
+      ]
+    },
+    {
+      "jour": 17,
+      "hydratationLitres": 2.2,
+      "rappelHydratation": "Jour 17: bien s’hydrater limite les fringales en fin d’après-midi.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Porridge flocons d’avoine, lait végétal, cannelle",
+          "calories": 360,
+          "substitution": "Pain complet + fromage blanc + kiwi",
+          "image": "/images/meals/porridge-flocons-d-avoine-lait-vegetal-cannelle.jpg"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Salade pois chiches, concombre, tomate, feta",
+          "calories": 450,
+          "substitution": "Salade lentilles vertes, concombre, tomate, feta",
+          "image": "/images/meals/salade-pois-chiches-concombre-tomate-feta.jpg"
+        },
+        {
+          "type": "collation",
+          "nom": "Orange + 1 carré chocolat noir 85%",
+          "calories": 160,
+          "substitution": "Clémentines + noisettes",
+          "image": "/images/meals/orange-1-carre-chocolat-noir-85.jpg"
+        },
+        {
+          "type": "diner",
+          "nom": "Steak haché 5% + haricots verts + quinoa",
+          "calories": 510,
+          "substitution": "Galette végétale + légumes + quinoa",
+          "image": "/images/meals/steak-hache-5-haricots-verts-quinoa.jpg"
+        }
+      ],
+      "conseils": [
+        "Privilégie les légumes colorés à chaque repas.",
+        "Évite de grignoter devant un écran."
+      ]
+    },
+    {
+      "jour": 18,
+      "hydratationLitres": 2.5,
+      "rappelHydratation": "Jour 18: une bonne hydratation soutient l’énergie en milieu de semaine.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Skyr + noix + framboises",
+          "calories": 340,
+          "substitution": "Omelette 2 œufs + tomates cerises",
+          "image": "/images/meals/skyr-noix-framboises.jpg"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Buddha bowl lentilles, crudités, feta",
+          "calories": 460,
+          "substitution": "Buddha bowl pois chiches, crudités, feta",
+          "image": "/images/meals/buddha-bowl-lentilles-crudites-feta.jpg"
+        },
+        {
+          "type": "collation",
+          "nom": "Kiwi + noix de cajou",
+          "calories": 160,
+          "substitution": "Pomme + pistaches",
+          "image": "/images/meals/kiwi-noix-de-cajou.jpg"
+        },
+        {
+          "type": "diner",
+          "nom": "Saumon au four + brocoli + patate douce",
+          "calories": 520,
+          "substitution": "Cabillaud + haricots verts + riz complet",
+          "image": "/images/meals/saumon-au-four-brocoli-patate-douce.jpg"
+        }
+      ],
+      "conseils": [
+        "Mange lentement pour mieux sentir la satiété.",
+        "Prévois une portion de légumes supplémentaire au déjeuner."
+      ]
+    },
+    {
+      "jour": 19,
+      "hydratationLitres": 2.3,
+      "rappelHydratation": "Jour 19: boire régulièrement aide à tenir le rythme sans coup de fatigue.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Toast complet, avocat, œuf poché",
+          "calories": 390,
+          "substitution": "Galettes de sarrasin + fromage blanc",
+          "image": "/images/meals/toast-complet-avocat-oeuf-poche.jpg"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Bowl saumon fumé, riz complet, avocat, concombre",
+          "calories": 500,
+          "substitution": "Bowl tofu fumé, riz complet, avocat, concombre",
+          "image": "/images/meals/bowl-saumon-fume-riz-complet-avocat-concombre.jpg"
+        },
+        {
+          "type": "collation",
+          "nom": "Fruits rouges + fromage blanc",
+          "calories": 150,
+          "substitution": "Compote sans sucre + yaourt nature",
+          "image": "/images/meals/fruits-rouges-fromage-blanc.jpg"
+        },
+        {
+          "type": "diner",
+          "nom": "Chili maison haricots rouges + salade verte",
+          "calories": 540,
+          "substitution": "Bol de lentilles épicées + salade verte",
+          "image": "/images/meals/chili-maison-haricots-rouges-salade-verte.jpg"
+        }
+      ],
+      "conseils": [
+        "Batch-cooking le soir pour le lendemain.",
+        "Hydrate-toi avant chaque repas."
+      ]
+    },
+    {
+      "jour": 20,
+      "hydratationLitres": 2.4,
+      "rappelHydratation": "Jour 20: l’eau facilite le transit avec les repas riches en fibres.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Omelette épinards + pain complet",
+          "calories": 390,
+          "substitution": "Yaourt grec nature + fruits rouges + graines de chia",
+          "image": "/images/meals/omelette-epinards-pain-complet.jpg"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Salade quinoa, poulet, avocat, légumes croquants",
+          "calories": 470,
+          "substitution": "Salade quinoa, tofu grillé, avocat, légumes croquants",
+          "image": "/images/meals/salade-quinoa-poulet-avocat-legumes-croquants.jpg"
+        },
+        {
+          "type": "collation",
+          "nom": "Carottes + houmous",
+          "calories": 170,
+          "substitution": "Concombre + guacamole léger",
+          "image": "/images/meals/carottes-houmous.jpg"
+        },
+        {
+          "type": "diner",
           "nom": "Gratin de légumes + filet de poisson",
           "calories": 520,
           "substitution": "Gratin de légumes + tempeh",
@@ -817,8 +778,47 @@
         }
       ],
       "conseils": [
-        "Fais le bilan de la semaine sans culpabilité.",
-        "Choisis un objectif simple pour la semaine suivante."
+        "Garde une collation protéinée à portée de main.",
+        "Couche-toi à heure fixe si possible."
+      ]
+    },
+    {
+      "jour": 21,
+      "hydratationLitres": 2.2,
+      "rappelHydratation": "Jour 21: fin de cycle sur deux semaines variées - continue à boire régulièrement.",
+      "repas": [
+        {
+          "type": "petit_dejeuner",
+          "nom": "Pain complet + fromage blanc + kiwi",
+          "calories": 360,
+          "substitution": "Porridge flocons d’avoine, lait végétal, cannelle",
+          "image": "/images/meals/porridge-flocons-d-avoine-lait-vegetal-cannelle.jpg"
+        },
+        {
+          "type": "dejeuner",
+          "nom": "Wrap complet au thon, crudités, houmous",
+          "calories": 450,
+          "substitution": "Wrap complet au poulet, crudités, houmous",
+          "image": "/images/meals/wrap-complet-au-thon-crudites-houmous.jpg"
+        },
+        {
+          "type": "collation",
+          "nom": "Fruits rouges + fromage blanc",
+          "calories": 150,
+          "substitution": "Compote sans sucre + yaourt nature",
+          "image": "/images/meals/fruits-rouges-fromage-blanc.jpg"
+        },
+        {
+          "type": "diner",
+          "nom": "Soupe de légumes + pois chiches + salade",
+          "calories": 500,
+          "substitution": "Soupe de légumes + omelette aux herbes",
+          "image": "/images/meals/soupe-de-legumes-pois-chiches-salade.jpg"
+        }
+      ],
+      "conseils": [
+        "Fais le point sur ce qui a bien fonctionné.",
+        "Planifie la semaine suivante sans rigidité."
       ]
     }
   ]

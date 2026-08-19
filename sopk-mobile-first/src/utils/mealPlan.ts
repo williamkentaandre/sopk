@@ -1,4 +1,5 @@
 import mealPlanData from "@/data/mealPlan.json";
+import { MEAL_FLOOR_KCAL, MEAL_MAX_SHARE_OF_DAY, visibleMealIndicesForDay } from "@/utils/mealRhythm";
 import { todayIsoLocal } from "@/utils/storage";
 import { DayPlan, MealPlanData, OnboardingData } from "@/utils/types";
 
@@ -236,11 +237,30 @@ export function getTodayPlanDay(profile: Pick<OnboardingData, "parcoursPerte" | 
   return days[jour - 1];
 }
 
-export function getMealCaloriesForTarget(plannedMealCalories: number, day: DayPlan, targetDailyCalories: number): number {
-  const dayBaseTotal = day.repas.reduce((sum, meal) => sum + meal.calories, 0);
-  if (dayBaseTotal <= 0) return plannedMealCalories;
-  const ratio = targetDailyCalories / dayBaseTotal;
-  return Math.max(120, Math.round(plannedMealCalories * ratio));
+/**
+ * Calories d'un repas ramenées à la cible du jour.
+ *
+ * La normalisation se fait sur les seuls repas VISIBLES du rythme choisi en onboarding :
+ * sinon, retirer la collation ou un repas amputait silencieusement la cible calibrée
+ * médicalement (« 3 repas » ne servait que 87 % de la cible, « 2 repas » 64 %).
+ * Le total du jour prime : si la cible impose des repas copieux parce que
+ * l'utilisatrice n'en veut que deux, c'est la réponse correcte, pas un déficit.
+ */
+export function getMealCaloriesForTarget(
+  plannedMealCalories: number,
+  day: DayPlan,
+  targetDailyCalories: number,
+  rythmeRepas?: string,
+): number {
+  const visibleBaseTotal = visibleMealIndicesForDay(day.repas, rythmeRepas).reduce(
+    (sum, index) => sum + (day.repas[index]?.calories ?? 0),
+    0,
+  );
+  if (visibleBaseTotal <= 0) return plannedMealCalories;
+  const ratio = targetDailyCalories / visibleBaseTotal;
+  const scaled = Math.round(plannedMealCalories * ratio);
+  const ceiling = Math.round(targetDailyCalories * MEAL_MAX_SHARE_OF_DAY);
+  return Math.max(MEAL_FLOOR_KCAL, Math.min(ceiling, scaled));
 }
 
 export function getPersonalizedHydrationLiters(baseLiters: number, profile: OnboardingData): number {
